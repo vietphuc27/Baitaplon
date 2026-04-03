@@ -1,5 +1,8 @@
 package user;
 
+import auction.Auction;
+import item.Item;
+
 import java.util.ArrayList;
 import java.util.List;
 

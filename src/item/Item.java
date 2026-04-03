@@ -2,7 +2,7 @@ package item;
 
 import entity.Entity;
 
-abstract class Item extends Entity {
+public abstract class Item extends Entity {
     protected String name;
     protected String description;
     protected double startingPrice;

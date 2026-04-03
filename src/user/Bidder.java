@@ -1,5 +1,8 @@
 package user;
 
+import auction.Auction;
+import auction.BidTransaction;
+
 import java.util.ArrayList;
 import java.util.List;
 
