@@ -1,3 +1,4 @@
+package user;
 public class UserFactory {
     
     private static UserFactory instance;
