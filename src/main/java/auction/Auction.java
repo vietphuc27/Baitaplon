@@ -1,10 +1,10 @@
 package auction;
-import auction.AuctionStatus;
-import auction.BidTransaction;
+
 import user.Bidder;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Auction {
     private String auctionId;
