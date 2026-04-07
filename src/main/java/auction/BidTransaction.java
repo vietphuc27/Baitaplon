@@ -1,7 +1,9 @@
 package auction;
+
 import user.Bidder;
+
 import java.time.LocalDateTime;
-import java.util.*;
+
 public class BidTransaction {
     private String transactionId;
     private String auctionId;
