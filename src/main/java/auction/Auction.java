@@ -15,6 +15,27 @@ public class Auction {
     private Bidder currentLeader;
     private List<BidTransaction> bidHistory;
 
+    private List<AuctionObserver> auctionObservers= new ArrayList<>();
+
+    public void addObserver(AuctionObserver observer){
+            auctionObservers.add(observer);
+    }
+    public void removeObserver(AuctionObserver observer){
+        auctionObservers.remove(observer);
+    }
+
+    private void notifyBid(BidTransaction bid){
+        for (AuctionObserver observer:auctionObservers){
+            observer.updateCurrentBid(bid);
+        }
+    }
+
+    private void notifyStatus(AuctionStatus status){
+        for (AuctionObserver observer : auctionObservers){
+            observer.updateAuctionStatus(status);
+        }
+    }
+
     public Auction(String auctionId, LocalDateTime startTime, LocalDateTime endTime){
         this.auctionId = auctionId;
         this.startTime = startTime;
