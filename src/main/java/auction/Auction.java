@@ -61,4 +61,8 @@ public class Auction {
     public List<BidTransaction> getBidHistory() {
         return bidHistory;
     }
+
+    public String getAuctionIdId() {
+        return auctionId;
+    }
 }

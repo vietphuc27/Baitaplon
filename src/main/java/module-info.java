@@ -13,4 +13,5 @@ module view.btl {
     exports entity;
     exports item;
     exports auction;
+    exports manager;
 }

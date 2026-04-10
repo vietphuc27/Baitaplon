@@ -24,4 +24,8 @@ public abstract class User extends Entity {
     public void updateProfile(){
         //update
     }
+
+    public String getUsername() {
+        return username;
+    }
 }
