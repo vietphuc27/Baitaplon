@@ -5,14 +5,14 @@ public class Wallet {
     public Wallet(){
         this.balance = 0;
     }
-    public boolean deposit(double amount){
+    public synchronized boolean deposit(double amount){
         if (amount > 0){
             this.balance += amount;
             return true;
         }
         return false;
     }
-    public boolean withdraw(double amount){
+    public synchronized boolean withdraw(double amount){
         if (amount > 0 && amount <= this.balance){
             this.balance -= amount;
             return true;

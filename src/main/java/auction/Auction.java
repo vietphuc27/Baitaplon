@@ -86,4 +86,7 @@ public class Auction {
     public String getAuctionIdId() {
         return auctionId;
     }
+    public void setCurrentHighestBid(double currentHighestBid){
+        this.currentHighestBid = currentHighestBid;
+    }
 }
