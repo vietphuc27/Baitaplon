@@ -15,27 +15,6 @@ public class Auction {
     private Bidder currentLeader;
     private List<BidTransaction> bidHistory;
 
-    private List<AuctionObserver> auctionObservers= new ArrayList<>();
-
-    public void addObserver(AuctionObserver observer){
-            auctionObservers.add(observer);
-    }
-    public void removeObserver(AuctionObserver observer){
-        auctionObservers.remove(observer);
-    }
-
-    private void notifyBid(BidTransaction bid){
-        for (AuctionObserver observer:auctionObservers){
-            observer.updateCurrentBid(bid);
-        }
-    }
-
-    private void notifyStatus(AuctionStatus status){
-        for (AuctionObserver observer : auctionObservers){
-            observer.updateAuctionStatus(status);
-        }
-    }
-
     public Auction(String auctionId, LocalDateTime startTime, LocalDateTime endTime){
         this.auctionId = auctionId;
         this.startTime = startTime;
@@ -73,11 +52,6 @@ public class Auction {
     public AuctionStatus getStatus() {
         return status;
     }
-    
-    public boolean isClosed() {
-    return this.status == AuctionStatus.FINISHED || this.status == AuctionStatus.PAID || this.status == AuctionStatus.CANCELED;
-    }
-
     public double getCurrentHighestBid() {
         return currentHighestBid;
     }
@@ -91,8 +65,4 @@ public class Auction {
     public String getAuctionIdId() {
         return auctionId;
     }
-    public void setCurrentHighestBid(double currentHighestBid){
-        this.currentHighestBid = currentHighestBid;
-    }
-
 }
