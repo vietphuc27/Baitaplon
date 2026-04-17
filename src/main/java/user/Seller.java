@@ -1,12 +1,15 @@
 package user;
 
 import auction.Auction;
+import auction.AuctionObserver;
+import auction.AuctionStatus;
+import auction.BidTransaction;
 import item.Item;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Seller extends User{
+public class Seller extends User implements AuctionObserver {
     private Wallet wallet;
     private List<Item> itemsForSale;
 
@@ -38,9 +41,17 @@ public class Seller extends User{
         return false;
     }
     public void editItem(){
-        //logic sửa item bố ch bt viết
+        //logic sửa item bố ch bt viết. ok
     }
+    @Override
+    public void updateCurrentBid(BidTransaction bid){
+        System.out.println("Giá mới đã được cập nhật");
+    }
+    @Override
+    public void updateAuctionStatus(AuctionStatus status){
+        System.out.println("Phiên đấu giá đã thay đổi sang trạng thái: "+ status);
 
+    }
 
 
 }

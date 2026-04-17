@@ -1,5 +1,7 @@
 package user;
 
+import exceptions.*;
+
 import entity.Entity;
 
 public abstract class User extends Entity {
@@ -15,8 +17,17 @@ public abstract class User extends Entity {
         this.password = password;
         this.role = role;
     }
-    public boolean login(){
-        return true;
+    public boolean login(String email, String password){
+        try {
+            if (this.password.equals(password) && this.email.equals(email)){
+                return true;
+            } else {
+                throw new AuthenticationException("Bạn đã nhập sai mật khẩu, hãy nhập lại");
+            }
+        } catch (AuthenticationException e) {
+            System.out.println(e.getMessage());
+            return false;
+        }
     }
     public void signout(){
         //update
