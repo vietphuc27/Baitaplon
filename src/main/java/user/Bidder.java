@@ -1,18 +1,23 @@
 package user;
+import exceptions.*;
 
 import auction.Auction;
 import auction.AuctionObserver;
 import auction.AuctionStatus;
 import auction.BidTransaction;
+import exceptions.AuctionClosedException;
+import exceptions.InvalidBidException;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
+
 public class Bidder extends User implements AuctionObserver {
     private Wallet wallet;
     private List<BidTransaction> bidHistory;
     private final ReentrantLock lock = new ReentrantLock();
+
 
     public Bidder(String id, String username, String email, String password){
         super(id, username, email, password, "BIDDER");
@@ -23,11 +28,32 @@ public class Bidder extends User implements AuctionObserver {
     public boolean placeBid(Auction auction, double amount){
         if (lock.tryLock()){
             try {
+                if (auction.getStatus() == null){
+                    throw new AuthenticationException("lỗi dữ liệu");
+                }
+                if (auction.isClosed()){
+                    throw new AuctionClosedException("Phiên đấu giá đã đóng");
+                }
+                if (amount <= auction.getCurrentHighestBid()){
+                    throw new InvalidBidException("Hãy đặt giá cao hơn hiện tại");
+                }
                 if (amount > auction.getCurrentHighestBid() && this.wallet.withdraw(amount)){
                     auction.setCurrentHighestBid(amount);
                     return true;
-                }
-            } finally {
+                } 
+                
+            } catch (AuthenticationException e) {
+                System.out.println(e.getMessage());
+                return false;
+
+            } catch (AuctionClosedException e){
+                System.out.println(e.getMessage());
+                return false;
+                
+            } catch (InvalidBidException e){
+                System.out.println(e.getMessage());
+            }
+            finally {
                 lock.unlock();
             }
         }

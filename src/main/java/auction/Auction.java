@@ -73,6 +73,11 @@ public class Auction {
     public AuctionStatus getStatus() {
         return status;
     }
+    
+    public boolean isClosed() {
+    return this.status == AuctionStatus.FINISHED || this.status == AuctionStatus.PAID || this.status == AuctionStatus.CANCELED;
+    }
+
     public double getCurrentHighestBid() {
         return currentHighestBid;
     }
@@ -89,4 +94,5 @@ public class Auction {
     public void setCurrentHighestBid(double currentHighestBid){
         this.currentHighestBid = currentHighestBid;
     }
+
 }
