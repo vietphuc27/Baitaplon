@@ -1,6 +1,6 @@
-package auction;
+package models.auction;
 
-import user.Bidder;
+import models.user.Bidder;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

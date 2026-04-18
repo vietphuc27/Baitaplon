@@ -1,6 +1,6 @@
-package item;
+package models.item;
 
-import entity.Entity;
+import models.entity.Entity;
 
 public abstract class Item extends Entity {
     protected String name;

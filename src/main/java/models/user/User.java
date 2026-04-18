@@ -1,8 +1,8 @@
-package user;
+package models.user;
 
 import exceptions.*;
 
-import entity.Entity;
+import models.entity.Entity;
 
 public abstract class User extends Entity {
     protected String username;

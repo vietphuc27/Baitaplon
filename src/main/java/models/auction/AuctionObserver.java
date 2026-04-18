@@ -1,4 +1,4 @@
-package auction;
+package models.auction;
 
 public interface AuctionObserver {
     void updateCurrentBid(BidTransaction bid);

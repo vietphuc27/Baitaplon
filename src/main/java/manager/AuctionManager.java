@@ -1,6 +1,6 @@
 package manager;
 
-import auction.Auction;
+import models.auction.Auction;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,7 +40,7 @@ public class AuctionManager {
 
     public List<Auction> getRunningAuctions() {
         return activeAuctions.stream()
-                .filter(a -> a.getStatus() == auction.AuctionStatus.OPEN)
+                .filter(a -> a.getStatus() == models.auction.AuctionStatus.OPEN)
                 .collect(Collectors.toList());
     }
 }

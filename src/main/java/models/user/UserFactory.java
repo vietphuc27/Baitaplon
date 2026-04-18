@@ -1,4 +1,4 @@
-package user;
+package models.user;
 public class UserFactory {
     
     private static UserFactory instance;

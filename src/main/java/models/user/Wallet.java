@@ -1,4 +1,4 @@
-package user;
+package models.user;
 
 public class Wallet {
     private double balance;

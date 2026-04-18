@@ -3,15 +3,15 @@ module view.btl {
     requires javafx.fxml;
 
 
-    opens user to javafx.fxml;
-    opens entity to javafx.fxml;
-    opens item to javafx.fxml;
-    opens auction to javafx.fxml;
+    opens models.user to javafx.fxml;
+    opens models.entity to javafx.fxml;
+    opens models.item to javafx.fxml;
+    opens models.auction to javafx.fxml;
 
     // Xuất các gói để sử dụng trong dự án
-    exports user;
-    exports entity;
-    exports item;
-    exports auction;
+    exports models.user;
+    exports models.entity;
+    exports models.item;
+    exports models.auction;
     exports manager;
 }

@@ -1,6 +1,6 @@
 package manager;
 
-import user.User;
+import models.user.User;
 
 public class SessionManager {
     private static SessionManager instance;

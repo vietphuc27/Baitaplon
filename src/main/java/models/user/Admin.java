@@ -1,4 +1,4 @@
-package user;
+package models.user;
 import java.util.*;
 
 public class Admin extends User{

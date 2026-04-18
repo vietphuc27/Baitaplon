@@ -1,4 +1,4 @@
-package auction;
+package models.auction;
 public enum AuctionStatus {
     OPEN,
     RUNNING,

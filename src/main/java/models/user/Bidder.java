@@ -1,10 +1,10 @@
-package user;
+package models.user;
 import exceptions.*;
 
-import auction.Auction;
-import auction.AuctionObserver;
-import auction.AuctionStatus;
-import auction.BidTransaction;
+import models.auction.Auction;
+import models.auction.AuctionObserver;
+import models.auction.AuctionStatus;
+import models.auction.BidTransaction;
 import exceptions.AuctionClosedException;
 import exceptions.InvalidBidException;
 

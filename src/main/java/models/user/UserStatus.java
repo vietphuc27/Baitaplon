@@ -1,4 +1,4 @@
-package user;
+package models.user;
 
 public enum UserStatus {
     LOGIN,

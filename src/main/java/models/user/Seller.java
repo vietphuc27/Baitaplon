@@ -1,10 +1,10 @@
-package user;
+package models.user;
 
-import auction.Auction;
-import auction.AuctionObserver;
-import auction.AuctionStatus;
-import auction.BidTransaction;
-import item.Item;
+import models.auction.Auction;
+import models.auction.AuctionObserver;
+import models.auction.AuctionStatus;
+import models.auction.BidTransaction;
+import models.item.Item;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +41,7 @@ public class Seller extends User implements AuctionObserver {
         return false;
     }
     public void editItem(){
-        //logic sửa item bố ch bt viết. ok
+        //logic sửa models.item bố ch bt viết. ok
     }
     @Override
     public void updateCurrentBid(BidTransaction bid){
