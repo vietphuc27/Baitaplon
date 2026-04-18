@@ -1,0 +1,27 @@
+.main-container { -fx-background-color: #ffffff; }
+.header-text { -fx-font-size: 20px; -fx-font-weight: bold; -fx-fill: #2c3e50; }
+
+.input-field, .combo-box-field {
+    -fx-background-color: #f8f9fa;
+    -fx-border-color: #dee2e6;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+    -fx-padding: 8;
+}
+
+.primary-button {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+.primary-button:hover { -fx-background-color: #2980b9; }
+
+.secondary-button {
+    -fx-background-color: #2ecc71;
+    -fx-text-fill: white;
+    -fx-cursor: hand;
+    -fx-font-weight: bold;
+}
+
+.error-text { -fx-text-fill: #e74c3c; -fx-font-style: italic; }
