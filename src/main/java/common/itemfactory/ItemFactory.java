@@ -5,12 +5,16 @@ import common.exceptions.*;
 import common.models.item.*;
 
 public class ItemFactory {
-    private static ItemFactory instance;
-    private ItemFactory(){}
+    private static volatile ItemFactory instance;
+    private ItemFactory() {}
 
-    public static ItemFactory getInstance(){
+    public static ItemFactory getInstance() {
         if (instance == null) {
-            instance = new ItemFactory();
+            synchronized (ItemFactory.class) {
+                if (instance == null) {
+                    instance = new ItemFactory();
+                }
+            }
         }
         return instance;
     }
