@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class AuctionManager {
+    //(Dùng Singleton Pattern): Quản lý toàn bộ các phiên đấu giá đang chạy trên server. Dùng luồng chạy ngầm (Scheduler) để liên tục check xem phiên nào hết giờ thì khóa lại.
     private static AuctionManager instance;
 
     private List<Auction> activeAuctions;

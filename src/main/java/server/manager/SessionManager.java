@@ -3,6 +3,7 @@ package server.manager;
 import common.models.user.User;
 
 public class SessionManager {
+    //Quản lý xem user nào đang online, đang mở xem phiên đấu giá nào.
     private static SessionManager instance;
 
     private User currentUser;
