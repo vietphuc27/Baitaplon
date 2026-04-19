@@ -23,7 +23,7 @@ public class UserFactory {
             newUser = new Admin(id, username, email, password);
         }
         if (newUser != null) {
-            Admin.userList.add(newUser);
+            Admin.addUser(newUser);
         }
 
         return newUser;
