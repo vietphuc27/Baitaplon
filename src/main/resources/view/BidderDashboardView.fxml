@@ -16,8 +16,6 @@
 <?import javafx.scene.text.Font?>
 
 <BorderPane prefHeight="600.0" prefWidth="800.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
-
-    <!-- TOP HEADER -->
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #14213D; -fx-padding: 15;">
             <Label styleClass="header-title" text="BIDDER DASHBOARD" textFill="WHITE">
@@ -36,12 +34,9 @@
             <Button style="-fx-background-color: #34495e; -fx-background-radius: 10;" styleClass="btn-logout" text="Đăng xuất" textFill="#ff6363" />
         </HBox>
     </top>
-
-    <!-- CENTER CONTENT -->
     <center>
         <TabPane styleClass="main-tabpane">
 
-            <!-- TAB 1: Danh sách đấu giá -->
             <Tab closable="false" text="Danh Sách Đấu Giá">
                 <VBox spacing="10">
                     <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
@@ -78,7 +73,6 @@
                 </VBox>
             </Tab>
 
-            <!-- TAB 2: Lịch sử đặt giá -->
             <Tab closable="false" text="Lịch Sử Đặt Giá">
                 <VBox spacing="10">
                     <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
@@ -104,7 +98,6 @@
                 </VBox>
             </Tab>
 
-            <!-- TAB 3: Ví của tôi -->
             <Tab closable="false" text="Ví Của Tôi">
                 <VBox spacing="15">
                     <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>

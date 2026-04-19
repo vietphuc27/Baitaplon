@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #14213D; -fx-padding: 15;">
+            <Label style="-fx-text-fill: white; -fx-font-size: 20; -fx-font-weight: bold;" text="SELLER DASHBOARD" />
+            <Label prefHeight="18.0" prefWidth="98.0" text="Hệ thống ổn định" textFill="WHITE" />
+            <Button mnemonicParsing="false" prefHeight="26.0" prefWidth="106.0" style="-fx-background-color: #34495e; -fx-background-radius: 10;" text="Làm mới dữ liệu" textFill="#fafafa" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="lblSellerName" prefHeight="18.0" prefWidth="125.0" style="-fx-text-fill: white;" text="Seller: ..." />
+            <Button style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-background-radius: 10;" text="Đăng xuất" textFill="WHITE" />
+        </HBox>
+    </top>
+
+    <center>
+        <TabPane>
+
+            <Tab closable="false" text="Tạo Phiên Đấu Giá">
+                <ScrollPane fitToWidth="true">
+                    <VBox spacing="15">
+                        <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
+                        <Label style="-fx-font-size: 16; -fx-font-weight: bold;" text="Tạo Phiên Đấu Giá Mới" />
+                        <GridPane hgap="15" vgap="12">
+                            <Label text="Tên sản phẩm:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                            <TextField fx:id="txtItemName" prefWidth="300" promptText="Nhập tên sản phẩm..." GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                            <Label text="Loại sản phẩm:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                            <ComboBox fx:id="cbItemType" prefWidth="300" promptText="Chọn loại..." GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                            <Label text="Giá khởi điểm (VNĐ):" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                            <TextField fx:id="txtStartPrice" promptText="Nhập giá khởi điểm..." GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                            <Label text="Giá mua ngay (VNĐ):" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                            <TextField fx:id="txtBuyNowPrice" promptText="Không bắt buộc..." GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+                            <Label text="Thời gian kết thúc:" GridPane.columnIndex="0" GridPane.rowIndex="4" />
+                            <TextField fx:id="txtEndTime" promptText="dd/MM/yyyy HH:mm" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+                            <Label text="Mô tả:" GridPane.columnIndex="0" GridPane.rowIndex="5" />
+                            <TextArea fx:id="txtDescription" prefHeight="80" promptText="Mô tả sản phẩm..." GridPane.columnIndex="1" GridPane.rowIndex="5" />
+                     <columnConstraints>
+                        <ColumnConstraints />
+                        <ColumnConstraints />
+                     </columnConstraints>
+                     <rowConstraints>
+                        <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints />
+                     </rowConstraints>
+                        </GridPane>
+                    <VBox fx:id="vboxDynamicFields"
+                          visible="false" managed="false"
+                          spacing="0"
+                          style="-fx-background-color: #eaf4fb; -fx-border-color: #aed6f1; -fx-border-radius: 6; -fx-background-radius: 6;">
+                        <padding><Insets top="15" bottom="15" left="15" right="15"/></padding>
+
+                        <Label fx:id="lblDynamicTitle"
+                               text="Thông tin chi tiết"
+                               style="-fx-font-size: 13; -fx-font-weight: bold; -fx-text-fill: #1a6fa8; -fx-padding: 0 0 10 0;"/>
+
+                        <GridPane fx:id="gridArt" hgap="15" vgap="12"
+                                  visible="false" managed="false">
+                            <Label text="Nghệ sĩ:"
+                                   GridPane.rowIndex="0" GridPane.columnIndex="0" prefWidth="160"/>
+                            <TextField fx:id="txtArtist" promptText="Tên nghệ sĩ..."
+                                       prefWidth="300"
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                            <Label text="Năm sáng tác:"
+                                   GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <TextField fx:id="txtArtYear" promptText="VD: 2020"
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Chất liệu:"
+                                   GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <TextField fx:id="txtMaterial" promptText="Sơn dầu, màu nước..."
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        </GridPane>
+
+                        <GridPane fx:id="gridElectronics" hgap="15" vgap="12"
+                                  visible="false" managed="false">
+                            <Label text="Thương hiệu:"
+                                   GridPane.rowIndex="0" GridPane.columnIndex="0" prefWidth="160"/>
+                            <TextField fx:id="txtBrand" promptText="Samsung, Apple..."
+                                       prefWidth="300"
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                            <Label text="Model:"
+                                   GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <TextField fx:id="txtModel" promptText="VD: iPhone 15"
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Tình trạng:"
+                                   GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <TextField fx:id="txtCondition" promptText="Mới / Đã dùng..."
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        </GridPane>
+
+                        <GridPane fx:id="gridVehicle" hgap="15" vgap="12"
+                                  visible="false" managed="false">
+                            <Label text="Hãng xe:"
+                                   GridPane.rowIndex="0" GridPane.columnIndex="0" prefWidth="160"/>
+                            <TextField fx:id="txtVehicleBrand" promptText="Toyota, Honda..."
+                                       prefWidth="300"
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                            <Label text="Số km đã đi:"
+                                   GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <TextField fx:id="txtMileage" promptText="VD: 50000 km"
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Năm sản xuất:"
+                                   GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <TextField fx:id="txtVehicleYear" promptText="VD: 2019"
+                                       style="-fx-padding: 7 10; -fx-border-color: #bdc3c7; -fx-border-radius: 5;"
+                                       GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                        </GridPane>
+
+                    </VBox>
+                        <HBox spacing="10">
+                            <Button  style="-fx-background-color: #27ae60; -fx-text-fill: white;" text="Tạo Phiên Đấu Giá" />
+                            <Button  text="Xóa form" />
+                        </HBox>
+                    </VBox>
+                </ScrollPane>
+            </Tab>
+
+            <Tab closable="false" text="Phiên Đấu Giá Của Tôi">
+                <VBox spacing="10">
+                    <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
+                    <HBox alignment="CENTER_LEFT" spacing="10">
+                        <Label style="-fx-font-size: 16; -fx-font-weight: bold;" text="Phiên Đấu Giá Của Tôi" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label text="Sắp xếp theo:" />
+                        <ComboBox fx:id="cbSortBy"  prefWidth="150" />
+                        <Button text="Làm mới" />
+                    </HBox>
+                    <TableView fx:id="tblMyAuctions" prefHeight="400" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colAuctionId" prefWidth="60" text="ID" />
+                            <TableColumn fx:id="colAuctionItem" prefWidth="180" text="Sản phẩm" />
+                            <TableColumn fx:id="colStartPrice" prefWidth="130" text="Giá khởi điểm" />
+                            <TableColumn fx:id="colCurrentPrice" prefWidth="130" text="Giá hiện tại" />
+                            <TableColumn fx:id="colStatus" prefWidth="100" text="Trạng thái" />
+                            <TableColumn fx:id="colEndTime" prefWidth="150" text="Thời gian kết thúc" />
+                        </columns>
+                        <placeholder>
+                            <Label text="Bạn chưa có phiên đấu giá nào" />
+                        </placeholder>
+                    </TableView>
+                    <HBox spacing="10">
+                        <Button  style="-fx-background-color: #e74c3c; -fx-text-fill: white;" text="Kết thúc phiên" />
+                        <Button style="-fx-background-color: #2980b9; -fx-text-fill: white;" text="Xem chi tiết" />
+                    </HBox>
+                </VBox>
+            </Tab>
+
+            <Tab closable="false" text="Thống Kê">
+                <VBox spacing="15">
+                    <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
+                    <Label style="-fx-font-size: 16; -fx-font-weight: bold;" text="Thống Kê Bán Hàng" />
+                    <HBox spacing="20">
+                        <VBox prefWidth="180" spacing="5" style="-fx-background-color: #f0f0f0; -fx-padding: 15; -fx-background-radius: 8;">
+                            <Label text="Tổng phiên đã tạo" />
+                            <Label fx:id="lblTotalAuctions" style="-fx-font-size: 24; -fx-font-weight: bold;" text="0" />
+                        </VBox>
+                        <VBox prefWidth="180" spacing="5" style="-fx-background-color: #f0f0f0; -fx-padding: 15; -fx-background-radius: 8;">
+                            <Label text="Phiên đang chạy" />
+                            <Label fx:id="lblActiveAuctions" style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #27ae60;" text="0" />
+                        </VBox>
+                        <VBox prefWidth="180" spacing="5" style="-fx-background-color: #f0f0f0; -fx-padding: 15; -fx-background-radius: 8;">
+                            <Label text="Tổng doanh thu" />
+                            <Label fx:id="lblTotalRevenue" style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #2980b9;" text="0 VNĐ" />
+                        </VBox>
+                    </HBox>
+                </VBox>
+            </Tab>
+
+        </TabPane>
+    </center>
+
+</BorderPane>
