@@ -35,6 +35,10 @@ public class Auction {
             System.out.println("Phiên đấu giá kết thúc");
         }
     }
+    public boolean isClosed() {
+    return this.status == AuctionStatus.FINISHED || this.status == AuctionStatus.PAID || this.status == AuctionStatus.CANCELED;
+    }
+
     public boolean processBid(BidTransaction bid) {
         startAuction();
         endAuction();
@@ -64,5 +68,8 @@ public class Auction {
 
     public String getAuctionIdId() {
         return auctionId;
+    }
+    public void setCurrentHighestBid(double currentHighestBid){
+        this.currentHighestBid = currentHighestBid;
     }
 }
