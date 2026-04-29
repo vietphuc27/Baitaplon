@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 public abstract class Entity {
     protected String id;
     protected LocalDateTime timeCreated;
-
+    public Entity(){}
     public Entity(String id){
         this.id = id;
         this.timeCreated = LocalDateTime.now();
@@ -15,5 +15,9 @@ public abstract class Entity {
     }
     public LocalDateTime getTimeCreated() {
         return timeCreated;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

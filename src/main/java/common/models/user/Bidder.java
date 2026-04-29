@@ -24,7 +24,10 @@ public class Bidder extends User implements AuctionObserver {
         this.wallet = new Wallet();
         this.bidHistory = new ArrayList<>();
     }
-    
+
+    public Bidder() {
+    }
+
     public boolean placeBid(Auction auction, double amount){
         if (lock.tryLock()){
             try {

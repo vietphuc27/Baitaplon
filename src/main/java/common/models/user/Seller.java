@@ -18,6 +18,10 @@ public class Seller extends User implements AuctionObserver {
         this.itemsForSale = new ArrayList<>();
         this.wallet = new Wallet();
     }
+
+    public Seller() {
+    }
+
     public Auction createAuction(Item item){
         return null;
         //thêm logic tạo phiên đấu giá - viết sau

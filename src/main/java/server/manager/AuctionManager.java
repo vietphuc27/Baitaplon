@@ -6,7 +6,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class AuctionManager {
-    //(Dùng Singleton Pattern): Quản lý toàn bộ các phiên đấu giá đang chạy trên server. Dùng luồng chạy ngầm (Scheduler) để liên tục check xem phiên nào hết giờ thì khóa lại.
+    //(Dùng Singleton Pattern): Quản lý toàn bộ các phiên đấu giá đang chạy trên server.
+    // Dùng luồng chạy ngầm (Scheduler) để liên tục check xem phiên nào hết giờ thì khóa lại.
     private static AuctionManager instance;
 
     private List<Auction> activeAuctions;
@@ -23,7 +24,7 @@ public class AuctionManager {
     }
     public void addAuction(Auction auction) {
         activeAuctions.add(auction);
-        System.out.println("Sàn giao dịch: Đã thêm phiên đấu giá ID: " + auction.getAuctionIdId());
+        System.out.println("Sàn giao dịch: Đã thêm phiên đấu giá ID: " + auction.getAuctionId());
     }
 
     public List<Auction> getAllActiveAuctions() {
@@ -32,7 +33,7 @@ public class AuctionManager {
 
     public Auction getAuctionById(String auctionId) {
         for (Auction a : activeAuctions) {
-            if (a.getAuctionIdId().equals(auctionId)) {
+            if (a.getAuctionId().equals(auctionId)) {
                 return a;
             }
         }

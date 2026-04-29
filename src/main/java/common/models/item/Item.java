@@ -17,4 +17,28 @@ public abstract class Item extends Entity {
     }
 
     public abstract String getInfo();
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public double getStartingPrice() {
+        return startingPrice;
+    }
+
+    public String getSellerId() {
+        return sellerId;
+    }
 }
