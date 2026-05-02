@@ -29,7 +29,6 @@ public class UserFactory {
         for (UserCreator creator : creators) {
             if (creator.getType().equalsIgnoreCase(type)){
                 User newUser = creator.create(id, username, email, password);
-                Admin.addUser(newUser);
                 return newUser;
             }
         }
