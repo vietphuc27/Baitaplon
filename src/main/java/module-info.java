@@ -2,6 +2,7 @@ module view.btl {
     requires javafx.controls;
     requires javafx.fxml;
     requires java.sql;
+// requires com.mysql.cj;
 
     opens common.models.user to javafx.fxml;
     opens common.models.entity to javafx.fxml;

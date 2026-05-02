@@ -39,7 +39,7 @@ public class BidService {
         Auction auction = auctionManager.getAuctionById(auctionId);
         if (auction == null) {
             auction = auctionDAO.findById(auctionId)
-                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay auction: " + auctionId));
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy auction: " + auctionId));
             auctionManager.addAuction(auction);
         }
 
@@ -48,10 +48,10 @@ public class BidService {
 
     public BidTransaction placeBid(Auction auction, Bidder bidder, double amount) {
         if (auction == null) {
-            throw new IllegalArgumentException("Auction khong duoc null");
+            throw new IllegalArgumentException("Không tìm thấy phiên đấu giá");
         }
         if (bidder == null) {
-            throw new IllegalArgumentException("Bidder khong duoc null");
+            throw new IllegalArgumentException("Không xác định được người đấu giá");
         }
 
         bidLock.lock();
@@ -69,7 +69,7 @@ public class BidService {
 
             boolean accepted = auction.processBid(bid);
             if (!accepted) {
-                throw new InvalidBidException("Bid khong hop le hoac auction khong o trang thai RUNNING");
+                throw new InvalidBidException("Đấu giá thất bại: giá không hợp lệ hoặc phiên đấu giá không còn mở");
             }
 
             bidTransactionDAO.save(bid);
@@ -94,23 +94,23 @@ public class BidService {
 
     private void validateBid(Auction auction, Bidder bidder, double amount) {
         if (amount <= 0) {
-            throw new InvalidBidException("So tien bid phai lon hon 0");
+            throw new InvalidBidException("Số tiền không hợp lệ");
         }
 
         if (auction.getStatus() != AuctionStatus.RUNNING && auction.getStatus() != AuctionStatus.OPEN) {
-            throw new AuctionClosedException("Auction da dong, khong the dat gia");
+            throw new AuctionClosedException("Phiên đấu giá đã đóng, không thể đặt giá");
         }
 
         if (auction.isClosed()) {
-            throw new AuctionClosedException("Auction da dong, khong the dat gia");
+            throw new AuctionClosedException("Phiên đấu giá đã đóng, không thể đặt giá");
         }
 
         if (amount <= auction.getCurrentHighestBid()) {
-            throw new InvalidBidException("Gia bid phai cao hon gia hien tai");
+            throw new InvalidBidException("Giá đặt không hợp lệ");
         }
 
         if (bidder.getWallet() == null || bidder.getWallet().getBalance() < amount) {
-            throw new InvalidBidException("So du khong du de dat gia");
+            throw new InvalidBidException("Số dư không đủ để đặt giá");
         }
     }
 }

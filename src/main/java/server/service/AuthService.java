@@ -34,10 +34,10 @@ public class AuthService {
 
     public AuthService(UserDAO userDAO, long tokenTtlMinutes) {
         if (userDAO == null) {
-            throw new IllegalArgumentException("Chua co UserDAO de xu ly dang nhap");
+            throw new IllegalArgumentException("Chưa có UserDao để xử lý đăng nhập");
         }
         if (tokenTtlMinutes <= 0) {
-            throw new IllegalArgumentException("Thoi gian song cua token phai lon hon 0");
+            throw new IllegalArgumentException("Thời gian tồn tại của token phải lớn hơn 0");
         }
 
         this.userDAO = userDAO;
@@ -50,14 +50,14 @@ public class AuthService {
         String normalizedPassword = requireText(password, "password");
 
         User user = userDAO.findByUsername(normalizedUsername)
-                .orElseThrow(() -> new AuthenticationException("Khong tim thay username"));
+                .orElseThrow(() -> new AuthenticationException("Không tìm thấy tên đăng nhập"));
 
         if (user.getStatus() == UserStatus.BANNED) {
-            throw new AuthenticationException("Tai khoan da bi khoa");
+            throw new AuthenticationException("Tài khoản đã bị khoá");
         }
 
         if (!user.getPassword().equals(normalizedPassword)) {
-            throw new AuthenticationException("Sai mat khau");
+            throw new AuthenticationException("Sai mật khẩu");
         }
 
         user.setStatus(UserStatus.LOGIN);
@@ -75,14 +75,14 @@ public class AuthService {
 
     public User authenticate(String token) {
         AuthSession session = findValidSession(token)
-                .orElseThrow(() -> new AuthenticationException("Token khong hop le hoac da het han"));
+                .orElseThrow(() -> new AuthenticationException("Token không hợp lệ hoặc đã hết hạn"));
 
         User user = userDAO.findById(session.userId())
-                .orElseThrow(() -> new AuthenticationException("Khong tim thay user cua token"));
+                .orElseThrow(() -> new AuthenticationException("Không tìm thấy user của token"));
 
         if (user.getStatus() == UserStatus.BANNED) {
             TOKEN_STORE.remove(normalizeToken(token));
-            throw new AuthenticationException("Tai khoan da bi khoa");
+            throw new AuthenticationException("Tài khoản đã bị khoá");
         }
 
         return user;
@@ -165,12 +165,12 @@ public class AuthService {
 
     private String requireText(String value, String fieldName) {
         if (value == null) {
-            throw new AuthenticationException(fieldName + " khong duoc de trong");
+            throw new AuthenticationException(fieldName + " không được để trống");
         }
 
         String trimmed = value.trim();
         if (trimmed.isEmpty()) {
-            throw new AuthenticationException(fieldName + " khong duoc de trong");
+            throw new AuthenticationException(fieldName + " không được để trống");
         }
 
         return trimmed;
