@@ -19,4 +19,5 @@ module view.btl {
     opens server.repository to javafx.fxml;
     exports server.repository.dao;
     opens server.repository.dao to javafx.fxml;
+    exports server.config;
 }
