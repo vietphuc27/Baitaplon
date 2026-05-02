@@ -15,13 +15,18 @@ public class AuctionManager {
     private AuctionManager() {
         activeAuctions = new ArrayList<>();
     }
-
+    // xử lí đa luồng
     public static AuctionManager getInstance() {
         if (instance == null) {
-            instance = new AuctionManager();
+            synchronized(AuctionManager.class){
+                if (instance == null) {
+                    instance = new AuctionManager();
+                }
+            }
         }
         return instance;
     }
+    
     public void addAuction(Auction auction) {
         activeAuctions.add(auction);
         System.out.println("Sàn giao dịch: Đã thêm phiên đấu giá ID: " + auction.getAuctionId());
