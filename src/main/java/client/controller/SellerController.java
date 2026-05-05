@@ -91,6 +91,7 @@ public class SellerController implements Initializable {
     private Label lblActiveAuctions;
     @FXML
     private Label lblTotalRevenue;
+    private String labubu; 
     
     private String currentSellerName;
     private DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -108,6 +109,7 @@ public class SellerController implements Initializable {
     
     private void initializeSellerName() {
         // Get seller name from ClientSession (implementation depends on your session management)
+        // jajajaja
         currentSellerName = "Người Bán 01"; // Placeholder
         lblSellerName.setText("Seller: " + currentSellerName);
     }
