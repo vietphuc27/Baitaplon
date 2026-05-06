@@ -1,5 +1,8 @@
 package client.controller;
 
+import client.network.AuctionClient;
+import client.network.AuctionClient.CreateAuctionRequest;
+import common.models.auction.Auction;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -93,6 +96,8 @@ public class SellerController implements Initializable {
     private Label lblTotalRevenue;
     private String labubu; 
     
+    private final AuctionClient auctionClient = new AuctionClient();
+    private String currentSellerId;
     private String currentSellerName;
     private DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
     
@@ -110,6 +115,7 @@ public class SellerController implements Initializable {
     private void initializeSellerName() {
         // Get seller name from ClientSession (implementation depends on your session management)
         // jajajaja
+        currentSellerId = "seller-01"; // Placeholder until ClientSession stores the logged-in seller id
         currentSellerName = "Người Bán 01"; // Placeholder
         lblSellerName.setText("Seller: " + currentSellerName);
     }
@@ -140,20 +146,40 @@ public class SellerController implements Initializable {
     @FXML
     private void handleCreateAuction() {
         if (validateAuctionForm()) {
-            // Collect form data
-            String itemName = txtItemName.getText();
-            String itemType = cbItemType.getValue();
-            double startPrice = Double.parseDouble(txtStartPrice.getText());
-            String description = txtDescription.getText();
-            LocalDateTime endTime = parseEndTime(txtEndTime.getText());
-            
-            // Create auction object and send to server
-            // TODO: Implement auction creation via AuctionClient
-            
-            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Phiên đấu giá đã được tạo!");
-            clearAuctionForm();
-            loadSellerAuctions();
-            loadStatistics();
+            try {
+                // TODO cần làm ở bước này:
+                // 1. Lấy dữ liệu từ form và kiểm tra hợp lệ.
+                // 2. Tạo item theo loại sản phẩm.
+                // 3. Lưu item và tạo phiên đấu giá qua AuctionClient.
+                // 4. Báo kết quả, xóa form, tải lại bảng và thống kê.
+                Auction auction = auctionClient.createAuction(new CreateAuctionRequest(
+                        currentSellerId,
+                        txtItemName.getText().trim(),
+                        cbItemType.getValue(),
+                        Double.parseDouble(txtStartPrice.getText().trim()),
+                        txtDescription.getText().trim(),
+                        parseEndTime(txtEndTime.getText().trim()),
+                        txtArtist.getText(),
+                        txtArtYear.getText(),
+                        txtMaterial.getText(),
+                        txtBrand.getText(),
+                        txtModel.getText(),
+                        txtCondition.getText(),
+                        txtVehicleBrand.getText(),
+                        txtMileage.getText(),
+                        txtVehicleYear.getText()
+                ));
+
+                showAlert(Alert.AlertType.INFORMATION, "Thành công",
+                        "Phiên đấu giá đã được tạo! ID: " + auction.getAuctionId());
+                clearAuctionForm();
+                loadSellerAuctions();
+                loadStatistics();
+            } catch (IllegalArgumentException e) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi dữ liệu", e.getMessage());
+            } catch (RuntimeException e) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi hệ thống", "Không thể tạo phiên đấu giá: " + e.getMessage());
+            }
         }
     }
     
@@ -253,9 +279,18 @@ public class SellerController implements Initializable {
         }
         
         try {
-            Double.parseDouble(txtStartPrice.getText());
+            double startPrice = Double.parseDouble(txtStartPrice.getText());
+            if (startPrice <= 0) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá khởi điểm phải lớn hơn 0!");
+                return false;
+            }
         } catch (NumberFormatException e) {
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Giá khởi điểm phải là số!");
+            return false;
+        }
+
+        if (txtDescription.getText().trim().isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập mô tả sản phẩm!");
             return false;
         }
         
@@ -268,7 +303,40 @@ public class SellerController implements Initializable {
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Thời gian không hợp lệ! Định dạng: dd/MM/yyyy HH:mm");
             return false;
         }
+
+        if (!LocalDateTime.now().isBefore(parseEndTime(txtEndTime.getText()))) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Thời gian kết thúc phải sau thời điểm hiện tại!");
+            return false;
+        }
+
+        if (!validateTypeSpecificFields()) {
+            return false;
+        }
         
+        return true;
+    }
+
+    private boolean validateTypeSpecificFields() {
+        String itemType = cbItemType.getValue();
+
+        if ("Tác phẩm nghệ thuật".equals(itemType) && txtArtist.getText().trim().isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Vui lòng nhập tên nghệ sĩ!");
+            return false;
+        }
+
+        if ("Phương tiện".equals(itemType)) {
+            try {
+                int mileage = Integer.parseInt(txtMileage.getText().trim());
+                if (mileage < 0) {
+                    showAlert(Alert.AlertType.ERROR, "Lỗi", "Số km đã đi phải lớn hơn hoặc bằng 0!");
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Số km đã đi phải là số nguyên!");
+                return false;
+            }
+        }
+
         return true;
     }
     
