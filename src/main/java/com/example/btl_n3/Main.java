@@ -14,6 +14,7 @@ public class Main extends Application {
         Scene scene = new Scene(loader.load());
         primaryStage.setTitle("Auction Application");
         primaryStage.setScene(scene);
+        primaryStage.setMaximized(true);
         primaryStage.show();
     }
 
