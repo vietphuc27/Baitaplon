@@ -5,9 +5,9 @@ import common.models.user.Bidder;
 import java.time.LocalDateTime;
 
 public class BidTransaction {
-    private String id;           // Đổi từ transactionId sang id
-    private String auctionId;
-    private String bidderId;
+    private int id;           // Đổi từ transactionId sang id
+    private int auctionId;
+    private int bidderId;
     private double bidAmount;
     private LocalDateTime bidTime;
 
@@ -18,7 +18,7 @@ public class BidTransaction {
     }
 
     // 2. Constructor có tham số (Dùng khi Client tạo mới 1 lượt Bid)
-    public BidTransaction(String id, String auctionId, String bidderId, double bidAmount) {
+    public BidTransaction(int id, int auctionId, int bidderId, double bidAmount) {
         this.id = id;
         this.auctionId = auctionId;
         this.bidderId = bidderId;
@@ -28,27 +28,27 @@ public class BidTransaction {
 
     // ─── GETTERS & SETTERS (Đã bổ sung đầy đủ) ───────────────────
 
-    public String getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
 
-    public String getAuctionId() {
+    public int getAuctionId() {
         return auctionId;
     }
 
-    public void setAuctionId(String auctionId) {
+    public void setAuctionId(int auctionId) {
         this.auctionId = auctionId;
     }
 
-    public String getBidderId() {
+    public int getBidderId() {
         return bidderId;
     }
 
-    public void setBidderId(String bidderId) {
+    public void setBidderId(int bidderId) {
         this.bidderId = bidderId;
     }
 

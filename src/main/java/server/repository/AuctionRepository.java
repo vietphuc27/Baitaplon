@@ -9,7 +9,7 @@ import java.util.Optional;
 public interface AuctionRepository {
     void save(Auction auction);
 
-    Optional<Auction> findById(String id);
+    Optional<Auction> findById(int id);
 
     List<Auction> findAll();
 
@@ -21,5 +21,5 @@ public interface AuctionRepository {
 
     void update(Auction auction);
 
-    void delete(String id);
+    void delete(int id);
 }

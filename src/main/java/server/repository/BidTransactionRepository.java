@@ -8,17 +8,17 @@ import java.util.Optional;
 public interface BidTransactionRepository {
     void save(BidTransaction bid);
 
-    Optional<BidTransaction> findById(String id);
+    Optional<BidTransaction> findById(int id);
 
     List<BidTransaction> findAll();
 
-    List<BidTransaction> findByAuctionId(String auctionId);
+    List<BidTransaction> findByAuctionId(int auctionId);
 
-    List<BidTransaction> findByBidderId(String bidderId);
+    List<BidTransaction> findByBidderId(int bidderId);
 
-    BidTransaction findHighestBidByAuctionId(String auctionId);
+    BidTransaction findHighestBidByAuctionId(int auctionId);
 
     void update(BidTransaction bid);
 
-    void delete(String id);
+    void delete(int id);
 }

@@ -8,7 +8,7 @@ import java.util.Optional;
 public interface ItemRepository {
     void save(Item item);
 
-    Optional<Item> findById(String id);
+    Optional<Item> findById(int id);
 
     List<Item> findAll();
 
@@ -18,5 +18,5 @@ public interface ItemRepository {
 
     void update(Item item);
 
-    void delete(String id);
+    void delete(int id);
 }

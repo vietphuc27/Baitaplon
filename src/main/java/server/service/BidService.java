@@ -12,7 +12,6 @@ import server.repository.dao.BidTransactionDAO;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BidService {
@@ -36,9 +35,16 @@ public class BidService {
     }
 
     public BidTransaction placeBid(String auctionId, Bidder bidder, double amount) {
-        Auction auction = auctionManager.getAuctionById(auctionId);
+        int auctionIdInt;
+        try {
+            auctionIdInt = Integer.parseInt(auctionId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid auction ID: " + auctionId);
+        }
+        
+        Auction auction = auctionManager.getAuctionById(auctionIdInt);
         if (auction == null) {
-            auction = auctionDAO.findById(auctionId)
+            auction = auctionDAO.findById(auctionIdInt)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy auction: " + auctionId));
             auctionManager.addAuction(auction);
         }
@@ -59,7 +65,7 @@ public class BidService {
             validateBid(auction, bidder, amount);
 
             BidTransaction bid = new BidTransaction(
-                    UUID.randomUUID().toString(),
+                    0, // ID sẽ được generate bởi database
                     auction.getAuctionId(),
                     bidder.getId(),
                     amount
@@ -81,15 +87,33 @@ public class BidService {
     }
 
     public List<BidTransaction> getAuctionBidHistory(String auctionId) {
-        return bidTransactionDAO.findByAuctionId(auctionId);
+        int auctionIdInt;
+        try {
+            auctionIdInt = Integer.parseInt(auctionId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid auction ID: " + auctionId);
+        }
+        return bidTransactionDAO.findByAuctionId(auctionIdInt);
     }
 
     public List<BidTransaction> getBidderBidHistory(String bidderId) {
-        return bidTransactionDAO.findByBidderId(bidderId);
+        int bidderIdInt;
+        try {
+            bidderIdInt = Integer.parseInt(bidderId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid bidder ID: " + bidderId);
+        }
+        return bidTransactionDAO.findByBidderId(bidderIdInt);
     }
 
     public BidTransaction getCurrentHighestBid(String auctionId) {
-        return bidTransactionDAO.findHighestBidByAuctionId(auctionId);
+        int auctionIdInt;
+        try {
+            auctionIdInt = Integer.parseInt(auctionId);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid auction ID: " + auctionId);
+        }
+        return bidTransactionDAO.findHighestBidByAuctionId(auctionIdInt);
     }
 
     private void validateBid(Auction auction, Bidder bidder, double amount) {

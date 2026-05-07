@@ -105,7 +105,7 @@ public class AuthService {
             userDAO.update(user);
 
             User currentUser = sessionManager.getCurrentUser();
-            if (currentUser != null && currentUser.getId().equals(user.getId())) {
+        if (currentUser != null && currentUser.getId() == user.getId()) {
                 sessionManager.logout();
             }
         });
@@ -113,9 +113,9 @@ public class AuthService {
         TOKEN_STORE.remove(normalizedToken);
     }
 
-    public void logoutAll(String userId) {
-        String normalizedUserId = requireText(userId, "userId");
-        TOKEN_STORE.entrySet().removeIf(entry -> entry.getValue().userId().equals(normalizedUserId));
+    public void logoutAll(int userId) {
+        int normalizedUserId = requirePositiveId(userId, "userId");
+        TOKEN_STORE.entrySet().removeIf(entry -> entry.getValue().userId() == normalizedUserId);
 
         userDAO.findById(normalizedUserId).ifPresent(user -> {
             user.setStatus(UserStatus.LOGOUT);
@@ -123,7 +123,7 @@ public class AuthService {
         });
 
         User currentUser = sessionManager.getCurrentUser();
-        if (currentUser != null && currentUser.getId().equals(normalizedUserId)) {
+        if (currentUser != null && currentUser.getId() == normalizedUserId) {
             sessionManager.logout();
         }
     }
@@ -176,7 +176,14 @@ public class AuthService {
         return trimmed;
     }
 
-    private record AuthSession(String userId, LocalDateTime expiresAt) {
+    private int requirePositiveId(int value, String fieldName) {
+        if (value <= 0) {
+            throw new AuthenticationException(fieldName + " phải lớn hơn 0");
+        }
+        return value;
+    }
+
+    private record AuthSession(int userId, LocalDateTime expiresAt) {
         private boolean isExpired() {
             return LocalDateTime.now().isAfter(expiresAt);
         }

@@ -36,9 +36,9 @@ public class AuctionManager {
         return activeAuctions;
     }
 
-    public Auction getAuctionById(String auctionId) {
+    public Auction getAuctionById(int auctionId) {
         for (Auction a : activeAuctions) {
-            if (a.getAuctionId().equals(auctionId)) {
+            if (a.getAuctionId() == auctionId) {
                 return a;
             }
         }

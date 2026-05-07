@@ -3,7 +3,7 @@ package common.models.item;
 public class Art extends Item{
     private String artist;
 
-    public Art(String id, String name, String description, double startingPrice, String sellerId, String artist){
+    public Art(int id, String name, String description, double startingPrice, String sellerId, String artist){
         super(id, name, description, startingPrice, sellerId);
         this.artist = artist;
     }

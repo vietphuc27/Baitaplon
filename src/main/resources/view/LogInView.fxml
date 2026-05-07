@@ -29,7 +29,6 @@
                         <VBox alignment="CENTER" spacing="12.0">
                             <children>
                                 <Text styleClass="header-text" text="CREATE ACCOUNT" />
-                                <TextField fx:id="idField" maxWidth="280.0" promptText="User ID" styleClass="input-field" />
                                 <TextField fx:id="signUpUsernameField" maxWidth="280.0" promptText="Username" styleClass="input-field" />
                                 <TextField fx:id="emailField" maxWidth="280.0" promptText="Email Address" styleClass="input-field" />
 

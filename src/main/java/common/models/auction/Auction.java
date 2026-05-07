@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Auction {
-    private String id; // Đổi tên thành id để chuẩn form Repository
+    private int id; // Đổi tên thành id để chuẩn form Repository
     private Item item;
     private String sellerId; // Thêm ID của người bán
     private LocalDateTime startTime;
@@ -17,13 +17,13 @@ public class Auction {
     private AuctionStatus status;
 
     private Bidder currentLeader;
-    private String currentLeaderId; // Thêm để lưu trữ ID trực tiếp từ Database
+    private Integer currentLeaderId; // Thêm để lưu trữ ID trực tiếp từ Database
     private List<BidTransaction> bidHistory;
 
     public Auction(){}
 
     // Cập nhật Constructor khớp với DAO
-    public Auction(String id, Item item, String sellerId, LocalDateTime startTime, LocalDateTime endTime) {
+    public Auction(int id, Item item, String sellerId, LocalDateTime startTime, LocalDateTime endTime) {
         this.id = id;
         this.item = item;
         this.sellerId = sellerId;
@@ -72,8 +72,8 @@ public class Auction {
     }
 
     // --- GETTERS & SETTERS ---
-    public String getAuctionId() { return id; }
-    public void setId(String id) { this.id = id; }
+    public int getAuctionId() { return id; }
+    public void setId(int id) { this.id = id; }
 
     public Item getItem() { return item; }
     public void setItem(Item item) { this.item = item; }
@@ -93,11 +93,11 @@ public class Auction {
     public Bidder getCurrentLeader() { return currentLeader; }
 
     // Ưu tiên lấy từ Object Leader nếu có, không thì lấy String ID lưu sẵn
-    public String getCurrentLeaderId() {
+    public Integer getCurrentLeaderId() {
         if (currentLeader != null) return currentLeader.getId();
         return currentLeaderId;
     }
-    public void setCurrentLeaderId(String currentLeaderId) { this.currentLeaderId = currentLeaderId; }
+    public void setCurrentLeaderId(Integer currentLeaderId) { this.currentLeaderId = currentLeaderId; }
 
     public List<BidTransaction> getBidHistory() { return bidHistory; }
 }

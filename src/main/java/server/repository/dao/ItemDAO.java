@@ -19,7 +19,7 @@ public class ItemDAO implements ItemRepository {
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
 
-            stmt.setString(1, item.getId());
+            stmt.setInt(1, item.getId());
             stmt.setString(2, item.getName());
             stmt.setString(3, item.getDescription());
             stmt.setDouble(4, item.getStartingPrice());
@@ -51,12 +51,12 @@ public class ItemDAO implements ItemRepository {
 
     // ─── FIND BY ID ───────────────────────────────────────────────
     @Override
-    public Optional<Item> findById(String id) {
+    public Optional<Item> findById(int id) {
         String sql = "SELECT * FROM items WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, id);
+            stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) return Optional.of(mapToItem(rs));
@@ -156,7 +156,7 @@ public class ItemDAO implements ItemRepository {
                 stmt.setNull(6, Types.VARCHAR);
             }
 
-            stmt.setString(7, item.getId());
+            stmt.setInt(7, item.getId());
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -166,12 +166,12 @@ public class ItemDAO implements ItemRepository {
 
     // ─── DELETE ───────────────────────────────────────────────────
     @Override
-    public void delete(String id) {
+    public void delete(int id) {
         String sql = "DELETE FROM items WHERE id=?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, id);
+            stmt.setInt(1, id);
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -181,7 +181,7 @@ public class ItemDAO implements ItemRepository {
 
     // ─── HELPER: ResultSet → Item ─────────────────────────────────
     private Item mapToItem(ResultSet rs) throws SQLException {
-        String id            = rs.getString("id");
+        int id               = rs.getInt("id");
         String name          = rs.getString("name");
         String description   = rs.getString("description");
         double startingPrice = rs.getDouble("starting_price");

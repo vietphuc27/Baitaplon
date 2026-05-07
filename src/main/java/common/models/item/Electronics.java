@@ -3,7 +3,7 @@ package common.models.item;
 public class Electronics extends Item{
     private  int warrantyPeriod;
 
-    public Electronics(String id,String name, String description, double startingPrice, String sellerId,int warrantyPeriod){
+    public Electronics(int id,String name, String description, double startingPrice, String sellerId,int warrantyPeriod){
         super(id, name, description, startingPrice, sellerId);
         this.warrantyPeriod = warrantyPeriod;
     }

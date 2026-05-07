@@ -25,7 +25,7 @@ public class ItemFactory {
         creators.add(creator);
     }
     
-    public static Item createItem(String type, String id, String name, String des, double price, String sellerId, Object bonus) {
+    public static Item createItem(String type, int id, String name, String des, double price, String sellerId, Object bonus) {
         for (ItemCreator creator : creators) {
             if (creator.getType().equalsIgnoreCase(type)){
                 return creator.create(id, name, des, price, sellerId, bonus);

@@ -1,19 +1,22 @@
 package common.userfactory;
 
-import common.models.user.*;
+import common.models.user.Admin;
+import common.models.user.User;
 
 public class AdminCreator extends UserCreator {
     protected String type = "admin";
 
-    static {UserFactory.addCreator(new AdminCreator());}
+    static {
+        UserFactory.addCreator(new AdminCreator());
+    }
 
     @Override
-    public User create(String id, String username, String email, String password){
+    public User create(int id, String username, String email, String password) {
         return new Admin(id, username, email, password);
     }
 
     @Override
-    public String getType(){
+    public String getType() {
         return type;
-    }   
+    }
 }

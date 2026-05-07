@@ -13,7 +13,7 @@ public class Seller extends User implements AuctionObserver {
     private Wallet wallet;
     private List<Item> itemsForSale;
 
-    public Seller(String id, String username, String email, String password){
+    public Seller(int id, String username, String email, String password){
         super(id, username, email, password, "SELLER");
         this.itemsForSale = new ArrayList<>();
         this.wallet = new Wallet();

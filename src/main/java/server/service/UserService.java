@@ -9,6 +9,7 @@ import server.repository.dao.UserDAO;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class UserService {
     private static final String[] USER_CREATOR_CLASSES = {
@@ -30,8 +31,8 @@ public class UserService {
         ensureUserCreatorsLoaded();
     }
 
-    public User register(String id, String username, String email, String password, String role) {
-        String normalizedId = requireText(id, "id");
+    public User register(int id, String username, String email, String password, String role) {
+        int normalizedId = requirePositiveId(id, "id");
         String normalizedUsername = requireText(username, "username");
         String normalizedEmail = requireText(email, "email");
         String normalizedPassword = requireText(password, "password");
@@ -56,6 +57,10 @@ public class UserService {
         user.setStatus(UserStatus.LOGOUT);
         userDAO.save(user);
         return user;
+    }
+
+    public User register(String username, String email, String password, String role) {
+        return register(generateUserId(), username, email, password, role);
     }
 
     public User login(String username, String password) {
@@ -90,20 +95,20 @@ public class UserService {
         sessionManager.logout();
     }
 
-    public User banUser(String id) {
+    public User banUser(int id) {
         User user = getRequiredUserById(id);
         user.setStatus(UserStatus.BANNED);
         userDAO.update(user);
 
         User currentUser = sessionManager.getCurrentUser();
-        if (currentUser != null && currentUser.getId().equals(user.getId())) {
+        if (currentUser != null && currentUser.getId() == user.getId()) {
             sessionManager.logout();
         }
 
         return user;
     }
 
-    public User unbanUser(String id) {
+    public User unbanUser(int id) {
         User user = getRequiredUserById(id);
         user.setStatus(UserStatus.LOGOUT);
         userDAO.update(user);
@@ -131,8 +136,8 @@ public class UserService {
         return userDAO.findAll();
     }
 
-    public Optional<User> findById(String id) {
-        return userDAO.findById(requireText(id, "id"));
+    public Optional<User> findById(int id) {
+        return userDAO.findById(requirePositiveId(id, "id"));
     }
 
     public Optional<User> findByUsername(String username) {
@@ -151,8 +156,8 @@ public class UserService {
         return sessionManager.isUserLoggedIn();
     }
 
-    private User getRequiredUserById(String id) {
-        return userDAO.findById(requireText(id, "id"))
+    private User getRequiredUserById(int id) {
+        return userDAO.findById(requirePositiveId(id, "id"))
                 .orElseThrow(() -> new AuthenticationException("Không tìm thấy user"));
     }
 
@@ -187,5 +192,20 @@ public class UserService {
         }
 
         return trimmed;
+    }
+
+    private int generateUserId() {
+        int id;
+        do {
+            id = ThreadLocalRandom.current().nextInt(100000, 999999);
+        } while (userDAO.findById(id).isPresent());
+        return id;
+    }
+
+    private int requirePositiveId(int value, String fieldName) {
+        if (value <= 0) {
+            throw new AuthenticationException(fieldName + " phải lớn hơn 0");
+        }
+        return value;
     }
 }

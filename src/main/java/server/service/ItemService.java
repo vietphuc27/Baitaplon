@@ -39,8 +39,8 @@ public class ItemService {
         return item;
     }
 
-    public void deleteItem(String id, String sellerId) {
-        String normalizedId = requireText(id, "id");
+    public void deleteItem(int id, String sellerId) {
+        int normalizedId = requirePositiveId(id, "id");
         String normalizedSellerId = requireText(sellerId, "sellerId");
 
         Item existing = itemDAO.findById(normalizedId)
@@ -53,8 +53,8 @@ public class ItemService {
         itemDAO.delete(normalizedId);
     }
 
-    public Optional<Item> findById(String id) {
-        return itemDAO.findById(requireText(id, "id"));
+    public Optional<Item> findById(int id) {
+        return itemDAO.findById(requirePositiveId(id, "id"));
     }
 
     public List<Item> findAll() {
@@ -74,7 +74,7 @@ public class ItemService {
             throw new IllegalArgumentException("San pham khong duoc de trong");
         }
 
-        requireText(item.getId(), "id");
+        requirePositiveId(item.getId(), "id");
         validateCommonFields(item);
         validateTypeSpecificFields(item);
     }
@@ -84,7 +84,7 @@ public class ItemService {
             throw new IllegalArgumentException("San pham khong duoc de trong");
         }
 
-        requireText(item.getId(), "id");
+        requirePositiveId(item.getId(), "id");
         validateCommonFields(item);
         validateTypeSpecificFields(item);
     }
@@ -127,5 +127,12 @@ public class ItemService {
             throw new IllegalArgumentException(fieldName + " khong duoc de trong");
         }
         return value.trim();
+    }
+
+    private int requirePositiveId(int value, String fieldName) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(fieldName + " phai lon hon 0");
+        }
+        return value;
     }
 }

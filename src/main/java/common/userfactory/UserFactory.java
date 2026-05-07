@@ -25,7 +25,7 @@ public class UserFactory {
         creators.add(creator);
     }
 
-    public static User createUser(String type, String id, String username, String email, String password){
+    public static User createUser(String type, int id, String username, String email, String password){
         for (UserCreator creator : creators) {
             if (creator.getType().equalsIgnoreCase(type)){
                 User newUser = creator.create(id, username, email, password);

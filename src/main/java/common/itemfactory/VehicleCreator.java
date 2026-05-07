@@ -8,7 +8,7 @@ public class VehicleCreator extends ItemCreator {
     static {ItemFactory.addCreator(new VehicleCreator());}
 
     @Override
-    public Item create(String id, String name, String description, double startingPrice, String sellerId, Object bonus){
+    public Item create(int id, String name, String description, double startingPrice, String sellerId, Object bonus){
             return new Vehicle(id, name, description, startingPrice, sellerId, (int) bonus);
     }
     @Override

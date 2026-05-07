@@ -23,7 +23,7 @@ public class UserDAO implements UserRepository {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, user.getId());
+            stmt.setInt(1, user.getId());
             stmt.setString(2, user.getUsername());
             stmt.setString(3, user.getEmail());
             stmt.setString(4, user.getPassword());
@@ -38,13 +38,13 @@ public class UserDAO implements UserRepository {
 
     // ─── FIND BY ID ───────────────────────────────────────────────
     @Override
-    public Optional<User> findById(String id) {
+    public Optional<User> findById(int id) {
         String sql = "SELECT * FROM users WHERE id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, id);
+            stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) return Optional.of(mapToUser(rs));
@@ -86,7 +86,7 @@ public class UserDAO implements UserRepository {
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user.getPassword());
             stmt.setString(4, user.getStatus().name());
-            stmt.setString(5, user.getId());
+            stmt.setInt(5, user.getId());
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -96,13 +96,13 @@ public class UserDAO implements UserRepository {
 
     // ─── DELETE ───────────────────────────────────────────────────
     @Override
-    public void delete(String id) {
+    public void delete(int id) {
         String sql = "DELETE FROM users WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, id);
+            stmt.setInt(1, id);
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -182,7 +182,7 @@ public class UserDAO implements UserRepository {
 
     // ─── HELPER: ResultSet → User ─────────────────────────────────
     private User mapToUser(ResultSet rs) throws SQLException {
-        String id       = rs.getString("id");
+        int id          = rs.getInt("id");
         String username = rs.getString("username");
         String email    = rs.getString("email");
         String password = rs.getString("password");

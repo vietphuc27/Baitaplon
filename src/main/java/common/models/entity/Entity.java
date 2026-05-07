@@ -3,21 +3,21 @@ package common.models.entity;
 import java.time.LocalDateTime;
 
 public abstract class Entity {
-    protected String id;
+    protected int id;
     protected LocalDateTime timeCreated;
     public Entity(){}
-    public Entity(String id){
+    public Entity(int id){
         this.id = id;
         this.timeCreated = LocalDateTime.now();
     }
-    public String getId() {
+    public int getId() {
         return id;
     }
     public LocalDateTime getTimeCreated() {
         return timeCreated;
     }
 
-    public void setId(String id) {
+    public void setId(int id) {
         this.id = id;
     }
 }

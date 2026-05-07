@@ -8,7 +8,7 @@ public class ArtCreator extends ItemCreator {
     static {ItemFactory.addCreator(new ArtCreator());}
 
     @Override
-    public Item create(String id, String name, String description, double startingPrice, String sellerId, Object bonus){
+    public Item create(int id, String name, String description, double startingPrice, String sellerId, Object bonus){
         return new Art(id, name, description, startingPrice, sellerId, (String) bonus);
     }
 

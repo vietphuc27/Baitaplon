@@ -9,7 +9,7 @@ import server.repository.dao.AuctionDAO;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 public class AuctionService {
@@ -24,9 +24,9 @@ public class AuctionService {
         bootstrapAuctionsFromDatabase();
     }
 
-    public Auction createAuction(String sellerId, String itemId, LocalDateTime startTime, LocalDateTime endTime) {
+    public Auction createAuction(String sellerId, int itemId, LocalDateTime startTime, LocalDateTime endTime) {
         String normalizedSellerId = requireText(sellerId, "sellerId");
-        String normalizedItemId = requireText(itemId, "itemId");
+        int normalizedItemId = requirePositiveId(itemId, "itemId");
         LocalDateTime normalizedStartTime = requireTime(startTime, "startTime");
         LocalDateTime normalizedEndTime = requireTime(endTime, "endTime");
 
@@ -48,7 +48,7 @@ public class AuctionService {
             throw new IllegalArgumentException("San pham nay da co auction dang chay hoac chua ket thuc");
         }
 
-        String auctionId = UUID.randomUUID().toString();
+        int auctionId = generateAuctionId();
         Auction auction = new Auction(auctionId, item, normalizedSellerId, normalizedStartTime, normalizedEndTime);
 
         auctionDAO.save(auction);
@@ -57,9 +57,9 @@ public class AuctionService {
         return auction;
     }
 
-    public Auction endAuctionBySeller(String sellerId, String auctionId) {
+    public Auction endAuctionBySeller(String sellerId, int auctionId) {
         String normalizedSellerId = requireText(sellerId, "sellerId");
-        String normalizedAuctionId = requireText(auctionId, "auctionId");
+        int normalizedAuctionId = requirePositiveId(auctionId, "auctionId");
 
         Auction auction = auctionManager.getAuctionById(normalizedAuctionId);
         if (auction == null) {
@@ -135,10 +135,10 @@ public class AuctionService {
         }
     }
 
-    private boolean hasActiveAuctionForItem(String itemId) {
+    private boolean hasActiveAuctionForItem(int itemId) {
         return auctionManager.getAllActiveAuctions().stream()
                 .filter(auction -> auction.getItem() != null)
-                .anyMatch(auction -> itemId.equals(auction.getItem().getId()) && !auction.isClosed());
+                .anyMatch(auction -> itemId == auction.getItem().getId() && !auction.isClosed());
     }
 
     private String requireText(String value, String fieldName) {
@@ -146,6 +146,21 @@ public class AuctionService {
             throw new IllegalArgumentException(fieldName + " khong duoc de trong");
         }
         return value.trim();
+    }
+
+    private int requirePositiveId(int value, String fieldName) {
+        if (value <= 0) {
+            throw new IllegalArgumentException(fieldName + " khong hop le");
+        }
+        return value;
+    }
+
+    private int generateAuctionId() {
+        int id;
+        do {
+            id = ThreadLocalRandom.current().nextInt(100000, 999999);
+        } while (auctionDAO.findById(id).isPresent());
+        return id;
     }
 
     private LocalDateTime requireTime(LocalDateTime value, String fieldName) {

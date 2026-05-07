@@ -19,7 +19,7 @@ public class Bidder extends User implements AuctionObserver {
     private final ReentrantLock lock = new ReentrantLock();
 
 
-    public Bidder(String id, String username, String email, String password){
+    public Bidder(int id, String username, String email, String password){
         super(id, username, email, password, "BIDDER");
         this.wallet = new Wallet();
         this.bidHistory = new ArrayList<>();

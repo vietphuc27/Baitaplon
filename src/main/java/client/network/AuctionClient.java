@@ -9,7 +9,7 @@ import server.service.AuctionService;
 import server.service.ItemService;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class AuctionClient {
     private final ItemService itemService;
@@ -23,7 +23,7 @@ public class AuctionClient {
     public Auction createAuction(CreateAuctionRequest request) {
         validateRequest(request);
 
-        String itemId = UUID.randomUUID().toString();
+        int itemId = generateItemId();
         Item item = buildItem(itemId, request);
         itemService.createItem(item);
 
@@ -38,11 +38,11 @@ public class AuctionClient {
     public Auction endAuction(String sellerId, String auctionId) {
         return auctionService.endAuctionBySeller(
                 requireText(sellerId, "sellerId"),
-                requireText(auctionId, "auctionId")
+                parsePositiveInt(auctionId, "auctionId")
         );
     }
 
-    private Item buildItem(String itemId, CreateAuctionRequest request) {
+    private Item buildItem(int itemId, CreateAuctionRequest request) {
         String description = buildDescription(request);
 
         return switch (request.itemType()) {
@@ -128,6 +128,18 @@ public class AuctionClient {
         return value.trim();
     }
 
+    private int parsePositiveInt(String value, String fieldName) {
+        try {
+            int number = Integer.parseInt(requireText(value, fieldName));
+            if (number <= 0) {
+                throw new IllegalArgumentException(fieldName + " phải lớn hơn 0");
+            }
+            return number;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(fieldName + " phải là số nguyên");
+        }
+    }
+
     private int parseNonNegativeInt(String value, String fieldName) {
         try {
             int number = Integer.parseInt(requireText(value, fieldName));
@@ -138,6 +150,14 @@ public class AuctionClient {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(fieldName + " phải là số nguyên");
         }
+    }
+
+    private int generateItemId() {
+        int id;
+        do {
+            id = ThreadLocalRandom.current().nextInt(100000, 999999);
+        } while (itemService.findById(id).isPresent());
+        return id;
     }
 
     public record CreateAuctionRequest(

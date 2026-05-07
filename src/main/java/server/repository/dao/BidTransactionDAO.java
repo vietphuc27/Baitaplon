@@ -21,9 +21,9 @@ public class BidTransactionDAO implements BidTransactionRepository {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, bid.getId());
-            stmt.setString(2, bid.getAuctionId());
-            stmt.setString(3, bid.getBidderId());
+            stmt.setInt(1, bid.getId());
+            stmt.setInt(2, bid.getAuctionId());
+            stmt.setInt(3, bid.getBidderId());
             stmt.setDouble(4, bid.getBidAmount());
             // Chuyển LocalDateTime sang java.sql.Timestamp
             stmt.setTimestamp(5, Timestamp.valueOf(bid.getBidTime()));
@@ -36,12 +36,12 @@ public class BidTransactionDAO implements BidTransactionRepository {
 
     // ─── FIND BY ID ───────────────────────────────────────────────
     @Override
-    public Optional<BidTransaction> findById(String id) {
+    public Optional<BidTransaction> findById(int id) {
         String sql = "SELECT * FROM bid_transactions WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, id);
+            stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) return Optional.of(mapToBidTransaction(rs));
@@ -70,7 +70,7 @@ public class BidTransactionDAO implements BidTransactionRepository {
 
     // ─── FIND BY AUCTION ID ───────────────────────────────────────
     @Override
-    public List<BidTransaction> findByAuctionId(String auctionId) {
+    public List<BidTransaction> findByAuctionId(int auctionId) {
         // Lấy lịch sử bid của 1 phiên, xếp từ mới nhất / cao nhất đưa lên đầu
         String sql = "SELECT * FROM bid_transactions WHERE auction_id = ? ORDER BY bid_amount DESC, bid_time DESC";
         List<BidTransaction> list = new ArrayList<>();
@@ -78,7 +78,7 @@ public class BidTransactionDAO implements BidTransactionRepository {
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, auctionId);
+            stmt.setInt(1, auctionId);
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) list.add(mapToBidTransaction(rs));
@@ -90,14 +90,14 @@ public class BidTransactionDAO implements BidTransactionRepository {
 
     // ─── FIND BY BIDDER ID ────────────────────────────────────────
     @Override
-    public List<BidTransaction> findByBidderId(String bidderId) {
+    public List<BidTransaction> findByBidderId(int bidderId) {
         String sql = "SELECT * FROM bid_transactions WHERE bidder_id = ? ORDER BY bid_time DESC";
         List<BidTransaction> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, bidderId);
+            stmt.setInt(1, bidderId);
             ResultSet rs = stmt.executeQuery();
 
             while (rs.next()) list.add(mapToBidTransaction(rs));
@@ -109,13 +109,13 @@ public class BidTransactionDAO implements BidTransactionRepository {
 
     // ─── FIND HIGHEST BID OF AUCTION ──────────────────────────────
     @Override
-    public BidTransaction findHighestBidByAuctionId(String auctionId) {
+    public BidTransaction findHighestBidByAuctionId(int auctionId) {
         String sql = "SELECT * FROM bid_transactions WHERE auction_id = ? ORDER BY bid_amount DESC LIMIT 1";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, auctionId);
+            stmt.setInt(1, auctionId);
             ResultSet rs = stmt.executeQuery();
 
             if (rs.next()) return mapToBidTransaction(rs);
@@ -133,15 +133,15 @@ public class BidTransactionDAO implements BidTransactionRepository {
 
     // ─── DELETE ───────────────────────────────────────────────────
     @Override
-    public void delete(String id) {
+    public void delete(int id) {
         throw new UnsupportedOperationException("Cấm gian lận: Không thể sửa lịch sử đặt giá!");
     }
 
     // ─── HELPER: ResultSet → BidTransaction ───────────────────────
     private BidTransaction mapToBidTransaction(ResultSet rs) throws SQLException {
-        String id        = rs.getString("id");
-        String auctionId = rs.getString("auction_id");
-        String bidderId  = rs.getString("bidder_id");
+        int id           = rs.getInt("id");
+        int auctionId    = rs.getInt("auction_id");
+        int bidderId     = rs.getInt("bidder_id");
         double bidAmount = rs.getDouble("bid_amount");
 
         // Hồi sinh Timestamp từ Database thành java.time.LocalDateTime

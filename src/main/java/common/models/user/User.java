@@ -9,7 +9,7 @@ public abstract class User extends Entity {
     protected String role;
     protected UserStatus status;
     public User(){}
-    public User(String id, String username, String email, String password, String role){
+    public User(int id, String username, String email, String password, String role){
         super(id);
         this.username = username;
         this.email = email;

@@ -8,7 +8,7 @@ public class SellerCreator extends UserCreator {
     static {UserFactory.addCreator(new SellerCreator());}
 
     @Override
-    public User create(String id, String username, String email, String password){
+    public User create(int id, String username, String email, String password){
         return new Seller(id, username, email, password);
     }
 

@@ -4,7 +4,7 @@ package common.models.item;
 public class Vehicle extends Item{
     private int mileage;
 
-    public Vehicle(String id, String name, String description, double startingPrice, String sellerId, int mileage) {
+    public Vehicle(int id, String name, String description, double startingPrice, String sellerId, int mileage) {
         super(id, name, description, startingPrice, sellerId);
         this.mileage = mileage;
     }
