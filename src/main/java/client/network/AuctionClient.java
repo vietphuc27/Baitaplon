@@ -35,6 +35,13 @@ public class AuctionClient {
         );
     }
 
+    public Auction endAuction(String sellerId, String auctionId) {
+        return auctionService.endAuctionBySeller(
+                requireText(sellerId, "sellerId"),
+                requireText(auctionId, "auctionId")
+        );
+    }
+
     private Item buildItem(String itemId, CreateAuctionRequest request) {
         String description = buildDescription(request);
 

@@ -57,6 +57,31 @@ public class AuctionService {
         return auction;
     }
 
+    public Auction endAuctionBySeller(String sellerId, String auctionId) {
+        String normalizedSellerId = requireText(sellerId, "sellerId");
+        String normalizedAuctionId = requireText(auctionId, "auctionId");
+
+        Auction auction = auctionManager.getAuctionById(normalizedAuctionId);
+        if (auction == null) {
+            auction = auctionDAO.findById(normalizedAuctionId)
+                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phien dau gia"));
+            auctionManager.addAuction(auction);
+        }
+
+        if (!normalizedSellerId.equals(auction.getSellerId())) {
+            throw new IllegalArgumentException("Nguoi ban khong co quyen ket thuc phien dau gia nay");
+        }
+
+        if (auction.isClosed()) {
+            throw new IllegalArgumentException("Phien dau gia da dong");
+        }
+
+        auction.setStatus(AuctionStatus.FINISHED);
+        auctionDAO.update(auction);
+        handleAuctionWinner(auction);
+        return auction;
+    }
+
     public void refreshAuctionsStatus() {
         List<Auction> allAuctions = new ArrayList<>(auctionManager.getAllActiveAuctions());
         LocalDateTime now = LocalDateTime.now();
