@@ -203,13 +203,13 @@ public class SellerController implements Initializable {
             showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng chọn một phiên đấu giá!");
             return;
         }
-
+        
         try {
             Auction auction = auctionClient.endAuction(currentSellerId, selectedAuction.getId());
             showAlert(Alert.AlertType.INFORMATION, "Thành công",
                     "Phiên đấu giá đã được kết thúc! ID: " + auction.getAuctionId());
-            loadSellerAuctions();
-            loadStatistics();
+        loadSellerAuctions();
+        loadStatistics();
         } catch (IllegalArgumentException e) {
             showAlert(Alert.AlertType.WARNING, "Không thể kết thúc phiên", e.getMessage());
         } catch (RuntimeException e) {

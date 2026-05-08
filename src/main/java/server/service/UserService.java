@@ -18,8 +18,8 @@ public class UserService {
             "common.userfactory.AdminCreator"
     };
 
-    private final UserDAO userDAO;
     private final SessionManager sessionManager;
+    private final UserDAO userDAO;
 
     public UserService() {
         this(new UserDAO());
