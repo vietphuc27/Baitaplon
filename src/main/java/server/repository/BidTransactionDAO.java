@@ -1,8 +1,8 @@
-package server.repository.dao;
+package server.repository;
 
 import common.models.auction.BidTransaction;
 import server.config.DatabaseConnection;
-import server.repository.BidTransactionRepository;
+import server.repository.dao.BidTransactionRepository;
 
 import java.sql.*;
 import java.time.LocalDateTime;

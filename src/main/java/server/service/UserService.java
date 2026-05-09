@@ -5,7 +5,7 @@ import common.models.user.User;
 import common.models.user.UserStatus;
 import common.userfactory.UserFactory;
 import server.manager.SessionManager;
-import server.repository.dao.UserDAO;
+import server.repository.UserDAO;
 
 import java.util.List;
 import java.util.Optional;

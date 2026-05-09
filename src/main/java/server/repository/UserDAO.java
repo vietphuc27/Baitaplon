@@ -1,8 +1,8 @@
-package server.repository.dao;
+package server.repository;
 
 import common.models.user.*;
 import server.config.DatabaseConnection;
-import server.repository.UserRepository;
+import server.repository.dao.UserRepository;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;

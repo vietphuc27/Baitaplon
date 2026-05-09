@@ -1,9 +1,9 @@
-package server.repository.dao;
+package server.repository;
 
 import common.models.auction.*;
 import common.models.item.*;
 import server.config.DatabaseConnection;
-import server.repository.AuctionRepository;
+import server.repository.dao.AuctionRepository;
 
 import java.sql.*;
 import java.time.LocalDateTime;

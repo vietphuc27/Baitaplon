@@ -7,8 +7,8 @@ import common.models.auction.AuctionStatus;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
 import server.manager.AuctionManager;
-import server.repository.dao.AuctionDAO;
-import server.repository.dao.BidTransactionDAO;
+import server.repository.AuctionDAO;
+import server.repository.BidTransactionDAO;
 
 import java.time.LocalDateTime;
 import java.util.List;
