@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.chart.LineChart?>
+<?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
@@ -15,114 +17,105 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="600.0" prefWidth="800.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane prefHeight="600.0" prefWidth="900.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.BidderController">
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #14213D; -fx-padding: 15;">
+        <HBox alignment="CENTER_LEFT" spacing="20.0" style="-fx-background-color: #14213D; -fx-padding: 15;">
             <Label styleClass="header-title" text="BIDDER DASHBOARD" textFill="WHITE">
-            <font>
-               <Font name="System Bold" size="20.0" />
-            </font></Label>
-            <Label prefHeight="18.0" prefWidth="117.0" styleClass="header-subtitle" text="Hệ thống ổn định" textFill="WHITE" />
-            <Label fx:id="lblWalletBalance" prefHeight="18.0" prefWidth="167.0" styleClass="header-wallet" text="Ví: 0 VNĐ" textFill="WHITE">
-            <font>
-               <Font name="System Bold" size="12.0" />
-            </font></Label>
-            <Label fx:id="lblBidderName" prefHeight="18.0" prefWidth="128.0" styleClass="header-user" text="Bidder: ..." textFill="WHITE">
-            <font>
-               <Font name="System Bold" size="12.0" />
-            </font></Label>
-            <Button style="-fx-background-color: #34495e; -fx-background-radius: 10;" styleClass="btn-logout" text="Đăng xuất" textFill="#ff6363" />
+                <font><Font name="System Bold" size="20.0" /></font>
+            </Label>
+            <Label styleClass="header-subtitle" text="Hệ thống ổn định" textFill="WHITE" />
+            <Label fx:id="lblWalletBalance" styleClass="header-wallet" text="Ví: 0 VND" textFill="WHITE">
+                <font><Font name="System Bold" size="12.0" /></font>
+            </Label>
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="lblBidderName" styleClass="header-user" text="Bidder: ..." textFill="WHITE">
+                <font><Font name="System Bold" size="12.0" /></font>
+            </Label>
+            <Button onAction="#handleLogout" style="-fx-background-color: #34495e; -fx-background-radius: 10;" styleClass="btn-logout" text="Đăng xuất" textFill="#ff6363" />
         </HBox>
     </top>
+
     <center>
         <TabPane styleClass="main-tabpane">
-
-            <Tab closable="false" text="Danh Sách Đấu Giá">
-                <VBox spacing="10">
-                    <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
-
-                    <HBox alignment="CENTER_LEFT" spacing="10">
-                        <Label prefHeight="18.0" prefWidth="181.0" styleClass="section-title" text="Các Phiên Đấu Giá Đang Mở" />
-                        <TextField fx:id="txtSearch" prefWidth="200" promptText="Tìm kiếm sản phẩm..." />
-                        <Button styleClass="btn-secondary" text="Tìm" />
-                  <ComboBox prefHeight="26.0" prefWidth="134.0" />
-                        <Label text="Sắp xếp theo:" />
-                        <Button styleClass="btn-secondary" text="Làm mới" />
+            <Tab closable="false" text="Danh sách đấu giá">
+                <VBox spacing="10.0">
+                    <padding><Insets bottom="20.0" left="25.0" right="25.0" top="20.0" /></padding>
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <Label styleClass="section-title" text="Phiên đấu giá đang mở" />
+                        <TextField fx:id="txtSearch" prefWidth="200.0" promptText="Tìm kiếm sản phẩm..." />
+                        <Button onAction="#handleSearchAuctions" styleClass="btn-secondary" text="Tìm" />
+                        <ComboBox fx:id="cbStatusFilter" prefWidth="130.0" />
+                        <Label text="Sắp xếp:" />
+                        <ComboBox fx:id="cbSortBy" prefWidth="140.0" />
+                        <Button onAction="#handleRefreshAuctions" styleClass="btn-secondary" text="Làm mới" />
                     </HBox>
-
-                    <TableView fx:id="tblAuctions" prefHeight="350" VBox.vgrow="ALWAYS">
+                    <TableView fx:id="tblAuctions" prefHeight="300.0" VBox.vgrow="ALWAYS">
                         <columns>
-                            <TableColumn fx:id="colId" prefWidth="60" text="ID" />
-                            <TableColumn fx:id="colItem" prefWidth="180" text="Sản phẩm" />
-                            <TableColumn fx:id="colType" prefWidth="100" text="Loại" />
-                            <TableColumn fx:id="colCurrentPrice" prefWidth="130" text="Giá hiện tại" />
-                            <TableColumn fx:id="colSeller" prefWidth="120" text="Người bán" />
-                            <TableColumn fx:id="colEndTime" prefWidth="150" text="Kết thúc lúc" />
+                            <TableColumn fx:id="colId" prefWidth="70.0" text="ID" />
+                            <TableColumn fx:id="colItem" prefWidth="190.0" text="Sản phẩm" />
+                            <TableColumn fx:id="colType" prefWidth="120.0" text="Loại" />
+                            <TableColumn fx:id="colCurrentPrice" prefWidth="140.0" text="Giá hiện tại" />
+                            <TableColumn fx:id="colSeller" prefWidth="120.0" text="Người bán" />
+                            <TableColumn fx:id="colEndTime" prefWidth="160.0" text="Kết thúc lúc" />
                         </columns>
-                        <placeholder><Label text="Không có phiên đấu giá nào đang mở" /></placeholder>
                     </TableView>
-
-                    <!-- Khu vực đặt giá -->
-                    <HBox alignment="CENTER_LEFT" spacing="15" styleClass="bid-panel">
-                        <padding><Insets bottom="10" left="15" right="15" top="10" /></padding>
+                    <HBox alignment="CENTER_LEFT" spacing="15.0" styleClass="bid-panel">
+                        <padding><Insets bottom="10.0" left="15.0" right="15.0" top="10.0" /></padding>
                         <Label styleClass="form-label" text="Giá đặt của bạn:" />
-                        <TextField fx:id="txtBidAmount" prefWidth="200" promptText="Nhập số tiền..." />
-                        <Button styleClass="btn-success" text="Đặt Giá" />
-                        <Button styleClass="btn-primary" text="Xem Chi Tiết" />
+                        <TextField fx:id="txtBidAmount" prefWidth="200.0" promptText="Nhập số tiền..." />
+                        <Button onAction="#handlePlaceBid" styleClass="btn-success" text="Đặt giá" />
+                        <Button onAction="#handleViewDetails" styleClass="btn-primary" text="Xem chi tiết" />
                     </HBox>
+                    <LineChart fx:id="priceHistoryChart" animated="false" prefHeight="180.0" title="Lịch sử giá theo thời gian">
+                        <xAxis><NumberAxis fx:id="xAxis" label="Lần đặt giá" /></xAxis>
+                        <yAxis><NumberAxis fx:id="yAxis" label="Giá (VND)" /></yAxis>
+                    </LineChart>
                 </VBox>
             </Tab>
 
-            <Tab closable="false" text="Lịch Sử Đặt Giá">
-                <VBox spacing="10">
-                    <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
-
-                    <HBox alignment="CENTER_LEFT" spacing="10">
-                        <Label styleClass="section-title" text="Lịch Sử Đặt Giá" />
-                        <Region prefHeight="26.0" prefWidth="282.0" />
-                        <Button styleClass="btn-secondary" text="Làm mới" />
-                  <TextField fx:id="txtSearch1" prefWidth="200" promptText="Tìm kiếm sản phẩm..." />
-                  <Button styleClass="btn-secondary" text="Tìm" />
+            <Tab closable="false" text="Lịch sử đặt giá">
+                <VBox spacing="10.0">
+                    <padding><Insets bottom="20.0" left="25.0" right="25.0" top="20.0" /></padding>
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <Label styleClass="section-title" text="Lịch sử đặt giá" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <TextField fx:id="txtSearch1" prefWidth="200.0" promptText="Tìm kiếm sản phẩm..." />
+                        <Button onAction="#handleSearchHistory" styleClass="btn-secondary" text="Tìm" />
+                        <Button onAction="#handleRefreshHistory" styleClass="btn-secondary" text="Làm mới" />
                     </HBox>
-
-                    <TableView fx:id="tblBidHistory" prefHeight="400" VBox.vgrow="ALWAYS">
+                    <TableView fx:id="tblBidHistory" prefHeight="400.0" VBox.vgrow="ALWAYS">
                         <columns>
-                            <TableColumn fx:id="colHistoryId" prefWidth="80" text="ID Phiên" />
-                            <TableColumn fx:id="colHistoryItem" prefWidth="180" text="Sản phẩm" />
-                            <TableColumn fx:id="colHistoryBid" prefWidth="130" text="Giá đã đặt" />
-                            <TableColumn fx:id="colHistoryTime" prefWidth="150" text="Thời gian" />
-                            <TableColumn fx:id="colHistoryResult" prefWidth="120" text="Kết quả" />
+                            <TableColumn fx:id="colHistoryId" prefWidth="100.0" text="ID phiên" />
+                            <TableColumn fx:id="colHistoryItem" prefWidth="200.0" text="Sản phẩm" />
+                            <TableColumn fx:id="colHistoryBid" prefWidth="150.0" text="Giá đã đặt" />
+                            <TableColumn fx:id="colHistoryTime" prefWidth="180.0" text="Thời gian" />
+                            <TableColumn fx:id="colHistoryResult" prefWidth="130.0" text="Kết quả" />
                         </columns>
-                        <placeholder><Label text="Chưa có lịch sử đặt giá" /></placeholder>
                     </TableView>
                 </VBox>
             </Tab>
 
-            <Tab closable="false" text="Ví Của Tôi">
-                <VBox spacing="15">
-                    <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
-                    <Label styleClass="section-title" text="Quản Lý Ví" />
-
-                    <HBox spacing="20">
-                        <VBox prefWidth="200" spacing="5" styleClass="stat-card">
+            <Tab closable="false" text="Ví của tôi">
+                <VBox spacing="15.0">
+                    <padding><Insets bottom="20.0" left="25.0" right="25.0" top="20.0" /></padding>
+                    <Label styleClass="section-title" text="Quản lý ví" />
+                    <HBox spacing="20.0">
+                        <VBox prefWidth="220.0" spacing="5.0" styleClass="stat-card">
                             <Label styleClass="stat-label" text="Số dư hiện tại" />
-                            <Label fx:id="lblBalance" styleClass="stat-value-green" text="0 VNĐ" />
+                            <Label fx:id="lblBalance" styleClass="stat-value-green" text="0 VND" />
                         </VBox>
-                        <VBox prefWidth="200" spacing="5" styleClass="stat-card">
-                            <Label styleClass="stat-label" text="Tổng đã thắng" />
+                        <VBox prefWidth="220.0" spacing="5.0" styleClass="stat-card">
+                            <Label styleClass="stat-label" text="Phiên đang dẫn đầu" />
                             <Label fx:id="lblTotalWon" styleClass="stat-value-blue" text="0 phiên" />
                         </VBox>
                     </HBox>
-
-                    <HBox alignment="CENTER_LEFT" spacing="10">
-                        <Label styleClass="form-label" text="Nạp tiền (VNĐ):" />
-                        <TextField fx:id="txtDepositAmount" prefWidth="200" promptText="Nhập số tiền..." />
-                        <Button styleClass="btn-success" text="Nạp Tiền" />
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <Label styleClass="form-label" text="Nạp tiền (VND):" />
+                        <TextField fx:id="txtDepositAmount" prefWidth="220.0" promptText="Nhập số tiền..." />
+                        <Button onAction="#handleDeposit" styleClass="btn-success" text="Nạp tiền" />
                     </HBox>
                 </VBox>
             </Tab>
-
         </TabPane>
     </center>
-
 </BorderPane>

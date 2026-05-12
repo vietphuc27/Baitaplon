@@ -1,5 +1,22 @@
 package client.application;
 
-public class ClientSession {
-    //Lưu thông tin user đang đăng nhập ở phía giao diện (để UI biết mày đang là Admin hay Bidder).
+import common.models.user.User;
+
+public final class ClientSession {
+    private static User currentUser;
+
+    private ClientSession() {
+    }
+
+    public static void setCurrentUser(User user) {
+        currentUser = user;
+    }
+
+    public static User getCurrentUser() {
+        return currentUser;
+    }
+
+    public static void clear() {
+        currentUser = null;
+    }
 }

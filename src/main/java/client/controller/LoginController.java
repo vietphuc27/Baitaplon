@@ -1,5 +1,6 @@
 package client.controller;
 
+import client.application.ClientSession;
 import common.models.user.User;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -30,10 +31,18 @@ public class LoginController {
 
     @FXML
     private void initialize() {
-        roleComboBox.setItems(FXCollections.observableArrayList("Seller", "Bidder", "Admin"));
+        roleComboBox.setItems(FXCollections.observableArrayList("Seller", "Bidder"));
 
         loginBtn.setOnAction(this::handleLogin);
         registerBtn.setOnAction(this::handleRegister);
+        loginBtn.setDefaultButton(true);
+
+        usernameField.setOnAction(this::handleLogin);
+        passwordField.setOnAction(this::handleLogin);
+        signUpUsernameField.setOnAction(this::handleRegister);
+        emailField.setOnAction(this::handleRegister);
+        roleComboBox.setOnAction(event -> registerBtn.setDefaultButton(true));
+        signUpPasswordField.setOnAction(this::handleRegister);
 
         clearError(errorLabel);
         clearError(signUpErrorLabel);
@@ -50,6 +59,7 @@ public class LoginController {
 
         try {
             User user = userService.login(username, password);
+            ClientSession.setCurrentUser(user);
             clearError(errorLabel);
             openDashboard(event, user.getRole());
         } catch (IOException e) {
@@ -74,6 +84,10 @@ public class LoginController {
             User createdUser = userService.register(username, email, password, role);
             signUpErrorLabel.setText("Đăng ký thành công. UserID: " + createdUser.getId());
             signUpErrorLabel.setVisible(true);
+            signUpUsernameField.clear();
+            signUpPasswordField.clear();
+            emailField.clear();
+            roleComboBox.setValue(null);
         } catch (RuntimeException e) {
             showError(signUpErrorLabel, e.getMessage());
         }
