@@ -3,6 +3,8 @@ module view.btl {
     requires javafx.fxml;
     requires transitive java.sql;
     requires javafx.graphics;
+    requires gson;
+
 // requires com.mysql.cj;
 
     exports com.example.btl_n3;
