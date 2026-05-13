@@ -13,29 +13,30 @@ import server.repository.UserDAO;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BidService {
+    private static final ConcurrentHashMap<Integer, ReentrantLock> AUCTION_LOCKS = new ConcurrentHashMap<>();
+
     private final AuctionManager auctionManager;
     private final AuctionDAO auctionDAO;
     private final BidTransactionDAO bidTransactionDAO;
     private final UserDAO userDAO;
-    private final ReentrantLock bidLock;
 
     public BidService() {
-        this.auctionManager = AuctionManager.getInstance();
-        this.auctionDAO = new AuctionDAO();
-        this.bidTransactionDAO = new BidTransactionDAO();
-        this.userDAO = new UserDAO();
-        this.bidLock = new ReentrantLock();
+        this(AuctionManager.getInstance(), new AuctionDAO(), new BidTransactionDAO(), new UserDAO());
     }
 
     public BidService(AuctionManager auctionManager, AuctionDAO auctionDAO, BidTransactionDAO bidTransactionDAO) {
+        this(auctionManager, auctionDAO, bidTransactionDAO, new UserDAO());
+    }
+
+    public BidService(AuctionManager auctionManager, AuctionDAO auctionDAO, BidTransactionDAO bidTransactionDAO, UserDAO userDAO) {
         this.auctionManager = auctionManager;
         this.auctionDAO = auctionDAO;
         this.bidTransactionDAO = bidTransactionDAO;
-        this.userDAO = new UserDAO();
-        this.bidLock = new ReentrantLock();
+        this.userDAO = userDAO;
     }
 
     public BidTransaction placeBid(String auctionId, Bidder bidder, double amount) {
@@ -43,13 +44,13 @@ public class BidService {
         try {
             auctionIdInt = Integer.parseInt(auctionId);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid auction ID: " + auctionId);
+            throw new IllegalArgumentException("ID không hợp lệ: " + auctionId);
         }
-        
+
         Auction auction = auctionManager.getAuctionById(auctionIdInt);
         if (auction == null) {
             auction = auctionDAO.findById(auctionIdInt)
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy auction: " + auctionId));
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiên đấu giá: " + auctionId));
             auctionManager.addAuction(auction);
         }
 
@@ -61,15 +62,32 @@ public class BidService {
             throw new IllegalArgumentException("Không tìm thấy phiên đấu giá");
         }
         if (bidder == null) {
-            throw new IllegalArgumentException("Không xác định được người đấu giá");
+            throw new IllegalArgumentException("Không tìm thấy Bidder");
         }
 
+        ReentrantLock bidLock = AUCTION_LOCKS.computeIfAbsent(auction.getAuctionId(), id -> new ReentrantLock());
         bidLock.lock();
         try {
             validateBid(auction, bidder, amount);
 
+            if (bidder.getWallet() == null) {
+                throw new InvalidBidException("Không đủ số dư");
+            }
+            if (!bidder.getWallet().withdraw(amount)) {
+                throw new InvalidBidException("Không đủ số dư");
+            }
+
+            if (!persistBidder(bidder)) {
+                bidder.getWallet().deposit(amount);
+                throw new InvalidBidException("Không cập nhật được số dư");
+            }
+
+            double previousHighestBid = auction.getCurrentHighestBid();
+            Bidder previousLeader = auction.getCurrentLeader();
+            Integer previousLeaderId = auction.getCurrentLeaderId();
+
             BidTransaction bid = new BidTransaction(
-                    0, // ID sẽ được generate bởi database
+                    0,
                     auction.getAuctionId(),
                     bidder.getId(),
                     amount
@@ -79,17 +97,26 @@ public class BidService {
 
             boolean accepted = auction.processBid(bid);
             if (!accepted) {
-                throw new InvalidBidException("Đấu giá thất bại: giá không hợp lệ hoặc phiên đấu giá không còn mở");
+                bidder.getWallet().deposit(amount);
+                persistBidder(bidder);
+                throw new InvalidBidException("Giá không hợp lệ hoặc phiên đấu giá đã đóng");
             }
 
-            if (!bidder.getWallet().withdraw(amount)) {
-                throw new InvalidBidException("Số dư không đủ để đặt giá");
+            try {
+                auctionDAO.update(auction);
+                bidTransactionDAO.save(bid);
+                return bid;
+            } catch (RuntimeException e) {
+                rollbackAuctionState(auction, previousHighestBid, previousLeader, previousLeaderId, bid);
+                bidder.getWallet().deposit(amount);
+                persistBidder(bidder);
+                try {
+                    auctionDAO.update(auction);
+                } catch (RuntimeException ignored) {
+                    // If rollback persistence also fails, keep the original failure visible.
+                }
+                throw e;
             }
-
-            bidTransactionDAO.save(bid);
-            auctionDAO.update(auction);
-            userDAO.update(bidder);
-            return bid;
         } finally {
             bidLock.unlock();
         }
@@ -100,7 +127,7 @@ public class BidService {
         try {
             auctionIdInt = Integer.parseInt(auctionId);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid auction ID: " + auctionId);
+            throw new IllegalArgumentException("ID phiên đấu giá không hợp lệ: " + auctionId);
         }
         return bidTransactionDAO.findByAuctionId(auctionIdInt);
     }
@@ -110,7 +137,7 @@ public class BidService {
         try {
             bidderIdInt = Integer.parseInt(bidderId);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid bidder ID: " + bidderId);
+            throw new IllegalArgumentException("Bidder ID không hợp lệ: " + bidderId);
         }
         return bidTransactionDAO.findByBidderId(bidderIdInt);
     }
@@ -120,30 +147,57 @@ public class BidService {
         try {
             auctionIdInt = Integer.parseInt(auctionId);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid auction ID: " + auctionId);
+            throw new IllegalArgumentException("ID phiên đấu giá không hợp lệ: " + auctionId);
         }
         return bidTransactionDAO.findHighestBidByAuctionId(auctionIdInt);
     }
 
     private void validateBid(Auction auction, Bidder bidder, double amount) {
         if (amount <= 0) {
-            throw new InvalidBidException("Số tiền không hợp lệ");
+            throw new InvalidBidException("Giá không hợp lệ");
         }
 
+        if (auction.getItem() == null) {
+            throw new InvalidBidException("Phiên đấu giá không hợp lệ");
+        }
+
+        double startingPrice = auction.getItem().getStartingPrice();
         if (auction.getStatus() != AuctionStatus.RUNNING && auction.getStatus() != AuctionStatus.OPEN) {
-            throw new AuctionClosedException("Phiên đấu giá đã đóng, không thể đặt giá");
+            throw new AuctionClosedException("Phiên đấu giá đã đóng");
         }
 
         if (auction.isClosed()) {
-            throw new AuctionClosedException("Phiên đấu giá đã đóng, không thể đặt giá");
+            throw new AuctionClosedException("Phiên đấu giá đã đóng");
         }
 
-        if (amount <= auction.getCurrentHighestBid()) {
-            throw new InvalidBidException("Giá đặt không hợp lệ");
+        if (amount < startingPrice) {
+            throw new InvalidBidException("Giá đặt phải lớn hơn giá ban đầu");
+        }
+
+        if (auction.getCurrentHighestBid() > 0) {
+            if (amount <= auction.getCurrentHighestBid()) {
+                throw new InvalidBidException("Giá đặt phải lớn hơn giá cao nhất");
+            }
         }
 
         if (bidder.getWallet() == null || bidder.getWallet().getBalance() < amount) {
-            throw new InvalidBidException("Số dư không đủ để đặt giá");
+            throw new InvalidBidException("Không đủ số dư");
         }
+    }
+
+    private boolean persistBidder(Bidder bidder) {
+        try {
+            userDAO.update(bidder);
+            return true;
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
+
+    private void rollbackAuctionState(Auction auction, double previousHighestBid, Bidder previousLeader, Integer previousLeaderId, BidTransaction bid) {
+        auction.getBidHistory().remove(bid);
+        auction.setCurrentHighestBid(previousHighestBid);
+        auction.setCurrentLeader(previousLeader);
+        auction.setCurrentLeaderId(previousLeaderId);
     }
 }

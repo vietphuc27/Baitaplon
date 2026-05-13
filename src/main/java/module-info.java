@@ -14,7 +14,7 @@ module view.btl {
     opens common.models.auction to javafx.fxml;
     opens client.controller to javafx.fxml;
 
-    // Xuáº¥t cĂ¡c gĂ³i Ä‘á»ƒ sá»­ dá»¥ng trong dá»± Ă¡n
+    // Export packages used by the application
     exports common.models.user;
     exports common.models.entity;
     exports common.models.item;
