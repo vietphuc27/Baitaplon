@@ -20,7 +20,7 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane prefHeight="600.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.SellerController">
+<BorderPane prefHeight="600.0" prefWidth="800.0" styleClass="root-pane" stylesheets="@style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.SellerController">
 
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20" style="-fx-background-color: #14213D; -fx-padding: 15;">

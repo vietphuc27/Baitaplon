@@ -7,6 +7,7 @@ import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.user.User;
 import common.models.user.UserStatus;
+import common.utils.FormatUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.concurrent.Task;
@@ -82,7 +83,6 @@ public class SellerController implements Initializable {
     private String currentSellerId;
     private String currentSellerName;
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -469,7 +469,7 @@ public class SellerController implements Initializable {
             tblMyAuctions.getItems().setAll(data.rows());
             lblTotalAuctions.setText(String.valueOf(data.totalAuctions()));
             lblActiveAuctions.setText(String.valueOf(data.activeAuctions()));
-            lblTotalRevenue.setText(formatCurrency(data.totalRevenue()) + " VND");
+            lblTotalRevenue.setText(formatCurrency(data.totalRevenue()));
         });
         task.setOnFailed(event -> showAlert(Alert.AlertType.ERROR, "Lỗi", getTaskErrorMessage(task)));
         backgroundExecutor.submit(task);
@@ -492,7 +492,7 @@ public class SellerController implements Initializable {
                 auction.getItem() == null ? "-" : formatCurrency(auction.getItem().getStartingPrice()),
                 formatCurrency(auction.getCurrentHighestBid()),
                 auction.getStatus().name(),
-                auction.getEndTime() == null ? "-" : auction.getEndTime().format(dateTimeFormatter)
+                FormatUtils.formatDateTime(auction.getEndTime())
         );
     }
 
@@ -511,7 +511,7 @@ public class SellerController implements Initializable {
     }
 
     private String formatCurrency(double value) {
-        return String.format("%,.0f", value);
+        return FormatUtils.formatCurrency(value);
     }
 
     private void showAlert(Alert.AlertType type, String title, String msg) {
