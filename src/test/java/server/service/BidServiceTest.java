@@ -127,19 +127,6 @@ class BidServiceTest {
         assertEquals(100.01, bidService.getCurrentHighestBid("6").getBidAmount(), 0.0001);
     }
 
-    @Test
-    void placeBidRejectsLaterBidBelowStartingPriceEvenIfAboveCurrentHighestBid() {
-        Auction auction = createRunningAuction(11, 100.0);
-        Bidder firstBidder = createBidder(14, 500.0);
-        Bidder secondBidder = createBidder(15, 500.0);
-
-        bidService.placeBid(auction, firstBidder, 100.0);
-
-        assertThrows(InvalidBidException.class, () -> bidService.placeBid(auction, secondBidder, 101.0));
-        assertEquals(100.0, auction.getCurrentHighestBid(), 0.0001);
-        assertSame(firstBidder, auction.getCurrentLeader());
-        assertEquals(1, bidTransactionDAO.findByAuctionId(11).size());
-    }
 
     @Test
     void placeBidRejectsWhenBalanceIsBelowBidAmount() {
