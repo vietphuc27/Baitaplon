@@ -17,17 +17,27 @@ import java.io.IOException;
 public class LoginController {
     private final UserService userService = new UserService();
 
-    @FXML private TextField usernameField;
-    @FXML private PasswordField passwordField;
-    @FXML private Button loginBtn;
-    @FXML private Label errorLabel;
+    @FXML
+    private TextField usernameField;
+    @FXML
+    private PasswordField passwordField;
+    @FXML
+    private Button loginBtn;
+    @FXML
+    private Label errorLabel;
 
-    @FXML private TextField signUpUsernameField;
-    @FXML private TextField emailField;
-    @FXML private ComboBox<String> roleComboBox;
-    @FXML private PasswordField signUpPasswordField;
-    @FXML private Button registerBtn;
-    @FXML private Label signUpErrorLabel;
+    @FXML
+    private TextField signUpUsernameField;
+    @FXML
+    private TextField emailField;
+    @FXML
+    private ComboBox<String> roleComboBox;
+    @FXML
+    private PasswordField signUpPasswordField;
+    @FXML
+    private Button registerBtn;
+    @FXML
+    private Label signUpErrorLabel;
 
     @FXML
     private void initialize() {

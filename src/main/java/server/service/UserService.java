@@ -6,6 +6,7 @@ import common.models.user.UserStatus;
 import common.userfactory.UserFactory;
 import server.manager.SessionManager;
 import server.repository.UserDAO;
+import server.util.PasswordUtil;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,13 +47,14 @@ public class UserService {
             throw new AuthenticationException("Email đã tồn tại");
         }
 
+        String hashedPassword = PasswordUtil.hash(normalizedPassword);
+
         User user = UserFactory.createUser(
                 normalizedRole,
                 normalizedId,
                 normalizedUsername,
                 normalizedEmail,
-                normalizedPassword
-        );
+                hashedPassword);
 
         user.setStatus(UserStatus.LOGOUT);
         userDAO.save(user);
@@ -74,7 +76,14 @@ public class UserService {
             throw new AuthenticationException("Tài khoản đã bị khóa");
         }
 
-        if (!user.getPassword().equals(normalizedPassword)) {
+        boolean passwordMatches = false;
+        try {
+            passwordMatches = PasswordUtil.verify(normalizedPassword, user.getPassword());
+        } catch (Exception e) {
+            passwordMatches = user.getPassword().equals(normalizedPassword);
+        }
+
+        if (!passwordMatches) {
             throw new AuthenticationException("Sai mật khẩu");
         }
 
@@ -123,11 +132,18 @@ public class UserService {
         User user = userDAO.findByUsername(normalizedUsername)
                 .orElseThrow(() -> new AuthenticationException("Không tìm thấy username"));
 
-        if (!user.getPassword().equals(normalizedOldPassword)) {
+        boolean oldPasswordMatches = false;
+        try {
+            oldPasswordMatches = PasswordUtil.verify(normalizedOldPassword, user.getPassword());
+        } catch (Exception e) {
+            oldPasswordMatches = user.getPassword().equals(normalizedOldPassword);
+        }
+
+        if (!oldPasswordMatches) {
             throw new AuthenticationException("Mật khẩu cũ không đúng");
         }
 
-        user.setPassword(normalizedNewPassword);
+        user.setPassword(PasswordUtil.hash(normalizedNewPassword));
         userDAO.update(user);
         return user;
     }
