@@ -1,8 +1,8 @@
-package server.repository.dao;
+package server.repository;
 
 import common.models.item.*;
 import server.config.DatabaseConnection;
-import server.repository.ItemRepository;
+import server.repository.dao.ItemRepository;
 
 import java.sql.*;
 import java.util.*;

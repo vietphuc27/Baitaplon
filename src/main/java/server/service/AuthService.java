@@ -4,7 +4,7 @@ import common.exceptions.AuthenticationException;
 import common.models.user.User;
 import common.models.user.UserStatus;
 import server.manager.SessionManager;
-import server.repository.dao.UserDAO;
+import server.repository.UserDAO;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;

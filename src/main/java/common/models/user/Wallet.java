@@ -22,4 +22,8 @@ public class Wallet {
     public double getBalance() {
         return balance;
     }
+
+    public synchronized void setBalance(double balance) {
+        this.balance = Math.max(0, balance);
+    }
 }

@@ -1,8 +1,8 @@
-package server.repository.dao;
+package server.repository;
 
 import common.models.user.*;
 import server.config.DatabaseConnection;
-import server.repository.UserRepository;
+import server.repository.dao.UserRepository;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,12 +13,11 @@ import java.util.List;
 import java.util.Optional;
 
 public class UserDAO implements UserRepository {
-
     // ─── SAVE ─────────────────────────────────────────────────────
     @Override
     public void save(User user) {
-        String sql = "INSERT INTO users (id, username, email, password, role, status) "
-                + "VALUES (?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO users (id, username, email, password, role, status, wallet_balance) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -29,6 +28,7 @@ public class UserDAO implements UserRepository {
             stmt.setString(4, user.getPassword());
             stmt.setString(5, user.getRole());
             stmt.setString(6, user.getStatus().name());
+            stmt.setDouble(7, getWalletBalance(user));
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -76,7 +76,7 @@ public class UserDAO implements UserRepository {
     // ─── UPDATE ───────────────────────────────────────────────────
     @Override
     public void update(User user) {
-        String sql = "UPDATE users SET username=?, email=?, password=?, status=? "
+        String sql = "UPDATE users SET username=?, email=?, password=?, status=?, wallet_balance=? "
                 + "WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
@@ -86,7 +86,8 @@ public class UserDAO implements UserRepository {
             stmt.setString(2, user.getEmail());
             stmt.setString(3, user.getPassword());
             stmt.setString(4, user.getStatus().name());
-            stmt.setInt(5, user.getId());
+            stmt.setDouble(5, getWalletBalance(user));
+            stmt.setInt(6, user.getId());
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -197,6 +198,25 @@ public class UserDAO implements UserRepository {
         };
 
         user.setStatus(UserStatus.valueOf(status));
+        if (user instanceof Bidder bidder) {
+            bidder.getWallet().setBalance(readWalletBalance(rs));
+        }
         return user;
     }
+
+    private double getWalletBalance(User user) {
+        if (user instanceof Bidder bidder) {
+            return bidder.getWallet().getBalance();
+        }
+        return 0;
+    }
+
+    private double readWalletBalance(ResultSet rs) throws SQLException {
+        try {
+            return rs.getDouble("wallet_balance");
+        } catch (SQLException e) {
+            return 0;
+        }
+    }
+
 }

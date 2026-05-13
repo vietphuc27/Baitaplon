@@ -4,7 +4,7 @@ import common.models.item.Art;
 import common.models.item.Electronics;
 import common.models.item.Item;
 import common.models.item.Vehicle;
-import server.repository.dao.ItemDAO;
+import server.repository.ItemDAO;
 
 import java.util.List;
 import java.util.Optional;

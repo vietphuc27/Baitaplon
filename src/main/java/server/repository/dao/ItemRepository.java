@@ -1,4 +1,4 @@
-package server.repository;
+package server.repository.dao;
 
 import common.models.item.Item;
 

@@ -22,75 +22,42 @@ public class AuctionClient {
 
     public Auction createAuction(CreateAuctionRequest request) {
         validateRequest(request);
-
         int itemId = generateItemId();
         Item item = buildItem(itemId, request);
         itemService.createItem(item);
-
-        return auctionService.createAuction(
-                request.sellerId(),
-                item.getId(),
-                LocalDateTime.now(),
-                request.endTime()
-        );
+        return auctionService.createAuction(request.sellerId(), item.getId(), LocalDateTime.now(), request.endTime());
     }
 
     public Auction endAuction(String sellerId, String auctionId) {
-        return auctionService.endAuctionBySeller(
-                requireText(sellerId, "sellerId"),
-                parsePositiveInt(auctionId, "auctionId")
-        );
+        return auctionService.endAuctionBySeller(requireText(sellerId, "sellerId"), parsePositiveInt(auctionId, "auctionId"));
     }
 
     private Item buildItem(int itemId, CreateAuctionRequest request) {
         String description = buildDescription(request);
-
-        return switch (request.itemType()) {
-            case "Tác phẩm nghệ thuật" -> new Art(
-                    itemId,
-                    request.itemName(),
-                    description,
-                    request.startPrice(),
-                    request.sellerId(),
-                    requireText(request.artist(), "artist")
-            );
-            case "Điện tử" -> new Electronics(
-                    itemId,
-                    request.itemName(),
-                    description,
-                    request.startPrice(),
-                    request.sellerId(),
-                    0
-            );
-            case "Phương tiện" -> new Vehicle(
-                    itemId,
-                    request.itemName(),
-                    description,
-                    request.startPrice(),
-                    request.sellerId(),
-                    parseNonNegativeInt(request.mileage(), "mileage")
-            );
-            default -> throw new IllegalArgumentException("Loại sản phẩm không được hỗ trợ");
+        return switch (normalizeType(request.itemType())) {
+            case "art" -> new Art(itemId, request.itemName(), description, request.startPrice(), request.sellerId(), requireText(request.artist(), "artist"));
+            case "electronics" -> new Electronics(itemId, request.itemName(), description, request.startPrice(), request.sellerId(), 0);
+            case "vehicle" -> new Vehicle(itemId, request.itemName(), description, request.startPrice(), request.sellerId(), parseNonNegativeInt(request.mileage(), "mileage"));
+            default -> throw new IllegalArgumentException("Loai san pham khong duoc ho tro");
         };
     }
 
     private String buildDescription(CreateAuctionRequest request) {
         StringBuilder description = new StringBuilder(requireText(request.description(), "description"));
-
-        if ("Tác phẩm nghệ thuật".equals(request.itemType())) {
-            appendDetail(description, "Nghệ sĩ", request.artist());
-            appendDetail(description, "Năm sáng tác", request.artYear());
-            appendDetail(description, "Chất liệu", request.material());
-        } else if ("Điện tử".equals(request.itemType())) {
-            appendDetail(description, "Thương hiệu", request.brand());
+        String type = normalizeType(request.itemType());
+        if ("art".equals(type)) {
+            appendDetail(description, "Nghe si", request.artist());
+            appendDetail(description, "Nam sang tac", request.artYear());
+            appendDetail(description, "Chat lieu", request.material());
+        } else if ("electronics".equals(type)) {
+            appendDetail(description, "Thuong hieu", request.brand());
             appendDetail(description, "Model", request.model());
-            appendDetail(description, "Tình trạng", request.condition());
-        } else if ("Phương tiện".equals(request.itemType())) {
-            appendDetail(description, "Hãng xe", request.vehicleBrand());
-            appendDetail(description, "Số km đã đi", request.mileage());
-            appendDetail(description, "Năm sản xuất", request.vehicleYear());
+            appendDetail(description, "Tinh trang", request.condition());
+        } else if ("vehicle".equals(type)) {
+            appendDetail(description, "Hang xe", request.vehicleBrand());
+            appendDetail(description, "So km da di", request.mileage());
+            appendDetail(description, "Nam san xuat", request.vehicleYear());
         }
-
         return description.toString();
     }
 
@@ -101,54 +68,46 @@ public class AuctionClient {
     }
 
     private void validateRequest(CreateAuctionRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Thông tin tạo auction không được để trống");
-        }
-
+        if (request == null) throw new IllegalArgumentException("Thong tin tao auction khong duoc de trong");
         requireText(request.sellerId(), "sellerId");
         requireText(request.itemName(), "itemName");
         requireText(request.itemType(), "itemType");
         requireText(request.description(), "description");
+        if (request.startPrice() <= 0) throw new IllegalArgumentException("Gia khoi diem phai lon hon 0");
+        if (request.endTime() == null) throw new IllegalArgumentException("Thoi gian ket thuc khong duoc de trong");
+        if (!LocalDateTime.now().isBefore(request.endTime())) throw new IllegalArgumentException("Thoi gian ket thuc phai sau hien tai");
+    }
 
-        if (request.startPrice() <= 0) {
-            throw new IllegalArgumentException("Giá khởi điểm phải lớn hơn 0");
-        }
-        if (request.endTime() == null) {
-            throw new IllegalArgumentException("Thời gian kết thúc không được để trống");
-        }
-        if (!LocalDateTime.now().isBefore(request.endTime())) {
-            throw new IllegalArgumentException("Thời gian kết thúc phải sau thời điểm hiện tại");
-        }
+    private String normalizeType(String rawType) {
+        String type = requireText(rawType, "itemType").toLowerCase();
+        if (type.contains("ngh") || type.contains("art")) return "art";
+        if (type.contains("dien") || type.contains("điện") || type.contains("electronic")) return "electronics";
+        if (type.contains("phuong") || type.contains("phương") || type.contains("vehicle")) return "vehicle";
+        return type;
     }
 
     private String requireText(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) {
-            throw new IllegalArgumentException(fieldName + " không được để trống");
-        }
+        if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException(fieldName + " khong duoc de trong");
         return value.trim();
     }
 
     private int parsePositiveInt(String value, String fieldName) {
         try {
             int number = Integer.parseInt(requireText(value, fieldName));
-            if (number <= 0) {
-                throw new IllegalArgumentException(fieldName + " phải lớn hơn 0");
-            }
+            if (number <= 0) throw new IllegalArgumentException(fieldName + " phai lon hon 0");
             return number;
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(fieldName + " phải là số nguyên");
+            throw new IllegalArgumentException(fieldName + " phai la so nguyen");
         }
     }
 
     private int parseNonNegativeInt(String value, String fieldName) {
         try {
             int number = Integer.parseInt(requireText(value, fieldName));
-            if (number < 0) {
-                throw new IllegalArgumentException(fieldName + " phải lớn hơn hoặc bằng 0");
-            }
+            if (number < 0) throw new IllegalArgumentException(fieldName + " phai lon hon hoac bang 0");
             return number;
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException(fieldName + " phải là số nguyên");
+            throw new IllegalArgumentException(fieldName + " phai la so nguyen");
         }
     }
 
@@ -176,6 +135,5 @@ public class AuctionClient {
             String vehicleBrand,
             String mileage,
             String vehicleYear
-    ) {
-    }
+    ) {}
 }

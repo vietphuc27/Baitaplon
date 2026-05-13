@@ -4,7 +4,7 @@ import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.item.Item;
 import server.manager.AuctionManager;
-import server.repository.dao.AuctionDAO;
+import server.repository.AuctionDAO;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

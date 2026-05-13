@@ -7,8 +7,9 @@ import common.models.auction.AuctionStatus;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
 import server.manager.AuctionManager;
-import server.repository.dao.AuctionDAO;
-import server.repository.dao.BidTransactionDAO;
+import server.repository.AuctionDAO;
+import server.repository.BidTransactionDAO;
+import server.repository.UserDAO;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,12 +19,14 @@ public class BidService {
     private final AuctionManager auctionManager;
     private final AuctionDAO auctionDAO;
     private final BidTransactionDAO bidTransactionDAO;
+    private final UserDAO userDAO;
     private final ReentrantLock bidLock;
 
     public BidService() {
         this.auctionManager = AuctionManager.getInstance();
         this.auctionDAO = new AuctionDAO();
         this.bidTransactionDAO = new BidTransactionDAO();
+        this.userDAO = new UserDAO();
         this.bidLock = new ReentrantLock();
     }
 
@@ -31,6 +34,7 @@ public class BidService {
         this.auctionManager = auctionManager;
         this.auctionDAO = auctionDAO;
         this.bidTransactionDAO = bidTransactionDAO;
+        this.userDAO = new UserDAO();
         this.bidLock = new ReentrantLock();
     }
 
@@ -78,8 +82,13 @@ public class BidService {
                 throw new InvalidBidException("Đấu giá thất bại: giá không hợp lệ hoặc phiên đấu giá không còn mở");
             }
 
+            if (!bidder.getWallet().withdraw(amount)) {
+                throw new InvalidBidException("Số dư không đủ để đặt giá");
+            }
+
             bidTransactionDAO.save(bid);
             auctionDAO.update(auction);
+            userDAO.update(bidder);
             return bid;
         } finally {
             bidLock.unlock();
