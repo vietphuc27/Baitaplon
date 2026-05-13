@@ -31,6 +31,7 @@
             <Label fx:id="lblBidderName" styleClass="header-user" text="Bidder: ..." textFill="WHITE">
                 <font><Font name="System Bold" size="12.0" /></font>
             </Label>
+            <Button onAction="#handleSwitchToSeller" style="-fx-background-color: #1f6feb; -fx-background-radius: 10;" text="Seller" textFill="WHITE" />
             <Button onAction="#handleLogout" style="-fx-background-color: #34495e; -fx-background-radius: 10;" styleClass="btn-logout" text="Đăng xuất" textFill="#ff6363" />
         </HBox>
     </top>

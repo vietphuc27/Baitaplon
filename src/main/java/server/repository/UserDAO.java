@@ -97,6 +97,28 @@ public class UserDAO implements UserRepository {
         }
     }
 
+    @Override
+    public void updateRoleAndStatus(User user, String role, String status) {
+        String sql = "UPDATE users SET username=?, email=?, password=?, role=?, status=?, wallet_balance=? "
+                + "WHERE id=?";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, user.getUsername());
+            stmt.setString(2, user.getEmail());
+            stmt.setString(3, user.getPassword());
+            stmt.setString(4, role);
+            stmt.setString(5, status);
+            stmt.setDouble(6, getWalletBalance(user));
+            stmt.setInt(7, user.getId());
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi cập nhật role user: " + e.getMessage());
+        }
+    }
+
     // ─── DELETE ───────────────────────────────────────────────────
     @Override
     public void delete(int id) {
@@ -204,6 +226,8 @@ public class UserDAO implements UserRepository {
         user.setStatus(UserStatus.valueOf(status));
         if (user instanceof Bidder bidder) {
             bidder.getWallet().setBalance(readWalletBalance(rs));
+        } else if (user instanceof Seller seller) {
+            seller.getWallet().setBalance(readWalletBalance(rs));
         }
         return user;
     }
@@ -211,6 +235,9 @@ public class UserDAO implements UserRepository {
     private double getWalletBalance(User user) {
         if (user instanceof Bidder bidder) {
             return bidder.getWallet().getBalance();
+        }
+        if (user instanceof Seller seller) {
+            return seller.getWallet().getBalance();
         }
         return 0;
     }

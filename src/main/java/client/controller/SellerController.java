@@ -1,6 +1,7 @@
 package client.controller;
 
 import client.application.ClientSession;
+import client.application.DashboardNavigator;
 import client.network.AuctionClient;
 import client.network.AuctionClient.CreateAuctionRequest;
 import common.models.auction.Auction;
@@ -177,6 +178,25 @@ public class SellerController implements Initializable {
     }
 
     @FXML
+    private void handleSwitchToBidder() {
+        if (!ensureSellerCanContinue()) {
+            return;
+        }
+
+        try {
+            User switchedUser = userService.switchRole(ClientSession.getCurrentUser(), "bidder");
+            ClientSession.setCurrentUser(switchedUser);
+            Stage stage = (Stage) lblSellerName.getScene().getWindow();
+            DashboardNavigator.showBidderDashboard(stage);
+            shutdown();
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không mở được bidder dashboard: " + e.getMessage());
+        } catch (RuntimeException e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không đổi được role sang bidder: " + e.getMessage());
+        }
+    }
+
+    @FXML
     private void handleEndAuction() {
         if (!ensureSellerCanContinue()) {
             return;
@@ -270,10 +290,8 @@ public class SellerController implements Initializable {
     }
 
     private void showLoginScreen() throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("/view/LogInView.fxml"));
         Stage stage = (Stage) lblSellerName.getScene().getWindow();
-        stage.setScene(new Scene(root));
-        stage.show();
+        DashboardNavigator.showLogin(stage);
     }
 
     private void handleItemTypeChanged() {

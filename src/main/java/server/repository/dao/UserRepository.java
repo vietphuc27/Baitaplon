@@ -14,6 +14,8 @@ public interface UserRepository {
 
     void update(User user);
 
+    void updateRoleAndStatus(User user, String role, String status);
+
     void delete(int id);
 
     Optional<User> findByUsername(String username);

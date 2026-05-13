@@ -99,9 +99,36 @@ public class UserService {
             return;
         }
 
-        currentUser.setStatus(UserStatus.LOGOUT);
-        userDAO.update(currentUser);
+        User latestUser = userDAO.findById(currentUser.getId()).orElse(currentUser);
+        latestUser.setStatus(UserStatus.LOGOUT);
+        userDAO.update(latestUser);
         sessionManager.logout();
+    }
+
+    public User switchRole(User user, String targetRole) {
+        if (user == null) {
+            throw new AuthenticationException("Không tìm thấy user hiện tại");
+        }
+
+        String normalizedRole = normalizeRole(targetRole).toUpperCase();
+        User latestUser = userDAO.findById(user.getId())
+                .orElseThrow(() -> new AuthenticationException("Không tìm thấy user trước khi đổi role"));
+
+        userDAO.updateRoleAndStatus(latestUser, normalizedRole, UserStatus.LOGIN.name());
+
+        User switchedUser = userDAO.findById(user.getId())
+                .orElseThrow(() -> new AuthenticationException("Không tìm thấy user sau khi đổi role"));
+
+        if (!normalizedRole.equalsIgnoreCase(switchedUser.getRole())) {
+            throw new AuthenticationException("Đổi role thất bại, database chưa cập nhật.");
+        }
+        if (switchedUser.getStatus() != UserStatus.LOGIN) {
+            throw new AuthenticationException("Đổi role thất bại, trạng thái đăng nhập chưa được giữ lại.");
+        }
+
+        switchedUser.setStatus(UserStatus.LOGIN);
+        sessionManager.login(switchedUser);
+        return switchedUser;
     }
 
     public User banUser(int id) {

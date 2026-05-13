@@ -1,9 +1,11 @@
 package client.controller;
 
 import client.application.ClientSession;
+import client.application.DashboardNavigator;
 import common.models.auction.Auction;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
+import common.models.user.Seller;
 import common.models.user.User;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
@@ -106,8 +108,29 @@ public class BidderController {
             currentBidder = bidder;
         } else {
             currentBidder = new Bidder(user.getId(), user.getUsername(), user.getEmail(), user.getPassword());
+            if (user instanceof Seller seller) {
+                currentBidder.getWallet().setBalance(seller.getWallet().getBalance());
+            }
         }
+        ClientSession.setCurrentUser(currentBidder);
         return true;
+    }
+
+    @FXML
+    private void handleSwitchToSeller() {
+        if (!ensureBidderCanContinue()) return;
+
+        try {
+            User switchedUser = userService.switchRole(ClientSession.getCurrentUser(), "seller");
+            ClientSession.setCurrentUser(switchedUser);
+            Stage stage = (Stage) lblBidderName.getScene().getWindow();
+            DashboardNavigator.showSellerDashboard(stage);
+            shutdown();
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không mở được seller dashboard: " + e.getMessage());
+        } catch (RuntimeException e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không đổi được role sang seller: " + e.getMessage());
+        }
     }
 
     @FXML
@@ -467,6 +490,7 @@ public class BidderController {
             if (latestUser.getStatus() == common.models.user.UserStatus.BANNED) {
                 return redirectToLogin("Tài khoản của bạn đã bị khóa bởi admin.");
             }
+            syncBidderState(latestUser);
             return true;
         } catch (RuntimeException e) {
             showAlert(Alert.AlertType.ERROR, "Lỗi", e.getMessage());
@@ -486,14 +510,24 @@ public class BidderController {
     }
 
     private void showLoginScreen() throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("/view/LogInView.fxml"));
         Stage stage = (Stage) lblBidderName.getScene().getWindow();
-        stage.setScene(new Scene(root));
-        stage.show();
+        DashboardNavigator.showLogin(stage);
     }
 
     private void shutdown() {
         backgroundExecutor.shutdownNow();
+    }
+
+    private void syncBidderState(User latestUser) {
+        currentBidder.setUsername(latestUser.getUsername());
+        currentBidder.setPassword(latestUser.getPassword());
+        currentBidder.setStatus(latestUser.getStatus());
+        if (latestUser instanceof Bidder bidder) {
+            currentBidder.getWallet().setBalance(bidder.getWallet().getBalance());
+        } else if (latestUser instanceof Seller seller) {
+            currentBidder.getWallet().setBalance(seller.getWallet().getBalance());
+        }
+        ClientSession.setCurrentUser(currentBidder);
     }
 
     @FunctionalInterface

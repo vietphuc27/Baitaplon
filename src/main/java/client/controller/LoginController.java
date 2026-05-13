@@ -1,13 +1,11 @@
 package client.controller;
 
 import client.application.ClientSession;
+import client.application.DashboardNavigator;
 import common.models.user.User;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import server.service.UserService;
@@ -71,7 +69,7 @@ public class LoginController {
             User user = userService.login(username, password);
             ClientSession.setCurrentUser(user);
             clearError(errorLabel);
-            openDashboard(event, user.getRole());
+            openDashboard(event, user);
         } catch (IOException e) {
             showError(errorLabel, "Không mở được dashboard: " + e.getMessage());
         } catch (RuntimeException e) {
@@ -103,28 +101,16 @@ public class LoginController {
         }
     }
 
-    private void openDashboard(ActionEvent event, String role) throws IOException {
-        String normalizedRole = role == null ? "" : role.trim().toUpperCase();
-        String viewPath;
+    private void openDashboard(ActionEvent event, User user) throws IOException {
+        Stage stage = (Stage) ((Control) event.getSource()).getScene().getWindow();
+        String normalizedRole = user.getRole() == null ? "" : user.getRole().trim().toUpperCase();
 
         switch (normalizedRole) {
-            case "SELLER":
-                viewPath = "/view/SellerDashboardView.fxml";
-                break;
-            case "BIDDER":
-                viewPath = "/view/BidderDashboardView.fxml";
-                break;
-            case "ADMIN":
-                viewPath = "/view/AdminDashboardView.fxml";
-                break;
-            default:
-                throw new IllegalArgumentException("Role không được hỗ trợ: " + role);
+            case "SELLER" -> DashboardNavigator.showSellerDashboard(stage);
+            case "BIDDER" -> DashboardNavigator.showBidderDashboard(stage);
+            case "ADMIN" -> DashboardNavigator.showAdminDashboard(stage);
+            default -> throw new IllegalArgumentException("Role không được hỗ trợ: " + normalizedRole);
         }
-
-        Parent root = FXMLLoader.load(getClass().getResource(viewPath));
-        Stage stage = (Stage) ((Control) event.getSource()).getScene().getWindow();
-        stage.setScene(new Scene(root));
-        stage.show();
     }
 
     private void showError(Label label, String message) {
