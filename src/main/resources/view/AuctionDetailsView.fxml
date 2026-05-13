@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <?import javafx.geometry.Insets?>
-<?import javafx.scene.Group?>
 <?import javafx.scene.chart.LineChart?>
 <?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.Button?>
@@ -16,121 +15,86 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="760.0" prefWidth="1120.0" style="-fx-background-color: #f9f9f9;" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.AuctionDetailController">
+<BorderPane prefHeight="760.0" prefWidth="1120.0" styleClass="root-pane" stylesheets="@style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.AuctionDetailController">
     <top>
-        <VBox spacing="6.0" style="-fx-background-color: white; -fx-padding: 16; -fx-border-color: #eaecef; -fx-border-width: 0 0 1 0;">
-            <children>
-                <Label fx:id="itemNameLabel" text="Tên sản phẩm đấu giá" textFill="#2c3e50">
-                    <font><Font name="System Bold" size="22.0" /></font>
+        <VBox spacing="8.0" style="-fx-background-color: white; -fx-padding: 16 20; -fx-border-color: #e5e7eb; -fx-border-width: 0 0 1 0;">
+            <Label fx:id="itemNameLabel" text="Tên sản phẩm đấu giá" textFill="#111827">
+                <font><Font name="System Bold" size="22.0" /></font>
+            </Label>
+            <HBox alignment="CENTER_LEFT" spacing="12.0">
+                <Label fx:id="statusLabel" styleClass="status-pill status-running" text="RUNNING" />
+                <Label fx:id="countdownLabel" text="Thời gian còn lại: 00:00:00" textFill="#e67e22">
+                    <font><Font name="System Bold" size="13.0" /></font>
                 </Label>
-                <HBox spacing="12.0">
-                    <children>
-                        <Label fx:id="statusLabel" style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32; -fx-padding: 3 10; -fx-background-radius: 15; -fx-font-weight: bold;" text="ĐANG DIỄN RA" />
-                        <Label fx:id="countdownLabel" text="Thời gian còn lại: 00:00:00" textFill="#e67e22">
-                            <font><Font name="System Bold" size="13.0" /></font>
-                        </Label>
-                    </children>
-                </HBox>
-            </children>
+            </HBox>
         </VBox>
     </top>
 
     <center>
         <HBox spacing="16.0" BorderPane.alignment="CENTER">
-            <children>
-                <VBox spacing="12.0" HBox.hgrow="ALWAYS">
-                    <children>
-                        <VBox spacing="10.0" style="-fx-background-color: white; -fx-padding: 14; -fx-background-radius: 8; -fx-border-color: #ebedf0; -fx-border-radius: 8;">
-                            <children>
-                        <HBox prefHeight="100.0" prefWidth="200.0">
-                           <children>
-                              <Group>
-                                 <children>
-                                            <Label style="-fx-font-size: 15; -fx-font-weight: bold; -fx-text-fill: #2c3e50;" text="Thông tin sản phẩm" />
-                                            <GridPane hgap="12.0" layoutY="31.999996185302734" prefHeight="94.0" prefWidth="318.0" vgap="8.0">
-                                                <columnConstraints>
-                                                    <ColumnConstraints minWidth="120.0" prefWidth="140.0" />
-                                                    <ColumnConstraints hgrow="ALWAYS" />
-                                                </columnConstraints>
-                                                <children>
-                                                    <Label text="Tên sản phẩm:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-                                                    <Label fx:id="lblProductName" text="-" GridPane.columnIndex="1" GridPane.rowIndex="0" />
-            
-                                                                <Label text="Loại:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
-                                                    <Label fx:id="lblProductType" text="-" GridPane.columnIndex="1" GridPane.rowIndex="1" />
-            
-                                                                <Label text="Người bán:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
-                                                    <Label fx:id="lblSellerId" text="-" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-            
-                                                                <Label text="Giá khởi điểm:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
-                                                    <Label fx:id="lblStartPrice" text="-" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-                                                </children>
-                                       <rowConstraints>
-                                          <RowConstraints />
-                                          <RowConstraints />
-                                          <RowConstraints />
-                                          <RowConstraints />
-                                       </rowConstraints>
-                                            </GridPane>
-                                 </children>
-                              </Group>
-                              <Region prefHeight="126.0" prefWidth="146.0" />
-                              <Group>
-                                 <children>
-                                            <Label text="Mô tả:" />
-                                            <TextArea fx:id="txtDescription" layoutY="28.000000953674316" prefHeight="97.0" prefRowCount="3" prefWidth="345.0" style="-fx-control-inner-background: #f7f8fa;" wrapText="true" />
-                                 </children>
-                              </Group>
-                           </children>
-                        </HBox>
-                            </children>
+            <padding><Insets bottom="16.0" left="16.0" right="16.0" top="16.0" /></padding>
+            <VBox spacing="12.0" HBox.hgrow="ALWAYS">
+                <VBox spacing="14.0" style="-fx-padding: 16;" styleClass="content-card">
+                    <Label styleClass="section-title" text="Thông tin sản phẩm" />
+                    <HBox spacing="24.0">
+                        <GridPane hgap="12.0" vgap="10.0" HBox.hgrow="ALWAYS">
+                            <columnConstraints>
+                                <ColumnConstraints minWidth="120.0" prefWidth="140.0" />
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+                            <Label styleClass="field-label" text="Tên sản phẩm:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+                            <Label fx:id="lblProductName" styleClass="field-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                            <Label styleClass="field-label" text="Loại:" GridPane.columnIndex="0" GridPane.rowIndex="1" />
+                            <Label fx:id="lblProductType" styleClass="field-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+                            <Label styleClass="field-label" text="Người bán:" GridPane.columnIndex="0" GridPane.rowIndex="2" />
+                            <Label fx:id="lblSellerId" styleClass="field-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+                            <Label styleClass="field-label" text="Giá khởi điểm:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                            <Label fx:id="lblStartPrice" styleClass="field-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+                        </GridPane>
+
+                        <VBox prefWidth="390.0" spacing="8.0">
+                            <Label styleClass="field-label" text="Mô tả:" />
+                            <TextArea fx:id="txtDescription" editable="false" focusTraversable="false" prefHeight="112.0" prefRowCount="4" styleClass="description-display" wrapText="true" />
                         </VBox>
-
-                        <LineChart fx:id="bidChart" animated="false" prefHeight="242.0" prefWidth="750.0" title="Biểu đồ lịch sử giá" VBox.vgrow="ALWAYS">
-                            <xAxis><NumberAxis label="Lần đặt giá" side="BOTTOM" /></xAxis>
-                            <yAxis><NumberAxis label="Mức giá (VND)" side="LEFT" /></yAxis>
-                        </LineChart>
-
-                        <TableView fx:id="historyTable" prefHeight="220.0" VBox.vgrow="NEVER">
-                            <columns>
-                                <TableColumn fx:id="bidderCol" prefWidth="160.0" text="Người đặt" />
-                                <TableColumn fx:id="amountCol" prefWidth="190.0" text="Giá thầu" />
-                                <TableColumn fx:id="timeCol" prefWidth="250.0" text="Thời điểm" />
-                            </columns>
-                            <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
-                        </TableView>
-                    </children>
-                    <padding><Insets bottom="16.0" left="16.0" right="0.0" top="16.0" /></padding>
+                    </HBox>
                 </VBox>
 
-                <VBox fx:id="bidPanel" prefWidth="320.0" spacing="14.0" style="-fx-background-color: white; -fx-padding: 16; -fx-border-color: #eaecef; -fx-border-width: 0 0 0 1;">
-                    <children>
-                        <Label style="-fx-font-size: 16; -fx-font-weight: bold;" text="Đặt giá" />
-                        <Separator />
-                        <VBox spacing="8.0">
-                            <children>
-                                <Label text="Giá hiện tại cao nhất:" textFill="#7f8c8d" />
-                                <Label fx:id="currentBidLabel" text="0 VND" textFill="#c0392b">
-                                    <font><Font name="System Bold" size="28.0" /></font>
-                                </Label>
-                            </children>
-                        </VBox>
-                        <VBox spacing="8.0">
-                            <children>
-                                <Label text="Mức giá của bạn:" />
-                                <TextField fx:id="bidAmountField" promptText="Nhập số tiền..." style="-fx-font-size: 15px; -fx-padding: 9;" />
-                            </children>
-                        </VBox>
-                        <Button fx:id="placeBidBtn" maxWidth="1.7976931348623157E308" onAction="#handlePlaceBid" prefHeight="44.0" style="-fx-background-color: #2980b9; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 15px;" text="ĐẶT GIÁ NGAY" />
-                        <Label fx:id="errorLabel" textFill="#e74c3c" visible="false" wrapText="true" />
-                    </children>
-                    <padding><Insets bottom="16.0" left="16.0" right="16.0" top="16.0" /></padding>
+                <LineChart fx:id="bidChart" animated="false" prefHeight="250.0" title="Biểu đồ lịch sử giá" VBox.vgrow="ALWAYS">
+                    <xAxis><NumberAxis label="Lần đặt giá" side="BOTTOM" /></xAxis>
+                    <yAxis><NumberAxis label="Mức giá (VND)" side="LEFT" /></yAxis>
+                </LineChart>
+
+                <TableView fx:id="historyTable" prefHeight="220.0" VBox.vgrow="NEVER">
+                    <columns>
+                        <TableColumn fx:id="bidderCol" prefWidth="160.0" text="Người đặt" />
+                        <TableColumn fx:id="amountCol" prefWidth="190.0" text="Giá thầu" />
+                        <TableColumn fx:id="timeCol" prefWidth="250.0" text="Thời điểm" />
+                    </columns>
+                    <columnResizePolicy><TableView fx:constant="CONSTRAINED_RESIZE_POLICY" /></columnResizePolicy>
+                </TableView>
+            </VBox>
+
+            <VBox fx:id="bidPanel" prefWidth="320.0" spacing="14.0" style="-fx-background-color: white; -fx-padding: 18; -fx-border-color: #e5e7eb; -fx-border-width: 0 0 0 1;">
+                <Label styleClass="section-title" text="Đặt giá" />
+                <Separator />
+                <VBox spacing="8.0">
+                    <Label styleClass="field-label" text="Giá hiện tại cao nhất:" />
+                    <Label fx:id="currentBidLabel" styleClass="price-large" text="0 VND" />
                 </VBox>
-            </children>
+                <VBox spacing="8.0">
+                    <Label styleClass="form-label" text="Mức giá của bạn:" />
+                    <TextField fx:id="bidAmountField" promptText="Nhập số tiền..." style="-fx-font-size: 15px; -fx-padding: 9;" />
+                </VBox>
+                <Button fx:id="placeBidBtn" maxWidth="1.7976931348623157E308" onAction="#handlePlaceBid" prefHeight="44.0" styleClass="btn-primary" text="ĐẶT GIÁ NGAY" />
+                <Label fx:id="errorLabel" textFill="#e74c3c" visible="false" wrapText="true" />
+                <Region VBox.vgrow="ALWAYS" />
+            </VBox>
         </HBox>
     </center>
 </BorderPane>
