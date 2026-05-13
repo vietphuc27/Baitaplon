@@ -3,7 +3,7 @@ module view.btl {
     requires javafx.fxml;
     requires transitive java.sql;
     requires javafx.graphics;
-    requires gson;
+    requires com.google.gson;
 
 // requires com.mysql.cj;
 
