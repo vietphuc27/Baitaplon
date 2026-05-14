@@ -3,6 +3,7 @@ package client.controller;
 import common.models.auction.Auction;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
+import common.utils.FormatUtils;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.application.Platform;
@@ -28,7 +29,6 @@ import server.service.BidService;
 import server.service.ItemService;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -56,7 +56,6 @@ public class AuctionDetailController {
     private final AuctionService auctionService = new AuctionService(new ItemService());
     private final AuctionDAO auctionDAO = new AuctionDAO();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
     private final ObservableList<BidTransaction> historyRows = FXCollections.observableArrayList();
     private Timeline refreshTimeline;
     private Auction auction;
@@ -65,10 +64,11 @@ public class AuctionDetailController {
     @FXML
     private void initialize() {
         bidderCol.setCellValueFactory(v -> new SimpleStringProperty(String.valueOf(v.getValue().getBidderId())));
-        amountCol.setCellValueFactory(v -> new SimpleStringProperty(String.valueOf(v.getValue().getBidAmount())));
+        amountCol.setCellValueFactory(v -> new SimpleStringProperty(FormatUtils.formatCurrency(v.getValue().getBidAmount())));
         timeCol.setCellValueFactory(v -> new SimpleStringProperty(
-                v.getValue().getBidTime() == null ? "-" : v.getValue().getBidTime().format(timeFormatter)));
+                FormatUtils.formatDateTimeWithSeconds(v.getValue().getBidTime())));
         historyTable.setItems(historyRows);
+        historyTable.setPlaceholder(new Label("Chưa có lượt đặt giá nào"));
         Platform.runLater(() -> {
             if (itemNameLabel.getScene() != null && itemNameLabel.getScene().getWindow() != null) {
                 itemNameLabel.getScene().getWindow().addEventHandler(WindowEvent.WINDOW_HIDDEN, e -> shutdown());
@@ -93,7 +93,7 @@ public class AuctionDetailController {
     @FXML
     private void handlePlaceBid() {
         if (auction == null || currentBidder == null) {
-            showError("Khong the dat gia o thoi diem nay.");
+            showError("Không thể đặt giá ở thời điểm này.");
             return;
         }
 
@@ -101,7 +101,7 @@ public class AuctionDetailController {
         try {
             amount = Double.parseDouble(bidAmountField.getText().trim());
         } catch (NumberFormatException e) {
-            showError("So tien dat phai la so.");
+            showError("Số tiền đặt phải là số.");
             return;
         }
 
@@ -117,7 +117,7 @@ public class AuctionDetailController {
             hideError();
             refreshDataAsync();
         });
-        task.setOnFailed(event -> showError(task.getException() == null ? "Dat gia that bai." : task.getException().getMessage()));
+        task.setOnFailed(event -> showError(task.getException() == null ? "Đặt giá thất bại." : task.getException().getMessage()));
         executor.submit(task);
     }
 
@@ -155,13 +155,13 @@ public class AuctionDetailController {
             renderChart(rows);
             updateHeader();
         });
-        task.setOnFailed(event -> showError(task.getException() == null ? "Khong the cap nhat du lieu." : task.getException().getMessage()));
+        task.setOnFailed(event -> showError(task.getException() == null ? "Không thể cập nhật dữ liệu." : task.getException().getMessage()));
         executor.submit(task);
     }
 
     private void renderChart(ObservableList<BidTransaction> rows) {
         XYChart.Series<Number, Number> series = new XYChart.Series<>();
-        series.setName("Gia dat");
+        series.setName("Giá đặt");
         int index = 1;
         for (BidTransaction row : rows) {
             series.getData().add(new XYChart.Data<>(index++, row.getBidAmount()));
@@ -176,13 +176,14 @@ public class AuctionDetailController {
         String itemName = auction.getItem() == null ? "Auction" : auction.getItem().getName();
         itemNameLabel.setText(itemName);
         statusLabel.setText(String.valueOf(auction.getStatus()));
-        currentBidLabel.setText(String.format("%,.0f VND", auction.getCurrentHighestBid()));
+        applyStatusStyle();
+        currentBidLabel.setText(FormatUtils.formatCurrency(auction.getCurrentHighestBid()));
         countdownLabel.setText("Thời gian còn lại: " + remainingTimeText());
         if (auction.getItem() != null) {
             lblProductName.setText(itemName);
             lblProductType.setText(auction.getItem().getClass().getSimpleName());
             lblSellerId.setText(auction.getSellerId());
-            lblStartPrice.setText(String.format("%,.0f VND", auction.getItem().getStartingPrice()));
+            lblStartPrice.setText(FormatUtils.formatCurrency(auction.getItem().getStartingPrice()));
             txtDescription.setText(auction.getItem().getDescription() == null ? "" : auction.getItem().getDescription());
         } else {
             lblProductName.setText("-");
@@ -190,6 +191,23 @@ public class AuctionDetailController {
             lblSellerId.setText("-");
             lblStartPrice.setText("-");
             txtDescription.setText("");
+        }
+    }
+
+    private void applyStatusStyle() {
+        statusLabel.getStyleClass().removeIf(style -> style.startsWith("status-"));
+        statusLabel.getStyleClass().add("status-pill");
+        if (auction.getStatus() == null) {
+            statusLabel.getStyleClass().add("status-open");
+            return;
+        }
+
+        switch (auction.getStatus()) {
+            case RUNNING -> statusLabel.getStyleClass().add("status-running");
+            case OPEN -> statusLabel.getStyleClass().add("status-open");
+            case FINISHED -> statusLabel.getStyleClass().add("status-finished");
+            case PAID -> statusLabel.getStyleClass().add("status-paid");
+            case CANCELED -> statusLabel.getStyleClass().add("status-canceled");
         }
     }
 

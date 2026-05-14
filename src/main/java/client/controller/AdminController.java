@@ -4,6 +4,7 @@ import client.application.ClientSession;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.user.User;
+import common.utils.FormatUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.concurrent.Task;
@@ -177,7 +178,7 @@ public class AdminController {
                         .map(a -> new AuctionRow(
                                 String.valueOf(a.getAuctionId()),
                                 a.getItem() == null ? "-" : a.getItem().getName(),
-                                String.format("%,.0f", a.getCurrentHighestBid()),
+                                FormatUtils.formatCurrency(a.getCurrentHighestBid()),
                                 a.getStatus().name()
                         ))
                         .sorted(resolveAuctionComparator(sortBy))
@@ -236,7 +237,7 @@ public class AdminController {
 
     private double parseAmount(String value) {
         try {
-            return Double.parseDouble(value.replace(",", ""));
+            return Double.parseDouble(value.replaceAll("[^0-9.-]", ""));
         } catch (NumberFormatException e) {
             return 0;
         }

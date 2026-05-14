@@ -7,6 +7,7 @@ import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
 import common.models.user.Seller;
 import common.models.user.User;
+import common.utils.FormatUtils;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -30,8 +31,6 @@ import server.repository.AuctionDAO;
 import server.repository.UserDAO;
 
 import java.io.IOException;
-import java.text.NumberFormat;
-import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -74,8 +73,6 @@ public class BidderController {
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
     private final ObservableList<AuctionRow> auctionRows = FXCollections.observableArrayList();
     private final ObservableList<BidHistoryRow> bidHistoryRows = FXCollections.observableArrayList();
-    private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-    private final NumberFormat currency = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
     private Bidder currentBidder;
 
     @FXML
@@ -244,7 +241,7 @@ public class BidderController {
 
     private void updateWalletLabels() {
         String text = formatCurrency(currentBidder.getWallet().getBalance());
-        lblWalletBalance.setText("Vi: " + text);
+        lblWalletBalance.setText("Ví: " + text);
         lblBalance.setText(text);
     }
 
@@ -332,7 +329,7 @@ public class BidderController {
         }, rows -> {
             bidHistoryRows.setAll(rows);
             long wonCount = rows.stream().filter(r -> "Đang dẫn đầu".equals(r.result) || "Đã thắng".equals(r.result)).count();
-            lblTotalWon.setText(wonCount + " phien");
+            lblTotalWon.setText(wonCount + " phiên");
         });
     }
 
@@ -368,7 +365,7 @@ public class BidderController {
                 a.getItem() == null ? "-" : a.getItem().getClass().getSimpleName(),
                 formatCurrency(a.getCurrentHighestBid()),
                 a.getSellerId(),
-                a.getEndTime() == null ? "-" : a.getEndTime().format(dateFormatter),
+                FormatUtils.formatDateTime(a.getEndTime()),
                 a
         )).toList();
     }
@@ -380,7 +377,7 @@ public class BidderController {
                 String.valueOf(bid.getAuctionId()),
                 auction == null || auction.getItem() == null ? "-" : auction.getItem().getName(),
                 formatCurrency(bid.getBidAmount()),
-                bid.getBidTime() == null ? "-" : bid.getBidTime().format(dateFormatter),
+                FormatUtils.formatDateTime(bid.getBidTime()),
                 result
         );
     }
@@ -420,7 +417,7 @@ public class BidderController {
         }
         runInBackground(() -> bidService.getAuctionBidHistory(row.id), bids -> {
             XYChart.Series<Number, Number> series = new XYChart.Series<>();
-            series.setName("Lich su gia");
+            series.setName("Lịch sử giá");
             int index = 1;
             for (BidTransaction bid : bids) {
                 series.getData().add(new XYChart.Data<>(index++, bid.getBidAmount()));
@@ -453,7 +450,7 @@ public class BidderController {
     }
 
     private String formatCurrency(double amount) {
-        return currency.format(amount).replace("\u00A0", " ");
+        return FormatUtils.formatCurrency(amount);
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {

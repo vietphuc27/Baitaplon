@@ -17,7 +17,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane prefHeight="600.0" prefWidth="900.0" styleClass="root-pane" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.BidderController">
+<BorderPane prefHeight="800.0" prefWidth="1000.0" styleClass="root-pane" stylesheets="@style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.BidderController">
     <top>
         <HBox alignment="CENTER_LEFT" spacing="20.0" style="-fx-background-color: #14213D; -fx-padding: 15;">
             <Label styleClass="header-title" text="BIDDER DASHBOARD" textFill="WHITE">
@@ -32,7 +32,7 @@
                 <font><Font name="System Bold" size="12.0" /></font>
             </Label>
             <Button onAction="#handleSwitchToSeller" style="-fx-background-color: #1f6feb; -fx-background-radius: 10;" text="Seller" textFill="WHITE" />
-            <Button onAction="#handleLogout" style="-fx-background-color: #34495e; -fx-background-radius: 10;" styleClass="btn-logout" text="Đăng xuất" textFill="#ff6363" />
+            <Button onAction="#handleLogout" style="-fx-background-color: #e74c3c; -fx-background-radius: 10;" styleClass="btn-logout" text="Đăng xuất" textFill="#ff6363" />
         </HBox>
     </top>
 
@@ -45,10 +45,10 @@
                         <Label styleClass="section-title" text="Phiên đấu giá đang mở" />
                         <TextField fx:id="txtSearch" prefWidth="200.0" promptText="Tìm kiếm sản phẩm..." />
                         <Button onAction="#handleSearchAuctions" styleClass="btn-secondary" text="Tìm" />
-                        <ComboBox fx:id="cbStatusFilter" prefWidth="130.0" />
+                        <ComboBox fx:id="cbStatusFilter" prefHeight="23.0" prefWidth="100.0" />
                         <Label text="Sắp xếp:" />
                         <ComboBox fx:id="cbSortBy" prefWidth="140.0" />
-                        <Button onAction="#handleRefreshAuctions" styleClass="btn-secondary" text="Làm mới" />
+                        <Button onAction="#handleRefreshAuctions" prefHeight="30.0" prefWidth="79.0" styleClass="btn-secondary" text="Làm mới" />
                     </HBox>
                     <TableView fx:id="tblAuctions" prefHeight="300.0" VBox.vgrow="ALWAYS">
                         <columns>
@@ -67,8 +67,8 @@
                         <Button onAction="#handlePlaceBid" styleClass="btn-success" text="Đặt giá" />
                         <Button onAction="#handleViewDetails" styleClass="btn-primary" text="Xem chi tiết" />
                     </HBox>
-                    <LineChart fx:id="priceHistoryChart" animated="false" prefHeight="180.0" title="Lịch sử giá theo thời gian">
-                        <xAxis><NumberAxis fx:id="xAxis" label="Lần đặt giá" /></xAxis>
+                    <LineChart fx:id="priceHistoryChart" animated="false" prefHeight="300.0" title="Lịch sử giá theo thời gian">
+                        <xAxis><NumberAxis label="Lần đặt giá" fx:id="xAxis" /></xAxis>
                         <yAxis><NumberAxis fx:id="yAxis" label="Giá (VND)" /></yAxis>
                     </LineChart>
                 </VBox>
