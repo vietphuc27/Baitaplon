@@ -164,6 +164,11 @@ public class BidderController {
             return;
         }
 
+        if (isOwnAuction(selectedRow.auction)) {
+            showAlert(Alert.AlertType.WARNING, "Không hợp lệ", "Bạn không thể tự đấu giá sản phẩm của chính mình.");
+            return;
+        }
+
         double amount;
         try {
             amount = Double.parseDouble(txtBidAmount.getText().trim());
@@ -417,9 +422,13 @@ public class BidderController {
         }
         runInBackground(() -> bidService.getAuctionBidHistory(row.id), bids -> {
             XYChart.Series<Number, Number> series = new XYChart.Series<>();
-            series.setName("Lịch sử giá");
+            series.setName("Giá đặt");
+            List<BidTransaction> sorted = bids.stream()
+                    .sorted(Comparator.comparing(BidTransaction::getBidTime,
+                            Comparator.nullsLast(Comparator.naturalOrder())))
+                    .toList();
             int index = 1;
-            for (BidTransaction bid : bids) {
+            for (BidTransaction bid : sorted) {
                 series.getData().add(new XYChart.Data<>(index++, bid.getBidAmount()));
             }
             priceHistoryChart.getData().setAll(series);
@@ -525,6 +534,13 @@ public class BidderController {
             currentBidder.getWallet().setBalance(seller.getWallet().getBalance());
         }
         ClientSession.setCurrentUser(currentBidder);
+    }
+
+    private boolean isOwnAuction(Auction auction) {
+        if (auction == null || currentBidder == null || auction.getSellerId() == null) {
+            return false;
+        }
+        return auction.getSellerId().trim().equals(String.valueOf(currentBidder.getId()));
     }
 
     @FunctionalInterface

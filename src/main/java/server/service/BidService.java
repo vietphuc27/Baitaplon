@@ -161,6 +161,10 @@ public class BidService {
             throw new InvalidBidException("Phiên đấu giá không hợp lệ");
         }
 
+        if (isSellerBiddingOwnAuction(auction, bidder)) {
+            throw new InvalidBidException("Không thể tự đấu giá sản phẩm của chính mình");
+        }
+
         double startingPrice = auction.getItem().getStartingPrice();
         if (auction.getStatus() != AuctionStatus.RUNNING && auction.getStatus() != AuctionStatus.OPEN) {
             throw new AuctionClosedException("Phiên đấu giá đã đóng");
@@ -183,6 +187,14 @@ public class BidService {
         if (bidder.getWallet() == null || bidder.getWallet().getBalance() < amount) {
             throw new InvalidBidException("Không đủ số dư");
         }
+    }
+
+    private boolean isSellerBiddingOwnAuction(Auction auction, Bidder bidder) {
+        String sellerId = auction.getSellerId();
+        if (sellerId == null || bidder == null) {
+            return false;
+        }
+        return sellerId.trim().equals(String.valueOf(bidder.getId()));
     }
 
     private boolean persistBidder(Bidder bidder) {

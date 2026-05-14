@@ -34,23 +34,40 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AuctionDetailController {
-    @FXML private Label itemNameLabel;
-    @FXML private Label statusLabel;
-    @FXML private Label countdownLabel;
-    @FXML private Label currentBidLabel;
-    @FXML private Label lblProductName;
-    @FXML private Label lblProductType;
-    @FXML private Label lblSellerId;
-    @FXML private Label lblStartPrice;
-    @FXML private TextArea txtDescription;
-    @FXML private TextField bidAmountField;
-    @FXML private Label errorLabel;
-    @FXML private VBox bidPanel;
-    @FXML private LineChart<Number, Number> bidChart;
-    @FXML private TableView<BidTransaction> historyTable;
-    @FXML private TableColumn<BidTransaction, String> bidderCol;
-    @FXML private TableColumn<BidTransaction, String> amountCol;
-    @FXML private TableColumn<BidTransaction, String> timeCol;
+    @FXML
+    private Label itemNameLabel;
+    @FXML
+    private Label statusLabel;
+    @FXML
+    private Label countdownLabel;
+    @FXML
+    private Label currentBidLabel;
+    @FXML
+    private Label lblProductName;
+    @FXML
+    private Label lblProductType;
+    @FXML
+    private Label lblSellerId;
+    @FXML
+    private Label lblStartPrice;
+    @FXML
+    private TextArea txtDescription;
+    @FXML
+    private TextField bidAmountField;
+    @FXML
+    private Label errorLabel;
+    @FXML
+    private VBox bidPanel;
+    @FXML
+    private LineChart<Number, Number> bidChart;
+    @FXML
+    private TableView<BidTransaction> historyTable;
+    @FXML
+    private TableColumn<BidTransaction, String> bidderCol;
+    @FXML
+    private TableColumn<BidTransaction, String> amountCol;
+    @FXML
+    private TableColumn<BidTransaction, String> timeCol;
 
     private final BidService bidService = new BidService();
     private final AuctionService auctionService = new AuctionService(new ItemService());
@@ -64,7 +81,8 @@ public class AuctionDetailController {
     @FXML
     private void initialize() {
         bidderCol.setCellValueFactory(v -> new SimpleStringProperty(String.valueOf(v.getValue().getBidderId())));
-        amountCol.setCellValueFactory(v -> new SimpleStringProperty(FormatUtils.formatCurrency(v.getValue().getBidAmount())));
+        amountCol.setCellValueFactory(
+                v -> new SimpleStringProperty(FormatUtils.formatCurrency(v.getValue().getBidAmount())));
         timeCol.setCellValueFactory(v -> new SimpleStringProperty(
                 FormatUtils.formatDateTimeWithSeconds(v.getValue().getBidTime())));
         historyTable.setItems(historyRows);
@@ -79,7 +97,7 @@ public class AuctionDetailController {
     public void setAuction(Auction auction, Bidder bidder) {
         this.auction = auction;
         this.currentBidder = bidder;
-        setBidPanelVisible(bidder != null);
+        updateBidPanelState();
         updateHeader();
         refreshDataAsync();
         startAutoRefresh();
@@ -94,6 +112,11 @@ public class AuctionDetailController {
     private void handlePlaceBid() {
         if (auction == null || currentBidder == null) {
             showError("Không thể đặt giá ở thời điểm này.");
+            return;
+        }
+
+        if (isOwnAuction()) {
+            showError("Bạn không thể tự đấu giá sản phẩm của chính mình.");
             return;
         }
 
@@ -117,7 +140,8 @@ public class AuctionDetailController {
             hideError();
             refreshDataAsync();
         });
-        task.setOnFailed(event -> showError(task.getException() == null ? "Đặt giá thất bại." : task.getException().getMessage()));
+        task.setOnFailed(event -> showError(
+                task.getException() == null ? "Đặt giá thất bại." : task.getException().getMessage()));
         executor.submit(task);
     }
 
@@ -143,9 +167,9 @@ public class AuctionDetailController {
 
                 return FXCollections.observableArrayList(
                         bidService.getAuctionBidHistory(String.valueOf(auction.getAuctionId())).stream()
-                                .sorted(Comparator.comparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.naturalOrder())))
-                                .toList()
-                );
+                                .sorted(Comparator.comparing(BidTransaction::getBidTime,
+                                        Comparator.nullsLast(Comparator.naturalOrder())))
+                                .toList());
             }
         };
 
@@ -154,8 +178,10 @@ public class AuctionDetailController {
             historyRows.setAll(rows);
             renderChart(rows);
             updateHeader();
+            updateBidPanelState();
         });
-        task.setOnFailed(event -> showError(task.getException() == null ? "Không thể cập nhật dữ liệu." : task.getException().getMessage()));
+        task.setOnFailed(event -> showError(
+                task.getException() == null ? "Không thể cập nhật dữ liệu." : task.getException().getMessage()));
         executor.submit(task);
     }
 
@@ -184,7 +210,8 @@ public class AuctionDetailController {
             lblProductType.setText(auction.getItem().getClass().getSimpleName());
             lblSellerId.setText(auction.getSellerId());
             lblStartPrice.setText(FormatUtils.formatCurrency(auction.getItem().getStartingPrice()));
-            txtDescription.setText(auction.getItem().getDescription() == null ? "" : auction.getItem().getDescription());
+            txtDescription
+                    .setText(auction.getItem().getDescription() == null ? "" : auction.getItem().getDescription());
         } else {
             lblProductName.setText("-");
             lblProductType.setText("-");
@@ -192,6 +219,16 @@ public class AuctionDetailController {
             lblStartPrice.setText("-");
             txtDescription.setText("");
         }
+    }
+
+    private void updateBidPanelState() {
+        boolean canBid = currentBidder != null && !isOwnAuction();
+        setBidPanelVisible(canBid);
+        if (currentBidder != null && isOwnAuction()) {
+            showError("Bạn không thể tự đấu giá sản phẩm của chính mình.");
+            return;
+        }
+        hideError();
     }
 
     private void applyStatusStyle() {
@@ -237,6 +274,13 @@ public class AuctionDetailController {
     private void hideError() {
         errorLabel.setVisible(false);
         errorLabel.setText("");
+    }
+
+    private boolean isOwnAuction() {
+        if (auction == null || currentBidder == null || auction.getSellerId() == null) {
+            return false;
+        }
+        return auction.getSellerId().trim().equals(String.valueOf(currentBidder.getId()));
     }
 
     private void shutdown() {
