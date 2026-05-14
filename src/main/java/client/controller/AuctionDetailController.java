@@ -14,12 +14,7 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
@@ -68,6 +63,8 @@ public class AuctionDetailController {
     private TableColumn<BidTransaction, String> amountCol;
     @FXML
     private TableColumn<BidTransaction, String> timeCol;
+    @FXML
+    private Button placeBidBtn;
 
     private final BidService bidService = new BidService();
     private final AuctionService auctionService = new AuctionService(new ItemService());
@@ -77,6 +74,7 @@ public class AuctionDetailController {
     private Timeline refreshTimeline;
     private Auction auction;
     private Bidder currentBidder;
+    private boolean viewOnly = false;
 
     @FXML
     private void initialize() {
@@ -222,12 +220,23 @@ public class AuctionDetailController {
     }
 
     private void updateBidPanelState() {
+        if (viewOnly) {
+            setBidPanelVisible(false);
+            hideError();
+            return;
+        }
         boolean canBid = currentBidder != null && !isOwnAuction();
         setBidPanelVisible(canBid);
         if (currentBidder != null && isOwnAuction()) {
             showError("Bạn không thể tự đấu giá sản phẩm của chính mình.");
             return;
         }
+        if (isAuctionClosed()) {
+            setBidInputEnabled(false);
+            showError("Phiên đấu giá đã đóng.");
+            return;
+        }
+        setBidInputEnabled(true);
         hideError();
     }
 
@@ -289,4 +298,22 @@ public class AuctionDetailController {
         }
         executor.shutdownNow();
     }
+
+    public void setViewOnly(boolean viewOnly) {
+        this.viewOnly = viewOnly;
+    }
+
+    private boolean isAuctionClosed() {
+        if (auction == null || auction.getStatus() == null) return false;
+        return auction.getStatus() == common.models.auction.AuctionStatus.FINISHED
+                || auction.getStatus() == common.models.auction.AuctionStatus.PAID
+                || auction.getStatus() == common.models.auction.AuctionStatus.CANCELED;
+    }
+
+    private void setBidInputEnabled(boolean enabled) {
+        if (bidAmountField != null) bidAmountField.setDisable(!enabled);
+        if (placeBidBtn != null) placeBidBtn.setDisable(!enabled);
+    }
+
+
 }

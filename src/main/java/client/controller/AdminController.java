@@ -119,6 +119,35 @@ public class AdminController {
     }
 
     @FXML
+    public void viewAuctionDetails() {
+        AuctionRow selectedAuction = auctionTable.getSelectionModel().getSelectedItem();
+        if (selectedAuction == null) {
+            showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng chọn phiên đấu giá.");
+            return;
+        }
+
+        Auction auction = auctionDAO.findById(Integer.parseInt(selectedAuction.id)).orElse(null);
+        if (auction == null) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không tìm thấy phiên: " + selectedAuction.id);
+            return;
+        }
+
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/AuctionDetailsView.fxml"));
+            Parent root = loader.load();
+            AuctionDetailController controller = loader.getController();
+            controller.setAuction(auction, null);
+
+            Stage stage = new Stage();
+            stage.setTitle("Chi tiết phiên đấu giá");
+            stage.setScene(new Scene(root));
+            stage.show();
+        } catch (IOException e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không mở được màn hình chi tiết: " + e.getMessage());
+        }
+    }
+
+    @FXML
     public void searchUsers() {
         loadUsers();
     }

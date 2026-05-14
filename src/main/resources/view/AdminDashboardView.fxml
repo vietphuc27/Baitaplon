@@ -44,8 +44,9 @@
                         </columns>
                     </TableView>
                     <HBox spacing="10.0">
-                        <Button onAction="#banUser" style="-fx-background-color: #e74c3c;" text="Khóa tài khoản" textFill="#fffefe" />
-                        <Button onAction="#activateUser" style="-fx-background-color: #32CD32;" text="Kích hoạt lại" />
+                        <Button onAction="#banUser" style="-fx-background-color: #e74c3c;" styleClass="btn-cancel" text="Khóa tài khoản" textFill="#fffefe" />
+                  <Region prefHeight="30.0" prefWidth="6.0" />
+                        <Button onAction="#activateUser" prefHeight="30.0" prefWidth="114.0" style="-fx-background-color: #32CD32;" styleClass="btn-primary" text="Kích hoạt lại" />
                     </HBox>
                 </VBox>
             </Tab>
@@ -68,7 +69,13 @@
                             <TableColumn fx:id="auctionStatusCol" prefWidth="170.0" text="Trạng thái" />
                         </columns>
                     </TableView>
-                    <Button onAction="#cancelAuction" style="-fx-background-color: #e74c3c;" text="Hủy phiên đấu giá" textFill="WHITE" />
+               <HBox prefHeight="32.0" prefWidth="879.0">
+                  <children>
+                          <Button onAction="#cancelAuction" style="-fx-background-color: #e74c3c;" styleClass="btn-cancel" text="Hủy phiên đấu giá" textFill="WHITE" />
+                     <Region prefHeight="32.0" prefWidth="35.0" />
+                     <Button layoutX="10.0" layoutY="10.0" prefHeight="30.0" prefWidth="118.0" style="-fx-background-color: #1f6feb;" styleClass="btn-primary" text="Xem chi tiết" textFill="WHITE" />
+                  </children>
+               </HBox>
                 </VBox>
             </Tab>
         </TabPane>

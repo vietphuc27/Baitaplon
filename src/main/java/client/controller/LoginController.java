@@ -36,6 +36,12 @@ public class LoginController {
     private Button registerBtn;
     @FXML
     private Label signUpErrorLabel;
+    @FXML
+    private TabPane authTabPane;
+    @FXML
+    private Tab signInTab;
+    @FXML
+    private Tab signUpTab;
 
     @FXML
     private void initialize() {
@@ -54,6 +60,24 @@ public class LoginController {
 
         clearError(errorLabel);
         clearError(signUpErrorLabel);
+    }
+
+    @FXML
+    private void goToSignUp(ActionEvent event) {
+        clearError(errorLabel);
+        clearError(signUpErrorLabel);
+        authTabPane.getSelectionModel().select(signUpTab);
+        registerBtn.setDefaultButton(true);
+        loginBtn.setDefaultButton(false);
+    }
+
+    @FXML
+    private void goToSignIn(ActionEvent event) {
+        clearError(errorLabel);
+        clearError(signUpErrorLabel);
+        authTabPane.getSelectionModel().select(signInTab);
+        loginBtn.setDefaultButton(true);
+        registerBtn.setDefaultButton(false);
     }
 
     private void handleLogin(ActionEvent event) {

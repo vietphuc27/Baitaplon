@@ -7,7 +7,7 @@ import java.sql.SQLException;
 
 
 public final class DatabaseConnection {
-    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/auction_db";
+    private static final String DEFAULT_URL = "jdbc:mysql://localhost:3306/auction_db_test";
     private static final String DEFAULT_USER = "root";
     private static final String DEFAULT_PASSWORD = "";
 

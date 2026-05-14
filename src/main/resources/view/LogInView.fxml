@@ -7,9 +7,9 @@
 
 <AnchorPane prefHeight="500.0" prefWidth="400.0" styleClass="main-container" stylesheets="@style.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.LoginController">
     <children>
-        <TabPane prefHeight="500.0" prefWidth="400.0" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <TabPane fx:id="authTabPane" prefHeight="500.0" prefWidth="400.0" tabClosingPolicy="UNAVAILABLE" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
             <tabs>
-                <Tab text="Sign In">
+                <Tab fx:id="signInTab" text="Sign In">
                     <content>
                         <VBox alignment="CENTER" spacing="20.0">
                             <children>
@@ -17,6 +17,7 @@
                                 <TextField fx:id="usernameField" maxWidth="280.0" promptText="Username" styleClass="input-field" />
                                 <PasswordField fx:id="passwordField" maxWidth="280.0" promptText="Password" styleClass="input-field" />
                                 <Button fx:id="loginBtn" prefWidth="280.0" styleClass="primary-button" text="LOG IN" />
+                                <Hyperlink onAction="#goToSignUp" text="Chưa có tài khoản? Đăng ký" />
                                 <Label fx:id="errorLabel" styleClass="error-text" visible="false" />
                             </children>
                             <padding><Insets bottom="30.0" left="30.0" right="30.0" top="30.0" /></padding>
@@ -24,7 +25,7 @@
                     </content>
                 </Tab>
 
-                <Tab text="Sign Up">
+                <Tab fx:id="signUpTab" text="Sign Up">
                     <content>
                         <VBox alignment="CENTER" spacing="12.0">
                             <children>
@@ -36,6 +37,7 @@
 
                                 <PasswordField fx:id="signUpPasswordField" maxWidth="280.0" promptText="Password" styleClass="input-field" />
                                 <Button fx:id="registerBtn" prefWidth="280.0" styleClass="secondary-button" text="SIGN UP" />
+                                <Hyperlink onAction="#goToSignIn" text="Đã có tài khoản? Đăng nhập" />
                                 <Label fx:id="signUpErrorLabel" styleClass="error-text" visible="false" />
                             </children>
                             <padding><Insets bottom="20.0" left="30.0" right="30.0" top="20.0" /></padding>

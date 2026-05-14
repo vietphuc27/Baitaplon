@@ -12,6 +12,7 @@ target/
 *.iws
 *.iml
 *.ipr
+.javafx-cache/
 
 ### Eclipse ###
 .apt_generated

@@ -83,18 +83,23 @@ CREATE TABLE bid_transactions (
 INSERT INTO users (id, username, email, password, role, status, wallet_balance) VALUES
     (100001, 'admin', 'admin@example.com', 'admin123', 'ADMIN', 'LOGOUT', 0.00),
     (200001, 'seller1', 'seller1@example.com', 'seller123', 'SELLER', 'LOGOUT', 0.00),
-    (300001, 'bidder1', 'bidder1@example.com', 'bidder123', 'BIDDER', 'LOGOUT', 5000.00);
+    (300001, 'bidder1', 'bidder1@example.com', 'bidder123', 'BIDDER', 'LOGOUT', 85000000.00),
+    (300002, 'bidder2', 'bidder2@example.com', 'bidder123', 'BIDDER', 'LOGOUT', 71500000.00);
 
 INSERT INTO items (id, name, description, starting_price, seller_id, item_type, warranty_period, mileage, artist) VALUES
-    (400001, 'iPhone 15 Pro', 'May tinh dien thoai cao cap', 25000.00, '200001', 'ELECTRONICS', 12, NULL, NULL),
-    (400002, 'Toyota Camry 2020', 'Xe da qua su dung, tinh trang tot', 450000.00, '200001', 'VEHICLE', NULL, 45000, NULL),
-    (400003, 'Sunset Canvas', 'Tranh son dau ve hoang hon', 12000.00, '200001', 'ART', NULL, NULL, 'Nguyen Van A');
+    (400001, 'iPhone 15 Pro', 'Dien thoai cao cap, con bao hanh, tinh trang tot', 25000000.00, '200001', 'ELECTRONICS', 12, NULL, NULL),
+    (400002, 'Toyota Camry 2020', 'Xe da qua su dung, tinh trang tot, giay to day du', 450000000.00, '200001', 'VEHICLE', NULL, 45000, NULL),
+    (400003, 'Sunset Canvas', 'Tranh son dau ve hoang hon, kich thuoc 60x90cm', 12000000.00, '200001', 'ART', NULL, NULL, 'Nguyen Van A');
 
 INSERT INTO auctions (id, item_id, seller_id, start_time, end_time, current_highest_bid, current_leader_id, status) VALUES
-    (500001, 400001, '200001', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 2 DAY), 800.00, 300001, 'RUNNING'),
-    (500002, 400002, '200001', DATE_ADD(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 4 DAY), 0.00, NULL, 'OPEN');
+    (500001, 400001, '200001', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 2 DAY), 28500000.00, 300002, 'RUNNING'),
+    (500002, 400002, '200001', DATE_ADD(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 4 DAY), 0.00, NULL, 'OPEN'),
+    (500003, 400003, '200001', DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY), 15000000.00, 300001, 'FINISHED');
 
 INSERT INTO bid_transactions (id, auction_id, bidder_id, bid_amount, bid_time) VALUES
-    (600001, 500001, 300001, 650.00, DATE_SUB(NOW(), INTERVAL 12 HOUR)),
-    (600002, 500001, 300001, 750.00, DATE_SUB(NOW(), INTERVAL 6 HOUR)),
-    (600003, 500001, 300001, 800.00, DATE_SUB(NOW(), INTERVAL 1 HOUR));
+    (600001, 500001, 300001, 25000000.00, DATE_SUB(NOW(), INTERVAL 20 HOUR)),
+    (600002, 500001, 300002, 27000000.00, DATE_SUB(NOW(), INTERVAL 12 HOUR)),
+    (600003, 500001, 300001, 28000000.00, DATE_SUB(NOW(), INTERVAL 6 HOUR)),
+    (600004, 500001, 300002, 28500000.00, DATE_SUB(NOW(), INTERVAL 1 HOUR)),
+    (600005, 500003, 300002, 12500000.00, DATE_SUB(NOW(), INTERVAL 4 DAY)),
+    (600006, 500003, 300001, 15000000.00, DATE_SUB(NOW(), INTERVAL 2 DAY));

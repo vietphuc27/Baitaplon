@@ -206,6 +206,8 @@ public class BidderController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/AuctionDetailsView.fxml"));
             Parent root = loader.load();
             AuctionDetailController controller = loader.getController();
+            controller.setViewOnly(false);
+            controller.setAuction(selectedRow.auction, currentBidder);
             controller.setAuction(selectedRow.auction, currentBidder);
 
             Stage stage = new Stage();

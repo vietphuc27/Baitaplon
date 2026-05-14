@@ -235,6 +235,8 @@ public class SellerController implements Initializable {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/AuctionDetailsView.fxml"));
             Parent root = loader.load();
             AuctionDetailController controller = loader.getController();
+            controller.setViewOnly(true);
+            controller.setAuction(auction, null);
             controller.setAuction(auction, null);
 
             Stage stage = new Stage();

@@ -19,6 +19,7 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
 
 <BorderPane prefHeight="600.0" prefWidth="800.0" styleClass="root-pane" stylesheets="@style.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="client.controller.SellerController">
 
@@ -28,7 +29,10 @@
             <Label prefHeight="18.0" prefWidth="98.0" text="Hệ thống ổn định" textFill="WHITE" />
             <Button mnemonicParsing="false" onAction="#handleRefreshData" prefHeight="26.0" prefWidth="106.0" style="-fx-background-color: #34495e; -fx-background-radius: 10;" text="Làm mới dữ liệu" textFill="#fafafa" />
             <Region HBox.hgrow="ALWAYS" />
-            <Label fx:id="lblSellerName" prefHeight="18.0" prefWidth="125.0" style="-fx-text-fill: white;" text="Seller: ..." />
+            <Label fx:id="lblSellerName" prefHeight="18.0" prefWidth="125.0" style="-fx-text-fill: white; -fx-font-weight: bold;" text="Seller: ...">
+            <font>
+               <Font name="System Bold" size="12.0" />
+            </font></Label>
             <Button mnemonicParsing="false" onAction="#handleSwitchToBidder" style="-fx-background-color: #1f6feb; -fx-text-fill: white; -fx-background-radius: 10;" text="Bidder" />
             <Button onAction="#handleLogout" style="-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-background-radius: 10;" text="Đăng xuất" textFill="WHITE" />
         </HBox>
@@ -153,8 +157,9 @@
 
                     </VBox>
                         <HBox spacing="10">
-                            <Button onAction="#handleCreateAuction" style="-fx-background-color: #27ae60; -fx-text-fill: white;" text="Tạo Phiên Đấu Giá" />
-                            <Button onAction="#handleClearForm" text="Xóa form" />
+                            <Button onAction="#handleCreateAuction" style="-fx-background-color: #27ae60; -fx-text-fill: white;" styleClass="btn-primary" text="Tạo Phiên Đấu Giá" />
+                     <Region prefHeight="30.0" prefWidth="22.0" />
+                            <Button onAction="#handleClearForm" prefHeight="30.0" prefWidth="92.0" style="-fx-background-color: e74c3c;" styleClass="btn-cancel" text="Xóa Form" />
                         </HBox>
                     </VBox>
                 </ScrollPane>
@@ -185,8 +190,9 @@
                         </placeholder>
                     </TableView>
                     <HBox spacing="10">
-                        <Button onAction="#handleEndAuction" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" text="Kết thúc phiên" />
-                        <Button onAction="#handleViewAuctionDetails" style="-fx-background-color: #2980b9; -fx-text-fill: white;" text="Xem chi tiết" />
+                        <Button onAction="#handleEndAuction" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" styleClass="btn-cancel" text="Kết thúc phiên" />
+                  <Region prefHeight="30.0" prefWidth="23.0" />
+                        <Button onAction="#handleViewAuctionDetails" prefHeight="30.0" prefWidth="114.0" style="-fx-background-color: #1f6feb; -fx-text-fill: white;" styleClass="btn-primary" text="Xem chi tiết" />
                     </HBox>
                 </VBox>
             </Tab>
