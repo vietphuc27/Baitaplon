@@ -43,25 +43,41 @@ CREATE TABLE auctions (
     start_time DATETIME NOT NULL,
     end_time DATETIME NOT NULL,
     current_highest_bid DECIMAL(15, 2) NOT NULL DEFAULT 0.00,
-    current_leader_id VARCHAR(50) DEFAULT NULL,
+    current_leader_id INT DEFAULT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
     PRIMARY KEY (id),
     KEY idx_auctions_item_id (item_id),
     KEY idx_auctions_seller_id (seller_id),
     KEY idx_auctions_status (status),
-    KEY idx_auctions_current_leader_id (current_leader_id)
+    KEY idx_auctions_current_leader_id (current_leader_id),
+    CONSTRAINT fk_auctions_item
+        FOREIGN KEY (item_id) REFERENCES items(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_auctions_current_leader
+        FOREIGN KEY (current_leader_id) REFERENCES users(id)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE bid_transactions (
     id INT NOT NULL AUTO_INCREMENT,
     auction_id INT NOT NULL,
-    bidder_id VARCHAR(50) NOT NULL,
+    bidder_id INT NOT NULL,
     bid_amount DECIMAL(15, 2) NOT NULL,
     bid_time DATETIME NOT NULL,
     PRIMARY KEY (id),
     KEY idx_bids_auction_id (auction_id),
     KEY idx_bids_bidder_id (bidder_id),
-    KEY idx_bids_bid_time (bid_time)
+    KEY idx_bids_bid_time (bid_time),
+    CONSTRAINT fk_bids_auction
+        FOREIGN KEY (auction_id) REFERENCES auctions(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT fk_bids_bidder
+        FOREIGN KEY (bidder_id) REFERENCES users(id)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO users (id, username, email, password, role, status, wallet_balance) VALUES
@@ -75,10 +91,10 @@ INSERT INTO items (id, name, description, starting_price, seller_id, item_type, 
     (400003, 'Sunset Canvas', 'Tranh son dau ve hoang hon', 12000.00, '200001', 'ART', NULL, NULL, 'Nguyen Van A');
 
 INSERT INTO auctions (id, item_id, seller_id, start_time, end_time, current_highest_bid, current_leader_id, status) VALUES
-    (500001, 400001, '200001', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 2 DAY), 800.00, '300001', 'RUNNING'),
+    (500001, 400001, '200001', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 2 DAY), 800.00, 300001, 'RUNNING'),
     (500002, 400002, '200001', DATE_ADD(NOW(), INTERVAL 1 DAY), DATE_ADD(NOW(), INTERVAL 4 DAY), 0.00, NULL, 'OPEN');
 
 INSERT INTO bid_transactions (id, auction_id, bidder_id, bid_amount, bid_time) VALUES
-    (600001, 500001, '300001', 650.00, DATE_SUB(NOW(), INTERVAL 12 HOUR)),
-    (600002, 500001, '300001', 750.00, DATE_SUB(NOW(), INTERVAL 6 HOUR)),
-    (600003, 500001, '300001', 800.00, DATE_SUB(NOW(), INTERVAL 1 HOUR));
+    (600001, 500001, 300001, 650.00, DATE_SUB(NOW(), INTERVAL 12 HOUR)),
+    (600002, 500001, 300001, 750.00, DATE_SUB(NOW(), INTERVAL 6 HOUR)),
+    (600003, 500001, 300001, 800.00, DATE_SUB(NOW(), INTERVAL 1 HOUR));

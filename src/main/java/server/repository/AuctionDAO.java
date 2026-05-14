@@ -199,7 +199,7 @@ public class AuctionDAO implements AuctionRepository {
         LocalDateTime endTime = endTimestamp != null ? endTimestamp.toLocalDateTime() : null;
 
         double currentBid      = rs.getDouble("current_highest_bid");
-        Integer currentLeaderId = (Integer) rs.getObject("current_leader_id");
+        Integer currentLeaderId = readNullableInteger(rs, "current_leader_id");
         String status          = rs.getString("status");
 
         // Map item từ JOIN
@@ -210,6 +210,21 @@ public class AuctionDAO implements AuctionRepository {
         auction.setCurrentLeaderId(currentLeaderId);
         auction.setStatus(AuctionStatus.valueOf(status));
         return auction;
+    }
+
+    private Integer readNullableInteger(ResultSet rs, String columnName) throws SQLException {
+        Object rawValue = rs.getObject(columnName);
+        if (rawValue == null) {
+            return null;
+        }
+        if (rawValue instanceof Number number) {
+            return number.intValue();
+        }
+        String text = rawValue.toString().trim();
+        if (text.isEmpty()) {
+            return null;
+        }
+        return Integer.valueOf(text);
     }
 
     // Map phần item trong JOIN
