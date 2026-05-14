@@ -73,7 +73,7 @@
                   <children>
                           <Button onAction="#cancelAuction" style="-fx-background-color: #e74c3c;" styleClass="btn-cancel" text="Hủy phiên đấu giá" textFill="WHITE" />
                      <Region prefHeight="32.0" prefWidth="35.0" />
-                     <Button layoutX="10.0" layoutY="10.0" prefHeight="30.0" prefWidth="118.0" style="-fx-background-color: #1f6feb;" styleClass="btn-primary" text="Xem chi tiết" textFill="WHITE" />
+                     <Button layoutX="10.0" layoutY="10.0" onAction="#viewAuctionDetails" prefHeight="30.0" prefWidth="118.0" style="-fx-background-color: #1f6feb;" styleClass="btn-primary" text="Xem chi tiết" textFill="WHITE" />
                   </children>
                </HBox>
                 </VBox>

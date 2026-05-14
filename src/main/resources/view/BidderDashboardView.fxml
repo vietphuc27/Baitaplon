@@ -57,6 +57,7 @@
                             <TableColumn fx:id="colType" prefWidth="120.0" text="Loại" />
                             <TableColumn fx:id="colCurrentPrice" prefWidth="140.0" text="Giá hiện tại" />
                             <TableColumn fx:id="colSeller" prefWidth="120.0" text="Người bán" />
+                            <TableColumn fx:id="colStatus" prefWidth="110.0" text="Trạng thái" />
                             <TableColumn fx:id="colEndTime" prefWidth="160.0" text="Kết thúc lúc" />
                         </columns>
                     </TableView>

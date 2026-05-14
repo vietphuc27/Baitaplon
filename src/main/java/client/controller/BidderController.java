@@ -50,6 +50,7 @@ public class BidderController {
     @FXML private TableColumn<AuctionRow, String> colType;
     @FXML private TableColumn<AuctionRow, String> colCurrentPrice;
     @FXML private TableColumn<AuctionRow, String> colSeller;
+    @FXML private TableColumn<AuctionRow, String> colStatus;
     @FXML private TableColumn<AuctionRow, String> colEndTime;
     @FXML private TextField txtBidAmount;
     @FXML private TableView<BidHistoryRow> tblBidHistory;
@@ -267,6 +268,7 @@ public class BidderController {
         colType.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().type));
         colCurrentPrice.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().currentPrice));
         colSeller.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().seller));
+        colStatus.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().status));
         colEndTime.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().endTime));
         tblAuctions.setItems(auctionRows);
         tblAuctions.getSelectionModel().selectedItemProperty().addListener((obs, oldValue, newValue) -> updateChart(newValue));
@@ -372,6 +374,7 @@ public class BidderController {
                 a.getItem() == null ? "-" : a.getItem().getClass().getSimpleName(),
                 formatCurrency(a.getCurrentHighestBid()),
                 a.getSellerId(),
+                a.getStatus() == null ? "-" : a.getStatus().name(),
                 FormatUtils.formatDateTime(a.getEndTime()),
                 a
         )).toList();
@@ -556,15 +559,17 @@ public class BidderController {
         private final String type;
         private final String currentPrice;
         private final String seller;
+        private final String status;
         private final String endTime;
         private final Auction auction;
 
-        public AuctionRow(String id, String itemName, String type, String currentPrice, String seller, String endTime, Auction auction) {
+        public AuctionRow(String id, String itemName, String type, String currentPrice, String seller, String status, String endTime, Auction auction) {
             this.id = id;
             this.itemName = itemName;
             this.type = type;
             this.currentPrice = currentPrice;
             this.seller = seller;
+            this.status = status;
             this.endTime = endTime;
             this.auction = auction;
         }
