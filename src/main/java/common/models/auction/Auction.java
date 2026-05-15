@@ -4,6 +4,7 @@ import common.models.item.Item;
 import common.models.user.Bidder;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -49,7 +50,8 @@ public class Auction {
     }
 
     public boolean isClosed() {
-        return this.status == AuctionStatus.FINISHED || this.status == AuctionStatus.PAID || this.status == AuctionStatus.CANCELED;
+        return this.status == AuctionStatus.FINISHED || this.status == AuctionStatus.PAID
+                || this.status == AuctionStatus.CANCELED;
     }
 
     public boolean processBid(BidTransaction bid) {
@@ -92,6 +94,31 @@ public class Auction {
 
     public Item getItem() {
         return item;
+    }
+
+    /**
+     * Kiểm tra xem bid có nằm trong 30 giây cuối không.
+     * Nếu có, tự động gia hạn thêm 1 phút (Anti-Sniping).
+     * 
+     * @param bidTime Thời điểm đặt giá
+     * @return true nếu đã gia hạn, false nếu không
+     */
+    public boolean checkAndExtendForSniping(LocalDateTime bidTime) {
+        if (bidTime == null || endTime == null) {
+            return false;
+        }
+        long secondsUntilEnd = ChronoUnit.SECONDS.between(bidTime, endTime);
+        if (secondsUntilEnd <= 30 && secondsUntilEnd > 0) {
+            this.endTime = this.endTime.plusMinutes(1);
+            System.out.println("Anti-Sniping: Phien dau gia " + id
+                    + " da duoc gia han them 1 phut. EndTime moi: " + endTime);
+            return true;
+        }
+        return false;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
     }
 
     public void setItem(Item item) {

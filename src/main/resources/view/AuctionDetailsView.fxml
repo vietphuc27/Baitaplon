@@ -10,6 +10,7 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -93,6 +94,25 @@
                 </VBox>
                 <Button fx:id="placeBidBtn" maxWidth="1.7976931348623157E308" onAction="#handlePlaceBid" prefHeight="44.0" styleClass="btn-primary" text="ĐẶT GIÁ NGAY" />
                 <Label fx:id="errorLabel" textFill="#e74c3c" visible="false" wrapText="true" />
+
+                <!-- ====== AUTO-BID SECTION ====== -->
+                <Separator />
+                <Label styleClass="section-title" text="Tự động đặt giá" />
+                <Separator />
+                <VBox fx:id="autoBidSection" spacing="8.0">
+                    <VBox spacing="6.0">
+                        <Label styleClass="form-label" text="Giá trần tối đa:" />
+                        <TextField fx:id="maxBidField" promptText="VD: 5000000" style="-fx-font-size: 14px; -fx-padding: 8;" />
+                    </VBox>
+                    <VBox spacing="6.0">
+                        <Label styleClass="form-label" text="Bước giá mỗi lần tăng:" />
+                        <TextField fx:id="incrementField" promptText="VD: 100000" style="-fx-font-size: 14px; -fx-padding: 8;" />
+                    </VBox>
+                    <HBox spacing="10.0" alignment="CENTER_LEFT">
+                        <ToggleButton fx:id="autoBidToggle" onAction="#handleToggleAutoBid" prefHeight="40.0" prefWidth="120.0" styleClass="toggle-auto-bid" text="BẬT AUTO" />
+                        <Label fx:id="autoBidStatusLabel" style="-fx-font-size: 12px;" text="Chưa kích hoạt" textFill="#7f8c8d" />
+                    </HBox>
+                </VBox>
                 <Region VBox.vgrow="ALWAYS" />
             </VBox>
         </HBox>

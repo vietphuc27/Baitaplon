@@ -43,41 +43,76 @@ public class SellerController implements Initializable {
     private final UserService userService = new UserService();
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
 
-    @FXML private Label lblSellerName;
-    @FXML private TextField txtItemName;
-    @FXML private ComboBox<String> cbItemType;
-    @FXML private TextField txtStartPrice;
-    @FXML private TextField txtBuyNowPrice;
-    @FXML private DatePicker dpEndDate;
-    @FXML private ComboBox<String> cbEndHour;
-    @FXML private ComboBox<String> cbEndMinute;
-    @FXML private TextArea txtDescription;
-    @FXML private VBox vboxDynamicFields;
-    @FXML private Label lblDynamicTitle;
-    @FXML private GridPane gridArt;
-    @FXML private TextField txtArtist;
-    @FXML private TextField txtArtYear;
-    @FXML private TextField txtMaterial;
-    @FXML private GridPane gridElectronics;
-    @FXML private TextField txtBrand;
-    @FXML private TextField txtModel;
-    @FXML private TextField txtCondition;
-    @FXML private GridPane gridVehicle;
-    @FXML private TextField txtVehicleBrand;
-    @FXML private TextField txtMileage;
-    @FXML private TextField txtVehicleYear;
-    @FXML private TextField txtAuctionSearch;
-    @FXML private ComboBox<String> cbSortBy;
-    @FXML private TableView<AuctionRow> tblMyAuctions;
-    @FXML private TableColumn<AuctionRow, String> colAuctionId;
-    @FXML private TableColumn<AuctionRow, String> colAuctionItem;
-    @FXML private TableColumn<AuctionRow, String> colStartPrice;
-    @FXML private TableColumn<AuctionRow, String> colCurrentPrice;
-    @FXML private TableColumn<AuctionRow, String> colStatus;
-    @FXML private TableColumn<AuctionRow, String> colEndTime;
-    @FXML private Label lblTotalAuctions;
-    @FXML private Label lblActiveAuctions;
-    @FXML private Label lblTotalRevenue;
+    @FXML
+    private Label lblSellerName;
+    @FXML
+    private TextField txtItemName;
+    @FXML
+    private ComboBox<String> cbItemType;
+    @FXML
+    private TextField txtStartPrice;
+    @FXML
+    private TextField txtBuyNowPrice;
+    @FXML
+    private DatePicker dpEndDate;
+    @FXML
+    private ComboBox<String> cbEndHour;
+    @FXML
+    private ComboBox<String> cbEndMinute;
+    @FXML
+    private TextArea txtDescription;
+    @FXML
+    private VBox vboxDynamicFields;
+    @FXML
+    private Label lblDynamicTitle;
+    @FXML
+    private GridPane gridArt;
+    @FXML
+    private TextField txtArtist;
+    @FXML
+    private TextField txtArtYear;
+    @FXML
+    private TextField txtMaterial;
+    @FXML
+    private GridPane gridElectronics;
+    @FXML
+    private TextField txtBrand;
+    @FXML
+    private TextField txtModel;
+    @FXML
+    private TextField txtCondition;
+    @FXML
+    private GridPane gridVehicle;
+    @FXML
+    private TextField txtVehicleBrand;
+    @FXML
+    private TextField txtMileage;
+    @FXML
+    private TextField txtVehicleYear;
+    @FXML
+    private TextField txtAuctionSearch;
+    @FXML
+    private ComboBox<String> cbSortBy;
+    @FXML
+    private TableView<AuctionRow> tblMyAuctions;
+    @FXML
+    private TableColumn<AuctionRow, String> colAuctionId;
+    @FXML
+    private TableColumn<AuctionRow, String> colAuctionItem;
+    @FXML
+    private TableColumn<AuctionRow, String> colStartPrice;
+    @FXML
+    private TableColumn<AuctionRow, String> colCurrentPrice;
+    @FXML
+    private TableColumn<AuctionRow, String> colStatus;
+    @FXML
+    private TableColumn<AuctionRow, String> colEndTime;
+    @FXML
+    private Label lblTotalAuctions;
+    @FXML
+    private Label lblActiveAuctions;
+    @FXML
+    private Label lblTotalRevenue;
 
     private final AuctionClient auctionClient = new AuctionClient();
     private final AuctionDAO auctionDAO = new AuctionDAO();
@@ -105,7 +140,8 @@ public class SellerController implements Initializable {
         colEndTime.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().endTime));
         Platform.runLater(() -> {
             if (lblSellerName.getScene() != null && lblSellerName.getScene().getWindow() != null) {
-                lblSellerName.getScene().getWindow().addEventHandler(javafx.stage.WindowEvent.WINDOW_HIDDEN, event -> shutdown());
+                lblSellerName.getScene().getWindow().addEventHandler(javafx.stage.WindowEvent.WINDOW_HIDDEN,
+                        event -> shutdown());
             }
         });
         loadSellerDashboardData();
@@ -150,8 +186,7 @@ public class SellerController implements Initializable {
                     txtCondition.getText(),
                     txtVehicleBrand.getText(),
                     txtMileage.getText(),
-                    txtVehicleYear.getText()
-            ));
+                    txtVehicleYear.getText()));
             showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã tạo phiên: " + auction.getAuctionId());
             clearAuctionForm();
             loadSellerDashboardData();
@@ -242,8 +277,9 @@ public class SellerController implements Initializable {
             Stage stage = new Stage();
             stage.setTitle("Chi tiết phiên đấu giá");
             stage.setScene(new Scene(root));
+            AuctionDetailController.registerStage(stage);
             stage.show();
-            
+
         } catch (IOException e) {
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Không mở được màn hình chi tiết: " + e.getMessage());
         }
@@ -251,6 +287,7 @@ public class SellerController implements Initializable {
 
     @FXML
     private void handleLogout() throws IOException {
+        AuctionDetailController.closeAllWindows();
         userService.logout();
         ClientSession.clear();
         showLoginScreen();
@@ -331,9 +368,12 @@ public class SellerController implements Initializable {
     private void hideTypeSpecificFields() {
         vboxDynamicFields.setVisible(false);
         lblDynamicTitle.setVisible(false);
-        gridArt.setVisible(false); gridArt.setManaged(false);
-        gridElectronics.setVisible(false); gridElectronics.setManaged(false);
-        gridVehicle.setVisible(false); gridVehicle.setManaged(false);
+        gridArt.setVisible(false);
+        gridArt.setManaged(false);
+        gridElectronics.setVisible(false);
+        gridElectronics.setManaged(false);
+        gridVehicle.setVisible(false);
+        gridVehicle.setManaged(false);
     }
 
     private String getAuctionFormValidationError() {
@@ -409,10 +449,10 @@ public class SellerController implements Initializable {
     }
 
     private void configurePriceFields() {
-        txtStartPrice.setTextFormatter(new TextFormatter<>(change ->
-                change.getControlNewText().matches("\\d*") ? change : null));
-        txtBuyNowPrice.setTextFormatter(new TextFormatter<>(change ->
-                change.getControlNewText().matches("\\d*") ? change : null));
+        txtStartPrice.setTextFormatter(
+                new TextFormatter<>(change -> change.getControlNewText().matches("\\d*") ? change : null));
+        txtBuyNowPrice.setTextFormatter(
+                new TextFormatter<>(change -> change.getControlNewText().matches("\\d*") ? change : null));
     }
 
     private void configureEndTimeFields() {
@@ -512,8 +552,7 @@ public class SellerController implements Initializable {
                 auction.getItem() == null ? "-" : formatCurrency(auction.getItem().getStartingPrice()),
                 formatCurrency(auction.getCurrentHighestBid()),
                 auction.getStatus().name(),
-                FormatUtils.formatDateTime(auction.getEndTime())
-        );
+                FormatUtils.formatDateTime(auction.getEndTime()));
     }
 
     private Comparator<Auction> resolveAuctionComparator() {
@@ -522,11 +561,13 @@ public class SellerController implements Initializable {
 
     private Comparator<Auction> resolveAuctionComparator(String sortBy) {
         return switch (sortBy) {
-            case "Cũ nhất" -> Comparator.comparing(Auction::getStartTime, Comparator.nullsLast(Comparator.naturalOrder()));
+            case "Cũ nhất" ->
+                Comparator.comparing(Auction::getStartTime, Comparator.nullsLast(Comparator.naturalOrder()));
             case "Trạng thái" -> Comparator.comparing(a -> a.getStatus().name());
             case "Giá tăng" -> Comparator.comparingDouble(Auction::getCurrentHighestBid);
             case "Giá giảm" -> Comparator.comparingDouble(Auction::getCurrentHighestBid).reversed();
-            default -> Comparator.comparing(Auction::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
+            default ->
+                Comparator.comparing(Auction::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
         };
     }
 
@@ -555,8 +596,7 @@ public class SellerController implements Initializable {
             List<AuctionRow> rows,
             int totalAuctions,
             long activeAuctions,
-            double totalRevenue
-    ) {
+            double totalRevenue) {
     }
 
     public static class AuctionRow {
@@ -566,8 +606,15 @@ public class SellerController implements Initializable {
         private final String currentPrice;
         private final String status;
         private final String endTime;
-        public AuctionRow(String id, String itemName, String startPrice, String currentPrice, String status, String endTime) {
-            this.id = id; this.itemName = itemName; this.startPrice = startPrice; this.currentPrice = currentPrice; this.status = status; this.endTime = endTime;
+
+        public AuctionRow(String id, String itemName, String startPrice, String currentPrice, String status,
+                String endTime) {
+            this.id = id;
+            this.itemName = itemName;
+            this.startPrice = startPrice;
+            this.currentPrice = currentPrice;
+            this.status = status;
+            this.endTime = endTime;
         }
     }
 }

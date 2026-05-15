@@ -23,7 +23,7 @@ public class BidTransactionDAO implements BidTransactionRepository {
                 + "VALUES (?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setInt(1, bid.getAuctionId());
             stmt.setInt(2, bid.getBidderId());
@@ -46,12 +46,13 @@ public class BidTransactionDAO implements BidTransactionRepository {
     public Optional<BidTransaction> findById(int id) {
         String sql = "SELECT * FROM bid_transactions WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
 
-            if (rs.next()) return Optional.of(mapToBidTransaction(rs));
+            if (rs.next())
+                return Optional.of(mapToBidTransaction(rs));
             return Optional.empty();
         } catch (SQLException e) {
             throw new RuntimeException("Loi tim BidTransaction theo ID: " + e.getMessage());
@@ -64,10 +65,11 @@ public class BidTransactionDAO implements BidTransactionRepository {
         List<BidTransaction> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+                PreparedStatement stmt = conn.prepareStatement(sql);
+                ResultSet rs = stmt.executeQuery()) {
 
-            while (rs.next()) list.add(mapToBidTransaction(rs));
+            while (rs.next())
+                list.add(mapToBidTransaction(rs));
             return list;
         } catch (SQLException e) {
             throw new RuntimeException("Loi lay danh sach tat ca BidTransaction: " + e.getMessage());
@@ -76,16 +78,17 @@ public class BidTransactionDAO implements BidTransactionRepository {
 
     @Override
     public List<BidTransaction> findByAuctionId(int auctionId) {
-        String sql = "SELECT * FROM bid_transactions WHERE auction_id = ? ORDER BY bid_amount DESC, bid_time DESC";
+        String sql = "SELECT * FROM bid_transactions WHERE auction_id = ? ORDER BY id ASC";
         List<BidTransaction> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, auctionId);
             ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) list.add(mapToBidTransaction(rs));
+            while (rs.next())
+                list.add(mapToBidTransaction(rs));
             return list;
         } catch (SQLException e) {
             throw new RuntimeException("Loi lay lich su bid cua Auction: " + e.getMessage());
@@ -98,12 +101,13 @@ public class BidTransactionDAO implements BidTransactionRepository {
         List<BidTransaction> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, bidderId);
             ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) list.add(mapToBidTransaction(rs));
+            while (rs.next())
+                list.add(mapToBidTransaction(rs));
             return list;
         } catch (SQLException e) {
             throw new RuntimeException("Loi lay lich su bid cua Bidder: " + e.getMessage());
@@ -115,12 +119,13 @@ public class BidTransactionDAO implements BidTransactionRepository {
         String sql = "SELECT * FROM bid_transactions WHERE auction_id = ? ORDER BY bid_amount DESC LIMIT 1";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, auctionId);
             ResultSet rs = stmt.executeQuery();
 
-            if (rs.next()) return mapToBidTransaction(rs);
+            if (rs.next())
+                return mapToBidTransaction(rs);
             return null;
         } catch (SQLException e) {
             throw new RuntimeException("Loi lay bid cao nhat cua Auction: " + e.getMessage());

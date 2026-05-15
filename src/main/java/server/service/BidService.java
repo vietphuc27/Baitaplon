@@ -6,7 +6,9 @@ import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
+import common.models.user.User;
 import server.manager.AuctionManager;
+import server.manager.AutoBidManager;
 import server.repository.AuctionDAO;
 import server.repository.BidTransactionDAO;
 import server.repository.UserDAO;
@@ -23,6 +25,7 @@ public class BidService {
     private final AuctionDAO auctionDAO;
     private final BidTransactionDAO bidTransactionDAO;
     private final UserDAO userDAO;
+    private final AutoBidManager autoBidManager;
 
     public BidService() {
         this(AuctionManager.getInstance(), new AuctionDAO(), new BidTransactionDAO(), new UserDAO());
@@ -32,11 +35,13 @@ public class BidService {
         this(auctionManager, auctionDAO, bidTransactionDAO, new UserDAO());
     }
 
-    public BidService(AuctionManager auctionManager, AuctionDAO auctionDAO, BidTransactionDAO bidTransactionDAO, UserDAO userDAO) {
+    public BidService(AuctionManager auctionManager, AuctionDAO auctionDAO, BidTransactionDAO bidTransactionDAO,
+            UserDAO userDAO) {
         this.auctionManager = auctionManager;
         this.auctionDAO = auctionDAO;
         this.bidTransactionDAO = bidTransactionDAO;
         this.userDAO = userDAO;
+        this.autoBidManager = AutoBidManager.getInstance();
     }
 
     public BidTransaction placeBid(String auctionId, Bidder bidder, double amount) {
@@ -90,8 +95,7 @@ public class BidService {
                     0,
                     auction.getAuctionId(),
                     bidder.getId(),
-                    amount
-            );
+                    amount);
             bid.setBidTime(LocalDateTime.now());
             bid.setBidder(bidder);
 
@@ -105,6 +109,39 @@ public class BidService {
             try {
                 auctionDAO.update(auction);
                 bidTransactionDAO.save(bid);
+
+                // === ANTI-SNIPING: Kiểm tra và gia hạn nếu bid trong 30s cuối ===
+                boolean extended = auction.checkAndExtendForSniping(bid.getBidTime());
+                if (extended) {
+                    auctionDAO.update(auction);
+                }
+
+                // === AUTO-BID: Xử lý tự động sau khi có bid mới ===
+                List<BidTransaction> autoBids = autoBidManager.processAutoBids(auction, bid);
+
+                // Persist các auto-bid + trừ tiền bidder
+                for (BidTransaction autoBid : autoBids) {
+                    // Persist transaction
+                    bidTransactionDAO.save(autoBid);
+
+                    // Trừ tiền từ wallet của bidder
+                    try {
+                        User autoBidder = userDAO.findById(autoBid.getBidderId()).orElse(null);
+                        if (autoBidder instanceof Bidder agentBidder) {
+                            if (agentBidder.getWallet() != null) {
+                                agentBidder.getWallet().withdraw(autoBid.getBidAmount());
+                                userDAO.update(agentBidder);
+                            }
+                        }
+                    } catch (RuntimeException e) {
+                        System.err.println("AutoBid: Không thể trừ tiền cho bidder "
+                                + autoBid.getBidderId() + ": " + e.getMessage());
+                    }
+                }
+
+                // Update auction trong DB sau khi auto-bid
+                auctionDAO.update(auction);
+
                 return bid;
             } catch (RuntimeException e) {
                 rollbackAuctionState(auction, previousHighestBid, previousLeader, previousLeaderId, bid);
@@ -206,7 +243,8 @@ public class BidService {
         }
     }
 
-    private void rollbackAuctionState(Auction auction, double previousHighestBid, Bidder previousLeader, Integer previousLeaderId, BidTransaction bid) {
+    private void rollbackAuctionState(Auction auction, double previousHighestBid, Bidder previousLeader,
+            Integer previousLeaderId, BidTransaction bid) {
         auction.getBidHistory().remove(bid);
         auction.setCurrentHighestBid(previousHighestBid);
         auction.setCurrentLeader(previousLeader);

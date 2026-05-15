@@ -5,9 +5,10 @@ module view.btl {
     requires javafx.graphics;
     requires com.google.gson;
 
-// requires com.mysql.cj;
+    // requires com.mysql.cj;
 
     exports com.example.btl_n3;
+
     opens common.models.user to javafx.fxml;
     opens common.models.entity to javafx.fxml;
     opens common.models.item to javafx.fxml;
@@ -20,9 +21,17 @@ module view.btl {
     exports common.models.item;
     exports common.models.auction;
     exports server.manager;
+
+    opens server.manager to javafx.fxml;
+
     exports server.repository;
+
     opens server.repository to javafx.fxml;
+
     exports server.repository.dao;
+
     opens server.repository.dao to javafx.fxml;
+
+    exports server.service;
     exports server.config;
 }
