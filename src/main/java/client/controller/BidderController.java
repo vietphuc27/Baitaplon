@@ -38,7 +38,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class BidderController {
-<<<<<<< Updated upstream
     @FXML private Label lblWalletBalance;
     @FXML private Label lblBidderName;
     @FXML private TextField txtSearch;
@@ -66,60 +65,6 @@ public class BidderController {
     @FXML private LineChart<Number, Number> priceHistoryChart;
     @FXML private NumberAxis xAxis;
     @FXML private NumberAxis yAxis;
-=======
-    @FXML
-    private Label lblWalletBalance;
-    @FXML
-    private Label lblBidderName;
-    @FXML
-    private TextField txtSearch;
-    @FXML
-    private TextField txtSearch1;
-    @FXML
-    private ComboBox<String> cbStatusFilter;
-    @FXML
-    private ComboBox<String> cbSortBy;
-    @FXML
-    private TableView<AuctionRow> tblAuctions;
-    @FXML
-    private TableColumn<AuctionRow, String> colId;
-    @FXML
-    private TableColumn<AuctionRow, String> colItem;
-    @FXML
-    private TableColumn<AuctionRow, String> colType;
-    @FXML
-    private TableColumn<AuctionRow, String> colCurrentPrice;
-    @FXML
-    private TableColumn<AuctionRow, String> colSeller;
-    @FXML
-    private TableColumn<AuctionRow, String> colEndTime;
-    @FXML
-    private TextField txtBidAmount;
-    @FXML
-    private TableView<BidHistoryRow> tblBidHistory;
-    @FXML
-    private TableColumn<BidHistoryRow, String> colHistoryId;
-    @FXML
-    private TableColumn<BidHistoryRow, String> colHistoryItem;
-    @FXML
-    private TableColumn<BidHistoryRow, String> colHistoryBid;
-    @FXML
-    private TableColumn<BidHistoryRow, String> colHistoryTime;
-    @FXML
-    private TableColumn<BidHistoryRow, String> colHistoryResult;
-    @FXML
-    private Label lblBalance;
-    @FXML
-    private Label lblTotalWon;
-    @FXML
-    private TextField txtDepositAmount;
-    @FXML
-    private LineChart<Number, Number> priceHistoryChart;
-    @FXML
-    private NumberAxis xAxis;
-    @FXML
-    private NumberAxis yAxis;
->>>>>>> Stashed changes
 
     private final AuctionService auctionService = new AuctionService(new ItemService());
     private final BidService bidService = new BidService();
@@ -631,12 +576,7 @@ public class BidderController {
         private final String endTime;
         private final Auction auction;
 
-<<<<<<< Updated upstream
         public AuctionRow(String id, String itemName, String type, String currentPrice, String seller, String status, String endTime, Auction auction) {
-=======
-        public AuctionRow(String id, String itemName, String type, String currentPrice, String seller, String endTime,
-                Auction auction) {
->>>>>>> Stashed changes
             this.id = id;
             this.itemName = itemName;
             this.type = type;
