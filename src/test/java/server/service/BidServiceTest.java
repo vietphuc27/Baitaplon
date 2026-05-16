@@ -39,6 +39,9 @@ class BidServiceTest {
     void setUp() {
         auctionManager = AuctionManager.getInstance();
         auctionManager.getAllActiveAuctions().clear();
+        // Reset AutoBidManager singleton to avoid state pollution from other tests
+        server.manager.AutoBidManager.getInstance().resetForTesting();
+        server.manager.AutoBidManager.getInstance().setAutoBidDelayMillis(0);
         auctionDAO = new InMemoryAuctionDAO();
         bidTransactionDAO = new InMemoryBidTransactionDAO();
         userDAO = new InMemoryUserDAO();

@@ -31,6 +31,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AuctionDetailController {
+    private static final Duration AUTO_REFRESH_INTERVAL = Duration.millis(300);
+
     // Static list tracking all open AuctionDetail windows
     private static final List<javafx.stage.Stage> OPEN_STAGES = new ArrayList<>();
 
@@ -58,6 +60,10 @@ public class AuctionDetailController {
         }
         OPEN_STAGES.clear();
     }
+
+    private volatile boolean refreshInProgress = false;
+    private volatile boolean refreshQueued = false;
+    private String lastHistorySignature = "";
 
     @FXML
     private Label itemNameLabel;
@@ -139,6 +145,7 @@ public class AuctionDetailController {
     public void setAuction(Auction auction, Bidder bidder) {
         this.auction = auction;
         this.currentBidder = bidder;
+        historyRows.clear();
         updateBidPanelState();
         updateHeader();
         refreshDataAsync();
@@ -286,36 +293,31 @@ public class AuctionDetailController {
         }
 
         final int agentIdToCancel = currentAgentId;
+        currentAgentId = -1;
 
-        Task<Boolean> task = new Task<>() {
-            @Override
-            protected Boolean call() {
-                return autoBidManager.cancelAgent(agentIdToCancel);
-            }
-        };
-
-        task.setOnSucceeded(event -> {
-            boolean cancelled = task.getValue();
+        // GỌI TRỰC TIẾP cancelAgent() từ UI thread.
+        // cancelAgent() chỉ set flag active=false + remove khỏi ConcurrentHashMap,
+        // KHÔNG cần lock, KHÔNG block — hoàn toàn thread-safe.
+        // Nếu processAutoBids() đang chạy đồng bộ trên executor thread,
+        // nó sẽ thấy agent đã inactive ở round tiếp theo và dừng sớm.
+        try {
+            boolean cancelled = autoBidManager.cancelAgent(agentIdToCancel);
             if (cancelled) {
-                currentAgentId = -1;
+                refreshDataAsync();
                 autoBidToggle.setText("BẬT AUTO");
                 autoBidStatusLabel.setText("✗ Đã tắt");
                 autoBidStatusLabel.setStyle("-fx-text-fill: #e74c3c;");
                 maxBidField.setDisable(false);
                 incrementField.setDisable(false);
                 hideError();
-                System.out.println("Auto-Bid: Đã tắt cho auction " + auction.getAuctionId());
+                System.out.println("Auto-Bid: Đã tắt cho auction " + auction.getAuctionId() 
+                    + ", cancelled immediately=" + cancelled);
             } else {
                 showError("Không thể hủy auto-bid.");
             }
-        });
-
-        task.setOnFailed(event -> {
-            showError("Lỗi khi hủy auto-bid: "
-                    + (task.getException() == null ? "" : task.getException().getMessage()));
-        });
-
-        executor.submit(task);
+        } catch (Exception e) {
+            showError("Lỗi khi hủy auto-bid: " + e.getMessage());
+        }
     }
 
     private void checkExistingAutoBid() {
@@ -360,7 +362,7 @@ public class AuctionDetailController {
         if (refreshTimeline != null) {
             refreshTimeline.stop();
         }
-        refreshTimeline = new Timeline(new KeyFrame(Duration.seconds(2), event -> refreshDataAsync()));
+        refreshTimeline = new Timeline(new KeyFrame(AUTO_REFRESH_INTERVAL, event -> refreshDataAsync()));
         refreshTimeline.setCycleCount(Timeline.INDEFINITE);
         refreshTimeline.play();
     }
@@ -369,28 +371,64 @@ public class AuctionDetailController {
         if (auction == null) {
             return;
         }
+        if (refreshInProgress) {
+            refreshQueued = true;
+            return;
+        }
+        refreshInProgress = true;
 
         Task<ObservableList<BidTransaction>> task = new Task<>() {
             @Override
             protected ObservableList<BidTransaction> call() {
-                auctionService.refreshAuctionsStatus();
-                auction = auctionDAO.findById(auction.getAuctionId()).orElse(auction);
-
-                return FXCollections.observableArrayList(
-                        bidService.getAuctionBidHistory(String.valueOf(auction.getAuctionId())));
+                try {
+                    auctionService.refreshAuctionsStatus();
+                    auction = auctionDAO.findById(auction.getAuctionId()).orElse(auction);
+                    return FXCollections.observableArrayList(
+                            bidService.getAuctionBidHistory(String.valueOf(auction.getAuctionId())));
+                } catch (RuntimeException e) {
+                    return null;
+                }
             }
         };
 
         task.setOnSucceeded(event -> {
             ObservableList<BidTransaction> rows = task.getValue();
-            historyRows.setAll(rows);
-            renderChart(rows);
+            if (rows == null) {
+                completeRefreshCycle();
+                return;
+            }
+            String historySignature = buildHistorySignature(rows);
+            if (!historySignature.equals(lastHistorySignature)) {
+                historyRows.setAll(rows);
+                renderChart(rows);
+                lastHistorySignature = historySignature;
+            }
             updateHeader();
             updateBidPanelState();
+            completeRefreshCycle();
         });
         task.setOnFailed(event -> showError(
                 task.getException() == null ? "Không thể cập nhật dữ liệu." : task.getException().getMessage()));
         executor.submit(task);
+    }
+
+    private void completeRefreshCycle() {
+        refreshInProgress = false;
+        if (refreshQueued) {
+            refreshQueued = false;
+            refreshDataAsync();
+        }
+    }
+
+    private String buildHistorySignature(List<BidTransaction> rows) {
+        if (rows == null || rows.isEmpty()) {
+            return "0";
+        }
+        BidTransaction first = rows.get(0);
+        BidTransaction last = rows.get(rows.size() - 1);
+        return rows.size()
+                + "|" + first.getBidderId() + "|" + first.getBidAmount() + "|" + String.valueOf(first.getBidTime())
+                + "|" + last.getBidderId() + "|" + last.getBidAmount() + "|" + String.valueOf(last.getBidTime());
     }
 
     private void renderChart(ObservableList<BidTransaction> rows) {
@@ -529,3 +567,4 @@ public class AuctionDetailController {
     }
 
 }
+

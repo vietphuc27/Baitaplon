@@ -1,20 +1,21 @@
 package com.example.btl_n3;
 
+import client.application.DashboardNavigator;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.nio.file.Path;
 
 public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(Main.class.getResource("/view/LogInView.fxml"));
-        Scene scene = new Scene(loader.load());
         primaryStage.setTitle("Auction Application");
-        primaryStage.setScene(scene);
-        primaryStage.show();
+        showLoginFullscreen(primaryStage);
+    }
+
+    private void showLoginFullscreen(Stage stage) throws IOException {
+        DashboardNavigator.showLogin(stage);
     }
 
     @Override

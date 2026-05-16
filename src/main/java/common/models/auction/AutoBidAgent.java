@@ -14,7 +14,7 @@ public class AutoBidAgent implements Comparable<AutoBidAgent> {
     private int auctionId;
     private double maxBid; // Giá trần tối đa
     private double increment; // Bước giá mỗi lần tăng
-    private boolean active; // true nếu agent đang hoạt động
+    private volatile boolean active; // true nếu agent đang hoạt động
     private LocalDateTime createdAt;
 
     public AutoBidAgent() {

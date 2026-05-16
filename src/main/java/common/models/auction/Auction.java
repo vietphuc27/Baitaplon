@@ -76,9 +76,9 @@ public class Auction {
         currentHighestBid = bid.getBidAmount();
         currentLeader = bid.getBidder();
 
-        if (currentLeader != null) {
-            currentLeaderId = currentLeader.getId();
-        }
+        // Auto-bid transactions may not carry a full Bidder object,
+        // so always persist the winner by bidderId as the source of truth.
+        currentLeaderId = (currentLeader != null) ? currentLeader.getId() : bid.getBidderId();
 
         bidHistory.add(bid);
         return true;
