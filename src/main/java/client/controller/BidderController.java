@@ -2,6 +2,8 @@ package client.controller;
 
 import client.application.ClientSession;
 import client.application.DashboardNavigator;
+import client.network.AuthClient;
+import client.network.BidClient;
 import common.models.auction.Auction;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
@@ -23,17 +25,12 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import server.service.AuctionService;
-import server.service.BidService;
-import server.service.ItemService;
-import server.service.UserService;
-import server.repository.AuctionDAO;
-import server.repository.UserDAO;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -66,15 +63,14 @@ public class BidderController {
     @FXML private NumberAxis xAxis;
     @FXML private NumberAxis yAxis;
 
-    private final AuctionService auctionService = new AuctionService(new ItemService());
-    private final BidService bidService = new BidService();
-    private final UserService userService = new UserService();
-    private final AuctionDAO auctionDAO = new AuctionDAO();
-    private final UserDAO userDAO = new UserDAO();
+    private final BidClient bidClient = new BidClient();
+    private final AuthClient authClient = new AuthClient();
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
     private final ObservableList<AuctionRow> auctionRows = FXCollections.observableArrayList();
     private final ObservableList<BidHistoryRow> bidHistoryRows = FXCollections.observableArrayList();
     private Bidder currentBidder;
+    // Cache danh sach auction tu server de tra cuu
+    private List<Auction> cachedAuctions = List.of();
 
     @FXML
     private void initialize() {
@@ -101,7 +97,6 @@ public class BidderController {
             Platform.runLater(() -> redirectToLogin("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."));
             return false;
         }
-
         if (user instanceof Bidder bidder) {
             currentBidder = bidder;
         } else {
@@ -116,12 +111,10 @@ public class BidderController {
 
     @FXML
     private void handleSwitchToSeller() {
-        if (!ensureBidderCanContinue())
-            return;
-
+        if (!ensureBidderCanContinue()) return;
         try {
-            User switchedUser = userService.switchRole(ClientSession.getCurrentUser(), "seller");
-            ClientSession.setCurrentUser(switchedUser);
+            User switched = authClient.switchRole(currentBidder.getId(), "seller");
+            ClientSession.setCurrentUser(switched);
             Stage stage = (Stage) lblBidderName.getScene().getWindow();
             DashboardNavigator.showSellerDashboard(stage);
             shutdown();
@@ -134,43 +127,37 @@ public class BidderController {
 
     @FXML
     private void handleRefreshAuctions() {
-        if (!ensureBidderCanContinue())
-            return;
+        if (!ensureBidderCanContinue()) return;
         loadAuctionsAsync();
     }
 
     @FXML
     private void handleRefreshHistory() {
-        if (!ensureBidderCanContinue())
-            return;
+        if (!ensureBidderCanContinue()) return;
         loadBidHistoryAsync();
     }
 
     @FXML
     private void handleSearchAuctions() {
-        if (!ensureBidderCanContinue())
-            return;
+        if (!ensureBidderCanContinue()) return;
         loadAuctionsAsync();
     }
 
     @FXML
     private void handleSearchHistory() {
-        if (!ensureBidderCanContinue())
-            return;
+        if (!ensureBidderCanContinue()) return;
         loadBidHistoryAsync();
     }
 
     @FXML
     private void handlePlaceBid() {
-        if (!ensureBidderCanContinue())
-            return;
+        if (!ensureBidderCanContinue()) return;
 
         AuctionRow selectedRow = tblAuctions.getSelectionModel().getSelectedItem();
         if (selectedRow == null) {
             showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng chọn một phiên đấu giá.");
             return;
         }
-
         if (isOwnAuction(selectedRow.auction)) {
             showAlert(Alert.AlertType.WARNING, "Không hợp lệ", "Bạn không thể tự đấu giá sản phẩm của chính mình.");
             return;
@@ -183,14 +170,13 @@ public class BidderController {
             showAlert(Alert.AlertType.ERROR, "Lỗi dữ liệu", "Giá đặt phải là số.");
             return;
         }
-
         if (amount <= 0) {
             showAlert(Alert.AlertType.ERROR, "Lỗi dữ liệu", "Giá đặt phải lớn hơn 0.");
             return;
         }
 
         runInBackground(() -> {
-            bidService.placeBid(selectedRow.id, currentBidder, amount);
+            bidClient.placeBid(selectedRow.id, currentBidder, amount);
             return null;
         }, () -> {
             txtBidAmount.clear();
@@ -201,21 +187,18 @@ public class BidderController {
 
     @FXML
     private void handleViewDetails() {
-        if (!ensureBidderCanContinue())
-            return;
+        if (!ensureBidderCanContinue()) return;
 
         AuctionRow selectedRow = tblAuctions.getSelectionModel().getSelectedItem();
         if (selectedRow == null) {
             showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng chọn một phiên đấu giá.");
             return;
         }
-
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/AuctionDetailsView.fxml"));
             Parent root = loader.load();
             AuctionDetailController controller = loader.getController();
             controller.setViewOnly(false);
-            controller.setAuction(selectedRow.auction, currentBidder);
             controller.setAuction(selectedRow.auction, currentBidder);
 
             Stage stage = new Stage();
@@ -230,8 +213,7 @@ public class BidderController {
 
     @FXML
     private void handleDeposit() {
-        if (!ensureBidderCanContinue())
-            return;
+        if (!ensureBidderCanContinue()) return;
 
         double amount;
         try {
@@ -240,15 +222,20 @@ public class BidderController {
             showAlert(Alert.AlertType.ERROR, "Lỗi dữ liệu", "Số tiền nạp phải là số.");
             return;
         }
-
-        if (!currentBidder.getWallet().deposit(amount)) {
+        if (amount <= 0) {
             showAlert(Alert.AlertType.ERROR, "Lỗi dữ liệu", "Số tiền nạp phải lớn hơn 0.");
             return;
         }
 
-        userDAO.update(currentBidder);
-        txtDepositAmount.clear();
-        updateWalletLabels();
+        runInBackground(() -> {
+            bidClient.deposit(currentBidder.getId(), amount);
+            return null;
+        }, () -> {
+            txtDepositAmount.clear();
+            // Refresh wallet
+            syncBidderState();
+            updateWalletLabels();
+        });
     }
 
     private void setupHeader() {
@@ -294,12 +281,8 @@ public class BidderController {
     }
 
     private void setupPriceChart() {
-        if (xAxis != null) {
-            xAxis.setLabel("Lần đặt giá");
-        }
-        if (yAxis != null) {
-            yAxis.setLabel("Giá (VND)");
-        }
+        if (xAxis != null) xAxis.setLabel("Lần đặt giá");
+        if (yAxis != null) yAxis.setLabel("Giá (VND)");
     }
 
     private void setupEnterActions() {
@@ -315,15 +298,17 @@ public class BidderController {
         updateWalletLabels();
     }
 
+    @SuppressWarnings("unchecked")
     private void loadAuctionsAsync() {
         String keyword = txtSearch.getText() == null ? "" : txtSearch.getText().trim().toLowerCase(Locale.ROOT);
         String status = cbStatusFilter.getValue();
         String sort = cbSortBy.getValue();
 
         runInBackground(() -> {
-            auctionService.refreshAuctionsStatus();
-            List<Auction> auctions = auctionDAO.findAll();
-            return mapAuctionRows(filterAndSortAuctions(auctions, keyword, status, sort));
+            bidClient.refreshAuctionsStatus();
+            List<Auction> auctions = bidClient.getAllAuctions();
+            cachedAuctions = auctions;
+            return filterAndSortAuctions(auctions, keyword, status, sort);
         }, rows -> {
             auctionRows.setAll(rows);
             if (!rows.isEmpty()) {
@@ -339,57 +324,49 @@ public class BidderController {
         String keyword = txtSearch1.getText() == null ? "" : txtSearch1.getText().trim().toLowerCase(Locale.ROOT);
 
         runInBackground(() -> {
-            List<BidTransaction> bids = bidService.getBidderBidHistory(String.valueOf(currentBidder.getId()));
+            List<BidTransaction> bids = bidClient.getBidderBidHistory(String.valueOf(currentBidder.getId()));
             return bids.stream()
-                    .sorted(Comparator
-                            .comparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.naturalOrder()))
-                            .reversed())
+                    .sorted(Comparator.comparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
                     .map(this::toBidHistoryRow)
                     .filter(row -> matchesHistoryKeyword(row, keyword))
                     .toList();
         }, rows -> {
             bidHistoryRows.setAll(rows);
-            long wonCount = rows.stream().filter(r -> "Đang dẫn đầu".equals(r.result) || "Đã thắng".equals(r.result))
-                    .count();
+            long wonCount = rows.stream().filter(r -> "Đang dẫn đầu".equals(r.result) || "Đã thắng".equals(r.result)).count();
             lblTotalWon.setText(wonCount + " phiên");
         });
     }
 
-    private List<Auction> filterAndSortAuctions(List<Auction> auctions, String keyword, String status, String sort) {
+    private List<AuctionRow> filterAndSortAuctions(List<Auction> auctions, String keyword, String status, String sort) {
         return auctions.stream()
                 .filter(a -> a.getItem() != null)
                 .filter(a -> keyword.isEmpty()
                         || String.valueOf(a.getAuctionId()).contains(keyword)
                         || a.getItem().getName().toLowerCase(Locale.ROOT).contains(keyword)
-                        || a.getSellerId().toLowerCase(Locale.ROOT).contains(keyword))
-                .filter(a -> "Tất cả".equals(status) || a.getStatus().name().equalsIgnoreCase(status))
+                        || (a.getSellerId() != null && a.getSellerId().toLowerCase(Locale.ROOT).contains(keyword)))
+                .filter(a -> "Tất cả".equals(status) || (a.getStatus() != null && a.getStatus().name().equalsIgnoreCase(status)))
                 .sorted(resolveComparator(sort))
+                .map(this::toAuctionRow)
                 .toList();
     }
 
     private Comparator<Auction> resolveComparator(String sort) {
-        if ("Giá cao nhất".equals(sort)) {
-            return Comparator.comparingDouble(Auction::getCurrentHighestBid).reversed();
-        }
-        if ("Giá thấp nhất".equals(sort)) {
-            return Comparator.comparingDouble(Auction::getCurrentHighestBid);
-        }
-        if ("Sắp kết thúc".equals(sort)) {
-            return Comparator.comparing(Auction::getEndTime, Comparator.nullsLast(Comparator.naturalOrder()));
-        }
-        return Comparator.comparing(Auction::getStartTime, Comparator.nullsLast(Comparator.reverseOrder()));
+        if ("Giá cao nhất".equals(sort)) return Comparator.comparingDouble(Auction::getCurrentHighestBid).reversed();
+        if ("Giá thấp nhất".equals(sort)) return Comparator.comparingDouble(Auction::getCurrentHighestBid);
+        if ("Sắp kết thúc".equals(sort)) return Comparator.comparing(Auction::getEndTime, Comparator.nullsLast(Comparator.naturalOrder()));
+        return Comparator.comparing(Auction::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
     }
 
-    private List<AuctionRow> mapAuctionRows(List<Auction> auctions) {
-        return auctions.stream().map(a -> new AuctionRow(
+    private AuctionRow toAuctionRow(Auction a) {
+        return new AuctionRow(
                 String.valueOf(a.getAuctionId()),
                 a.getItem() == null ? "-" : a.getItem().getName(),
                 a.getItem() == null ? "-" : a.getItem().getClass().getSimpleName(),
                 formatCurrency(a.getCurrentHighestBid()),
-                a.getSellerId(),
+                a.getSellerId() != null ? a.getSellerId() : "-",
                 a.getStatus() == null ? "-" : a.getStatus().name(),
                 FormatUtils.formatDateTime(a.getEndTime()),
-                a)).toList();
+                a);
     }
 
     private BidHistoryRow toBidHistoryRow(BidTransaction bid) {
@@ -404,8 +381,7 @@ public class BidderController {
     }
 
     private String resolveBidResult(Auction auction, BidTransaction bid) {
-        if (auction == null || auction.getCurrentLeaderId() == null
-                || auction.getCurrentLeaderId() != bid.getBidderId()) {
+        if (auction == null || auction.getCurrentLeaderId() == null || auction.getCurrentLeaderId() != bid.getBidderId()) {
             return "Đã bị vượt";
         }
         if (auction.getStatus() == common.models.auction.AuctionStatus.FINISHED
@@ -425,8 +401,13 @@ public class BidderController {
     }
 
     private Auction findAuctionSafe(int auctionId) {
+        // Tim tu cache truoc
+        for (Auction a : cachedAuctions) {
+            if (a.getAuctionId() == auctionId) return a;
+        }
+        // Neu khong co thi goi server
         try {
-            return auctionDAO.findById(auctionId).orElse(null);
+            return bidClient.findAuctionById(auctionId).orElse(null);
         } catch (RuntimeException e) {
             return null;
         }
@@ -437,12 +418,11 @@ public class BidderController {
             clearChart();
             return;
         }
-        runInBackground(() -> bidService.getAuctionBidHistory(row.id), bids -> {
+        runInBackground(() -> bidClient.getAuctionBidHistory(row.id), bids -> {
             XYChart.Series<Number, Number> series = new XYChart.Series<>();
             series.setName("Giá đặt");
             List<BidTransaction> sorted = bids.stream()
-                    .sorted(Comparator.comparing(BidTransaction::getBidTime,
-                            Comparator.nullsLast(Comparator.naturalOrder())))
+                    .sorted(Comparator.comparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.naturalOrder())))
                     .toList();
             int index = 1;
             for (BidTransaction bid : sorted) {
@@ -453,21 +433,18 @@ public class BidderController {
     }
 
     private void clearChart() {
-        if (priceHistoryChart != null) {
-            priceHistoryChart.getData().clear();
-        }
+        if (priceHistoryChart != null) priceHistoryChart.getData().clear();
     }
 
     private <T> void runInBackground(BackgroundSupplier<T> supplier, java.util.function.Consumer<T> onSuccess) {
         Task<T> task = new Task<>() {
             @Override
-            protected T call() {
-                return supplier.get();
-            }
+            protected T call() { return supplier.get(); }
         };
         task.setOnSucceeded(event -> onSuccess.accept(task.getValue()));
-        task.setOnFailed(event -> Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Lỗi hệ thống",
-                task.getException() == null ? "Không thể tải dữ liệu." : task.getException().getMessage())));
+        task.setOnFailed(event -> Platform.runLater(() ->
+                showAlert(Alert.AlertType.ERROR, "Lỗi hệ thống",
+                        task.getException() == null ? "Không thể tải dữ liệu." : task.getException().getMessage())));
         backgroundExecutor.submit(task);
     }
 
@@ -491,7 +468,9 @@ public class BidderController {
     private void handleLogout() {
         AuctionDetailController.closeAllWindows();
         shutdown();
-        userService.logout();
+        try {
+            authClient.logout();
+        } catch (Exception ignored) {}
         ClientSession.clear();
         try {
             showLoginScreen();
@@ -505,9 +484,8 @@ public class BidderController {
         if (currentUser == null) {
             return redirectToLogin("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
         }
-
         try {
-            User latestUser = userService.findById(currentUser.getId()).orElse(null);
+            User latestUser = authClient.getUserById(currentUser.getId()).orElse(null);
             if (latestUser == null) {
                 return redirectToLogin("Tài khoản không còn tồn tại. Vui lòng đăng nhập lại.");
             }
@@ -542,6 +520,13 @@ public class BidderController {
         backgroundExecutor.shutdownNow();
     }
 
+    private void syncBidderState() {
+        try {
+            User latestUser = authClient.getUserById(currentBidder.getId()).orElse(null);
+            if (latestUser != null) syncBidderState(latestUser);
+        } catch (RuntimeException ignored) {}
+    }
+
     private void syncBidderState(User latestUser) {
         currentBidder.setUsername(latestUser.getUsername());
         currentBidder.setPassword(latestUser.getPassword());
@@ -555,9 +540,7 @@ public class BidderController {
     }
 
     private boolean isOwnAuction(Auction auction) {
-        if (auction == null || currentBidder == null || auction.getSellerId() == null) {
-            return false;
-        }
+        if (auction == null || currentBidder == null || auction.getSellerId() == null) return false;
         return auction.getSellerId().trim().equals(String.valueOf(currentBidder.getId()));
     }
 
@@ -567,14 +550,14 @@ public class BidderController {
     }
 
     public static class AuctionRow {
-        private final String id;
-        private final String itemName;
-        private final String type;
-        private final String currentPrice;
-        private final String seller;
-        private final String status;
-        private final String endTime;
-        private final Auction auction;
+        public final String id;
+        public final String itemName;
+        public final String type;
+        public final String currentPrice;
+        public final String seller;
+        public final String status;
+        public final String endTime;
+        public final Auction auction;
 
         public AuctionRow(String id, String itemName, String type, String currentPrice, String seller, String status, String endTime, Auction auction) {
             this.id = id;
@@ -589,11 +572,11 @@ public class BidderController {
     }
 
     public static class BidHistoryRow {
-        private final String auctionId;
-        private final String itemName;
-        private final String bidAmount;
-        private final String bidTime;
-        private final String result;
+        public final String auctionId;
+        public final String itemName;
+        public final String bidAmount;
+        public final String bidTime;
+        public final String result;
 
         public BidHistoryRow(String auctionId, String itemName, String bidAmount, String bidTime, String result) {
             this.auctionId = auctionId;

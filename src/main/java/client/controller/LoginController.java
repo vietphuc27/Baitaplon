@@ -2,18 +2,17 @@ package client.controller;
 
 import client.application.ClientSession;
 import client.application.DashboardNavigator;
+import client.network.AuthClient;
 import common.models.user.User;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
-import server.service.UserService;
-
 import java.io.IOException;
 
 public class LoginController {
-    private final UserService userService = new UserService();
+    private final AuthClient authClient = new AuthClient();
 
     @FXML
     private TextField usernameField;
@@ -90,7 +89,7 @@ public class LoginController {
         }
 
         try {
-            User user = userService.login(username, password);
+            User user = authClient.login(username, password);
             ClientSession.setCurrentUser(user);
             clearError(errorLabel);
             openDashboard(event, user);
@@ -113,7 +112,7 @@ public class LoginController {
         }
 
         try {
-            User createdUser = userService.register(username, email, password, role);
+            User createdUser = authClient.register(username, email, password, role);
             signUpErrorLabel.setText("Đăng ký thành công. UserID: " + createdUser.getId());
             signUpErrorLabel.setVisible(true);
             signUpUsernameField.clear();

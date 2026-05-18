@@ -5,6 +5,7 @@ import common.models.user.User;
 import common.models.user.UserStatus;
 import server.manager.SessionManager;
 import server.repository.UserDAO;
+import server.util.PasswordUtil;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -56,7 +57,14 @@ public class AuthService {
             throw new AuthenticationException("Tài khoản đã bị khoá");
         }
 
-        if (!user.getPassword().equals(normalizedPassword)) {
+        boolean passwordMatches;
+        try {
+            passwordMatches = PasswordUtil.verify(normalizedPassword, user.getPassword());
+        } catch (Exception e) {
+            passwordMatches = user.getPassword().equals(normalizedPassword);
+        }
+
+        if (!passwordMatches) {
             throw new AuthenticationException("Sai mật khẩu");
         }
 

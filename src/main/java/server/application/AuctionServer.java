@@ -64,7 +64,6 @@ public class AuctionServer {
 
     private void acceptClient(Socket clientSocket) {
         ClientHandler clientHandler = new ClientHandler(clientSocket, requestHandler, connectionManager);
-        connectionManager.addClient(clientHandler);
         threadPool.submit(clientHandler);
     }
      public void start() {

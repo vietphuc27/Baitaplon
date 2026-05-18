@@ -2,8 +2,10 @@ package client.controller;
 
 import client.application.ClientSession;
 import client.application.DashboardNavigator;
-import client.network.AuctionClient;
-import client.network.AuctionClient.CreateAuctionRequest;
+import client.network.AuthClient;
+import client.network.BidClient;
+import client.network.SellerClient;
+import client.network.SellerClient.CreateAuctionRequest;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.user.User;
@@ -22,8 +24,6 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
-import server.repository.AuctionDAO;
-import server.service.UserService;
 
 import java.io.IOException;
 import java.net.URL;
@@ -40,7 +40,9 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class SellerController implements Initializable {
-    private final UserService userService = new UserService();
+    private final AuthClient authClient = new AuthClient();
+    private final SellerClient sellerClient = new SellerClient();
+    private final BidClient bidClient = new BidClient();
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
 
     @FXML
@@ -114,8 +116,6 @@ public class SellerController implements Initializable {
     @FXML
     private Label lblTotalRevenue;
 
-    private final AuctionClient auctionClient = new AuctionClient();
-    private final AuctionDAO auctionDAO = new AuctionDAO();
     private String currentSellerId;
     private String currentSellerName;
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -171,7 +171,7 @@ public class SellerController implements Initializable {
             return;
         }
         try {
-            Auction auction = auctionClient.createAuction(new CreateAuctionRequest(
+            Auction auction = sellerClient.createAuction(new CreateAuctionRequest(
                     currentSellerId,
                     txtItemName.getText().trim(),
                     cbItemType.getValue(),
@@ -219,7 +219,7 @@ public class SellerController implements Initializable {
         }
 
         try {
-            User switchedUser = userService.switchRole(ClientSession.getCurrentUser(), "bidder");
+            User switchedUser = authClient.switchRole(ClientSession.getCurrentUser().getId(), "bidder");
             ClientSession.setCurrentUser(switchedUser);
             Stage stage = (Stage) lblSellerName.getScene().getWindow();
             DashboardNavigator.showBidderDashboard(stage);
@@ -242,7 +242,7 @@ public class SellerController implements Initializable {
             return;
         }
         try {
-            auctionClient.endAuction(currentSellerId, row.id);
+            sellerClient.endAuction(currentSellerId, row.id);
             loadSellerDashboardData();
         } catch (RuntimeException e) {
             showAlert(Alert.AlertType.ERROR, "Lỗi", e.getMessage());
@@ -260,7 +260,7 @@ public class SellerController implements Initializable {
             return;
         }
 
-        Auction auction = auctionDAO.findById(Integer.parseInt(row.id)).orElse(null);
+        Auction auction = bidClient.findAuctionById(Integer.parseInt(row.id)).orElse(null);
         if (auction == null) {
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Không tìm thấy phiên: " + row.id);
             return;
@@ -271,7 +271,6 @@ public class SellerController implements Initializable {
             Parent root = loader.load();
             AuctionDetailController controller = loader.getController();
             controller.setViewOnly(true);
-            controller.setAuction(auction, null);
             controller.setAuction(auction, null);
 
             Stage stage = new Stage();
@@ -288,7 +287,9 @@ public class SellerController implements Initializable {
     @FXML
     private void handleLogout() throws IOException {
         AuctionDetailController.closeAllWindows();
-        userService.logout();
+        try {
+            authClient.logout();
+        } catch (Exception ignored) {}
         ClientSession.clear();
         showLoginScreen();
         showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Đã đăng xuất.");
@@ -301,7 +302,7 @@ public class SellerController implements Initializable {
         }
 
         try {
-            User latestUser = userService.findById(currentUser.getId()).orElse(null);
+            User latestUser = authClient.getUserById(currentUser.getId()).orElse(null);
             if (latestUser == null) {
                 return redirectToLogin("Tài khoản không còn tồn tại. Vui lòng đăng nhập lại.");
             }
@@ -505,7 +506,7 @@ public class SellerController implements Initializable {
         Task<SellerDashboardData> task = new Task<>() {
             @Override
             protected SellerDashboardData call() {
-                List<Auction> sellerAuctions = auctionDAO.findBySellerId(currentSellerId);
+                List<Auction> sellerAuctions = sellerClient.getSellerAuctions(currentSellerId);
                 List<AuctionRow> rows = sellerAuctions.stream()
                         .filter(auction -> matchesAuctionKeyword(auction, keyword))
                         .sorted(resolveAuctionComparator(sortBy))

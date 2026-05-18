@@ -1,6 +1,8 @@
 package client.controller;
 
 import client.application.ClientSession;
+import client.network.AdminClient;
+import client.network.BidClient;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.user.User;
@@ -15,8 +17,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import server.repository.AuctionDAO;
-import server.service.UserService;
 
 import java.io.IOException;
 import java.util.Comparator;
@@ -45,8 +45,8 @@ public class AdminController {
     @FXML private TableColumn<AuctionRow, String> currentBidCol;
     @FXML private TableColumn<AuctionRow, String> auctionStatusCol;
 
-    private final UserService userService = new UserService();
-    private final AuctionDAO auctionDAO = new AuctionDAO();
+    private final AdminClient adminClient = new AdminClient();
+    private final BidClient bidClient = new BidClient();
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
 
     @FXML
@@ -81,7 +81,7 @@ public class AdminController {
     public void banUser() {
         UserRow selectedUser = userTable.getSelectionModel().getSelectedItem();
         if (selectedUser == null) return;
-        userService.banUser(Integer.parseInt(selectedUser.id));
+        adminClient.banUser(Integer.parseInt(selectedUser.id));
         refreshData();
     }
 
@@ -89,7 +89,7 @@ public class AdminController {
     public void activateUser() {
         UserRow selectedUser = userTable.getSelectionModel().getSelectedItem();
         if (selectedUser == null) return;
-        userService.unbanUser(Integer.parseInt(selectedUser.id));
+        adminClient.unbanUser(Integer.parseInt(selectedUser.id));
         refreshData();
     }
 
@@ -100,22 +100,12 @@ public class AdminController {
             showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng chọn phiên đấu giá cần hủy.");
             return;
         }
-        Auction auction = auctionDAO.findById(Integer.parseInt(selectedAuction.id)).orElse(null);
-        if (auction == null) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", "Không tìm thấy phiên đấu giá.");
-            return;
+        try {
+            adminClient.cancelAuction(Integer.parseInt(selectedAuction.id));
+            refreshData();
+        } catch (RuntimeException e) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", e.getMessage());
         }
-        if (auction.getStatus() == AuctionStatus.FINISHED || auction.getStatus() == AuctionStatus.PAID) {
-            showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Không thể hủy phiên đã kết thúc hoặc đã thanh toán.");
-            return;
-        }
-        if (auction.getStatus() == AuctionStatus.CANCELED) {
-            showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Phiên này đã bị hủy trước đó.");
-            return;
-        }
-        auction.setStatus(AuctionStatus.CANCELED);
-        auctionDAO.update(auction);
-        refreshData();
     }
 
     @FXML
@@ -126,7 +116,7 @@ public class AdminController {
             return;
         }
 
-        Auction auction = auctionDAO.findById(Integer.parseInt(selectedAuction.id)).orElse(null);
+        Auction auction = bidClient.findAuctionById(Integer.parseInt(selectedAuction.id)).orElse(null);
         if (auction == null) {
             showAlert(Alert.AlertType.ERROR, "Lỗi", "Không tìm thấy phiên: " + selectedAuction.id);
             return;
@@ -167,7 +157,7 @@ public class AdminController {
         Task<List<UserRow>> task = new Task<>() {
             @Override
             protected List<UserRow> call() {
-                return userService.getAllUsers().stream()
+                return adminClient.getAllUsers().stream()
                         .filter(u -> {
                             String username = u.getUsername() == null ? "" : u.getUsername().toLowerCase(Locale.ROOT);
                             String email = u.getEmail() == null ? "" : u.getEmail().toLowerCase(Locale.ROOT);
@@ -196,7 +186,7 @@ public class AdminController {
         Task<List<AuctionRow>> task = new Task<>() {
             @Override
             protected List<AuctionRow> call() {
-                return auctionDAO.findAll().stream()
+                return bidClient.getAllAuctions().stream()
                         .filter(a -> {
                             String id = String.valueOf(a.getAuctionId());
                             String itemName = a.getItem() == null ? "" : a.getItem().getName();
@@ -229,7 +219,6 @@ public class AdminController {
 
     @FXML
     public void logout() throws IOException {
-        userService.logout();
         ClientSession.clear();
         shutdown();
         Parent root = FXMLLoader.load(getClass().getResource("/view/LogInView.fxml"));
@@ -237,11 +226,6 @@ public class AdminController {
         stage.setScene(new Scene(root));
         stage.show();
         showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Đã đăng xuất.");
-
-    }
-
-    private Comparator<UserRow> resolveUserComparator() {
-        return resolveUserComparator(cbSortBy.getValue());
     }
 
     private Comparator<UserRow> resolveUserComparator(String sortBy) {
@@ -250,10 +234,6 @@ public class AdminController {
             case "Status" -> Comparator.comparing(r -> r.status);
             default -> Comparator.comparing(r -> r.username);
         };
-    }
-
-    private Comparator<AuctionRow> resolveAuctionComparator() {
-        return resolveAuctionComparator(cbAuctionSortBy.getValue());
     }
 
     private Comparator<AuctionRow> resolveAuctionComparator(String sortBy) {
