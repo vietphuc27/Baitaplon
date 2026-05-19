@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import server.manager.SessionManager;
 import server.repository.UserDAO;
+import server.util.PasswordUtil;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -137,7 +138,9 @@ class AuthServiceTest {
     }
 
     private Bidder createBidder(int id, String username, String email, String password) {
-        return (Bidder) UserFactory.createUser("bidder", id, username, email, password);
+        Bidder bidder = (Bidder) UserFactory.createUser("bidder", id, username, email, password);
+        bidder.setPassword(PasswordUtil.hash(password));
+        return bidder;
     }
 
     private static final class InMemoryUserDAO extends UserDAO {
