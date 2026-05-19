@@ -354,9 +354,7 @@ public class RequestHandler {
         int auctionId = getRequiredInt(request, "auctionId");
         double maxBid = getRequiredDouble(request, "maxBid");
         double increment = getRequiredDouble(request, "increment");
-        AutoBidManager manager = AutoBidManager.getInstance();
-        int agentId = manager.registerAgent(bidderId, auctionId, maxBid, increment);
-        if (agentId <= 0) return buildError("Thong so auto-bid khong hop le");
+        int agentId = bidService.registerAutoBid(bidderId, auctionId, maxBid, increment);
         return JsonUtils.toJson(Map.of("status", "success", "agentId", agentId));
     }
 

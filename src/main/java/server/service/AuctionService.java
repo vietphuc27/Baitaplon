@@ -3,8 +3,11 @@ package server.service;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.item.Item;
+import common.models.user.Bidder;
+import common.models.user.User;
 import server.manager.AuctionManager;
 import server.repository.AuctionDAO;
+import server.repository.UserDAO;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -16,11 +19,13 @@ public class AuctionService {
     private final AuctionDAO auctionDAO;
     private final AuctionManager auctionManager;
     private final ItemService itemService;
+    private final UserDAO userDAO;
 
     public AuctionService(ItemService itemService) {
         this.auctionDAO = new AuctionDAO();
         this.itemService = itemService;
         this.auctionManager = AuctionManager.getInstance();
+        this.userDAO = new UserDAO();
         bootstrapAuctionsFromDatabase();
     }
 
@@ -61,12 +66,9 @@ public class AuctionService {
         String normalizedSellerId = requireText(sellerId, "sellerId");
         int normalizedAuctionId = requirePositiveId(auctionId, "auctionId");
 
-        Auction auction = auctionManager.getAuctionById(normalizedAuctionId);
-        if (auction == null) {
-            auction = auctionDAO.findById(normalizedAuctionId)
-                    .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phien dau gia"));
-            auctionManager.addAuction(auction);
-        }
+        Auction auction = auctionDAO.findById(normalizedAuctionId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phien dau gia"));
+        auctionManager.addAuction(auction);
 
         if (!normalizedSellerId.equals(auction.getSellerId())) {
             throw new IllegalArgumentException("Nguoi ban khong co quyen ket thuc phien dau gia nay");
@@ -79,6 +81,7 @@ public class AuctionService {
         auction.setStatus(AuctionStatus.FINISHED);
         auctionDAO.update(auction);
         handleAuctionWinner(auction);
+        auctionManager.addAuction(auction);
         return auction;
     }
 
@@ -128,10 +131,46 @@ public class AuctionService {
     }
 
     private void handleAuctionWinner(Auction auction) {
-        if (auction.getCurrentLeaderId() != null) {
-            System.out.println("Chuc mung nguoi dung " + auction.getCurrentLeaderId() + " da thang dau gia!");
-        } else {
+        Integer winnerId = auction.getCurrentLeaderId();
+        if (winnerId == null) {
             System.out.println("Phien dau gia ket thuc ma khong co nguoi dat gia.");
+            return;
+        }
+
+        if (auction.getStatus() == AuctionStatus.PAID) {
+            return;
+        }
+
+        double winningAmount = auction.getCurrentHighestBid();
+        if (winningAmount <= 0) {
+            System.out.println("Phien " + auction.getAuctionId() + " khong co gia thang hop le.");
+            return;
+        }
+
+        User user = userDAO.findById(winnerId).orElse(null);
+        if (!(user instanceof Bidder bidder) || bidder.getWallet() == null) {
+            System.out.println("Khong tim thay vi cua nguoi thang " + winnerId + " de thanh toan.");
+            return;
+        }
+
+        if (!bidder.getWallet().withdraw(winningAmount)) {
+            System.out.println("Nguoi thang " + winnerId + " khong du so du de tru tien.");
+            return;
+        }
+
+        try {
+            userDAO.update(bidder);
+            auction.setStatus(AuctionStatus.PAID);
+            auctionDAO.update(auction);
+            System.out.println("Da tru " + winningAmount + " tu nguoi thang " + winnerId
+                    + " cho phien " + auction.getAuctionId() + ".");
+        } catch (RuntimeException e) {
+            bidder.getWallet().deposit(winningAmount);
+            try {
+                userDAO.update(bidder);
+            } catch (RuntimeException ignored) {
+            }
+            throw e;
         }
     }
 

@@ -1,24 +1,23 @@
 package server.manager;
 
 import common.models.auction.Auction;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class AuctionManager {
-    //(Dùng Singleton Pattern): Quản lý toàn bộ các phiên đấu giá đang chạy trên server.
-    // Dùng luồng chạy ngầm (Scheduler) để liên tục check xem phiên nào hết giờ thì khóa lại.
     private static AuctionManager instance;
 
-    private List<Auction> activeAuctions;
+    private final List<Auction> activeAuctions;
 
     private AuctionManager() {
         activeAuctions = new ArrayList<>();
     }
-    // xử lí đa luồng
+
     public static AuctionManager getInstance() {
         if (instance == null) {
-            synchronized(AuctionManager.class){
+            synchronized (AuctionManager.class) {
                 if (instance == null) {
                     instance = new AuctionManager();
                 }
@@ -26,17 +25,26 @@ public class AuctionManager {
         }
         return instance;
     }
-    
-    public void addAuction(Auction auction) {
+
+    public synchronized void addAuction(Auction auction) {
+        if (auction == null) {
+            return;
+        }
+        for (int i = 0; i < activeAuctions.size(); i++) {
+            if (activeAuctions.get(i).getAuctionId() == auction.getAuctionId()) {
+                activeAuctions.set(i, auction);
+                return;
+            }
+        }
         activeAuctions.add(auction);
-        System.out.println("Sàn giao dịch: Đã thêm phiên đấu giá ID: " + auction.getAuctionId());
+        System.out.println("AuctionManager: loaded auction ID " + auction.getAuctionId());
     }
 
-    public List<Auction> getAllActiveAuctions() {
+    public synchronized List<Auction> getAllActiveAuctions() {
         return activeAuctions;
     }
 
-    public Auction getAuctionById(int auctionId) {
+    public synchronized Auction getAuctionById(int auctionId) {
         for (Auction a : activeAuctions) {
             if (a.getAuctionId() == auctionId) {
                 return a;
@@ -45,7 +53,7 @@ public class AuctionManager {
         return null;
     }
 
-    public List<Auction> getRunningAuctions() {
+    public synchronized List<Auction> getRunningAuctions() {
         return activeAuctions.stream()
                 .filter(a -> a.getStatus() == common.models.auction.AuctionStatus.OPEN)
                 .collect(Collectors.toList());

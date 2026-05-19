@@ -3,8 +3,6 @@ package server.manager;
 import common.models.auction.AutoBidAgent;
 import common.models.auction.Auction;
 import common.models.auction.BidTransaction;
-import common.models.user.Bidder;
-import common.models.user.User;
 import server.repository.AuctionDAO;
 import server.repository.BidTransactionDAO;
 import server.repository.UserDAO;
@@ -56,6 +54,11 @@ public class AutoBidManager {
         ReentrantLock lock = getLock(auctionId);
         lock.lock();
         try {
+            AutoBidAgent existingAgent = getAgent(bidderId, auctionId);
+            if (existingAgent != null) {
+                cleanupAgent(existingAgent);
+            }
+
             int agentId = generateAgentId();
             AutoBidAgent agent = new AutoBidAgent(agentId, bidderId, auctionId, maxBid, increment);
             PriorityQueue<AutoBidAgent> queue = agentQueues.computeIfAbsent(auctionId, id -> new PriorityQueue<>());
@@ -109,11 +112,6 @@ public class AutoBidManager {
                 for (BidTransaction autoBid : roundAutoBids) {
                     try {
                         bidDAO.save(autoBid);
-                        User autoBidder = userDAO.findById(autoBid.getBidderId()).orElse(null);
-                        if (autoBidder instanceof Bidder bidder && bidder.getWallet() != null) {
-                            bidder.getWallet().withdraw(autoBid.getBidAmount());
-                            userDAO.update(bidder);
-                        }
                     } catch (RuntimeException e) {
                         System.err.println("AutoBid persist error for auction " + autoBid.getAuctionId() + ": " + e.getMessage());
                     }

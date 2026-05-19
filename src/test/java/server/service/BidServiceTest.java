@@ -95,7 +95,7 @@ class BidServiceTest {
         assertEquals(100.0, bid.getBidAmount(), 0.0001);
         assertEquals(100.0, auction.getCurrentHighestBid(), 0.0001);
         assertSame(bidder, auction.getCurrentLeader());
-        assertEquals(50.0, bidder.getWallet().getBalance(), 0.0001);
+        assertEquals(150.0, bidder.getWallet().getBalance(), 0.0001);
         assertEquals(1, bidTransactionDAO.findByAuctionId(4).size());
         assertEquals(100.0, bidService.getCurrentHighestBid("4").getBidAmount(), 0.0001);
     }
@@ -149,9 +149,88 @@ class BidServiceTest {
         BidTransaction bid = bidService.placeBid(auction, bidder, 50.0);
 
         assertNotNull(bid);
-        assertEquals(0.0, bidder.getWallet().getBalance(), 0.0001);
+        assertEquals(50.0, bidder.getWallet().getBalance(), 0.0001);
         assertEquals(50.0, auction.getCurrentHighestBid(), 0.0001);
         assertEquals(1, bidTransactionDAO.findByAuctionId(8).size());
+    }
+
+    @Test
+    void placeBidUsesAvailableBalanceExcludingCurrentAuction() {
+        Bidder bidder = createBidder(20, 1000.0);
+
+        Auction currentAuction = createRunningAuction(20, 100.0);
+        currentAuction.setCurrentHighestBid(400.0);
+        currentAuction.setCurrentLeaderId(bidder.getId());
+
+        Auction otherAuction = createRunningAuction(21, 100.0);
+        otherAuction.setCurrentHighestBid(200.0);
+        otherAuction.setCurrentLeaderId(bidder.getId());
+
+        auctionDAO.save(currentAuction);
+        auctionDAO.save(otherAuction);
+
+        BidTransaction bid = bidService.placeBid(currentAuction, bidder, 750.0);
+        assertNotNull(bid);
+        assertEquals(750.0, currentAuction.getCurrentHighestBid(), 0.0001);
+
+        InvalidBidException ex = assertThrows(
+                InvalidBidException.class,
+                () -> bidService.placeBid(currentAuction, bidder, 801.0));
+        assertTrue(ex.getMessage().contains("kha dung"));
+    }
+
+    @Test
+    void placeBidCountsAutoBidMaxInOtherAuctions() {
+        Bidder bidder = createBidder(30, 1000.0);
+
+        Auction leadAuction = createRunningAuction(30, 100.0);
+        leadAuction.setCurrentHighestBid(200.0);
+        leadAuction.setCurrentLeaderId(bidder.getId());
+
+        Auction autoAuction = createRunningAuction(31, 100.0);
+
+        Auction targetAuction = createRunningAuction(32, 100.0);
+
+        auctionDAO.save(leadAuction);
+        auctionDAO.save(autoAuction);
+        auctionDAO.save(targetAuction);
+
+        int agentId = bidService.registerAutoBid(bidder.getId(), autoAuction.getAuctionId(), 100.0, 10.0);
+        assertTrue(agentId > 0);
+
+        InvalidBidException ex = assertThrows(
+                InvalidBidException.class,
+                () -> bidService.placeBid(targetAuction, bidder, 701.0));
+        assertTrue(ex.getMessage().contains("kha dung"));
+
+        BidTransaction okBid = bidService.placeBid(targetAuction, bidder, 700.0);
+        assertNotNull(okBid);
+    }
+
+    @Test
+    void registerAutoBidReplacesLockInSameAuction() {
+        Bidder bidder = createBidder(40, 1000.0);
+
+        Auction targetAuction = createRunningAuction(40, 100.0);
+        targetAuction.setCurrentHighestBid(120.0);
+
+        Auction leadAuction = createRunningAuction(41, 100.0);
+        leadAuction.setCurrentHighestBid(200.0);
+        leadAuction.setCurrentLeaderId(bidder.getId());
+
+        auctionDAO.save(targetAuction);
+        auctionDAO.save(leadAuction);
+
+        int firstAgentId = bidService.registerAutoBid(bidder.getId(), targetAuction.getAuctionId(), 300.0, 10.0);
+        assertTrue(firstAgentId > 0);
+
+        int secondAgentId = bidService.registerAutoBid(bidder.getId(), targetAuction.getAuctionId(), 750.0, 10.0);
+        assertTrue(secondAgentId > 0);
+
+        InvalidBidException ex = assertThrows(
+                InvalidBidException.class,
+                () -> bidService.registerAutoBid(bidder.getId(), targetAuction.getAuctionId(), 801.0, 10.0));
+        assertTrue(ex.getMessage().contains("kha dung"));
     }
 
     @Test
@@ -216,6 +295,11 @@ class BidServiceTest {
         @Override
         public Optional<Auction> findById(int id) {
             return Optional.ofNullable(auctions.get(id));
+        }
+
+        @Override
+        public List<Auction> findAll() {
+            return new ArrayList<>(auctions.values());
         }
 
         @Override
