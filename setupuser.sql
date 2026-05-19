@@ -82,9 +82,9 @@ CREATE TABLE bid_transactions (
 
 INSERT INTO users (id, username, email, password, role, status, wallet_balance) VALUES
     (100001, 'admin', 'admin@example.com', 'admin123', 'ADMIN', 'LOGOUT', 0.00),
-    (200001, 'seller1', 'seller1@example.com', 'seller123', 'SELLER', 'LOGOUT', 0.00),
-    (300001, 'bidder1', 'bidder1@example.com', 'bidder123', 'BIDDER', 'LOGOUT', 85000000.00),
-    (300002, 'bidder2', 'bidder2@example.com', 'bidder123', 'BIDDER', 'LOGOUT', 71500000.00);
+    (200001, 'seller1', 'seller1@example.com', '+TR7XbpCnsTSxMSZXslV5g==:2qja5EQZOUswf7r5we6op0kENVgTbPNsotKjjBWONv8=', 'SELLER', 'LOGOUT', 0.00),
+    (300001, 'bidder1', 'bidder1@example.com', '/NyfAyFWEws1zrj435Oiew==:suqrJwlAWbOrdTxgwP0cRmySqDpdVftdYkmhToM60fE=', 'BIDDER', 'LOGOUT', 85000000.00),
+    (300002, 'bidder2', 'bidder2@example.com', '/NyfAyFWEws1zrj435Oiew==:suqrJwlAWbOrdTxgwP0cRmySqDpdVftdYkmhToM60fE=', 'BIDDER', 'LOGOUT', 71500000.00);
 
 INSERT INTO items (id, name, description, starting_price, seller_id, item_type, warranty_period, mileage, artist) VALUES
     (400001, 'iPhone 15 Pro', 'Dien thoai cao cap, con bao hanh, tinh trang tot', 25000000.00, '200001', 'ELECTRONICS', 12, NULL, NULL),

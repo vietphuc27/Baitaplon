@@ -76,12 +76,7 @@ public class UserService {
             throw new AuthenticationException("Tài khoản đã bị khóa");
         }
 
-        boolean passwordMatches = false;
-        try {
-            passwordMatches = PasswordUtil.verify(normalizedPassword, user.getPassword());
-        } catch (Exception e) {
-            passwordMatches = user.getPassword().equals(normalizedPassword);
-        }
+        boolean passwordMatches = PasswordUtil.verify(normalizedPassword, user.getPassword());
 
         if (!passwordMatches) {
             throw new AuthenticationException("Sai mật khẩu");
@@ -159,12 +154,7 @@ public class UserService {
         User user = userDAO.findByUsername(normalizedUsername)
                 .orElseThrow(() -> new AuthenticationException("Không tìm thấy username"));
 
-        boolean oldPasswordMatches = false;
-        try {
-            oldPasswordMatches = PasswordUtil.verify(normalizedOldPassword, user.getPassword());
-        } catch (Exception e) {
-            oldPasswordMatches = user.getPassword().equals(normalizedOldPassword);
-        }
+        boolean oldPasswordMatches = PasswordUtil.verify(normalizedOldPassword, user.getPassword());
 
         if (!oldPasswordMatches) {
             throw new AuthenticationException("Mật khẩu cũ không đúng");

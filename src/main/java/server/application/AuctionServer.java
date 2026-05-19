@@ -15,11 +15,10 @@ import server.service.AuctionService;
 import server.service.ItemService;
 
 public class AuctionServer {
-    //Dùng ThreadPool để xử lý hàng ngàn client cùng lúc.
+    // Dùng ThreadPool để xử lý hàng ngàn client cùng lúc.
     private static final int PORT = 2026;
-    private static final int ThreadCount=20;
+    private static final int ThreadCount = 20;
     private static final int AUCTION_REFRESH_INTERVAL_SECONDS = 30;
-
 
     private final int port;
     private final ScheduledExecutorService scheduler;
@@ -31,42 +30,44 @@ public class AuctionServer {
     private ServerSocket serverSocket;
     private volatile boolean running;
 
-    private AuctionServer(){
+    private AuctionServer() {
         this(PORT, ThreadCount);
 
     }
-    public AuctionServer(int port,int threadCount){
-        if (port <=0){
+
+    public AuctionServer(int port, int threadCount) {
+        if (port <= 0) {
             throw new IllegalArgumentException("Số cổng không hợp lệ");
         }
-        if (threadCount<=0){
+        if (threadCount <= 0) {
             throw new IllegalArgumentException("Số luồng không hợp lệ");
         }
-        this.port=port;
-        this.scheduler=Executors.newSingleThreadScheduledExecutor();
-        this.threadPool=Executors.newFixedThreadPool(threadCount);
-        this.auctionService=new AuctionService(new ItemService());
-        this.requestHandler= new RequestHandler();
-        this.connectionManager= new ConnectionManager();
+        this.port = port;
+        this.scheduler = Executors.newSingleThreadScheduledExecutor();
+        this.threadPool = Executors.newFixedThreadPool(threadCount);
+        this.auctionService = new AuctionService(new ItemService());
+        this.requestHandler = new RequestHandler();
+        this.connectionManager = new ConnectionManager();
     }
 
-
-    public boolean isRunning(){
+    public boolean isRunning() {
         return running;
     }
-    public int getPort(){
+
+    public int getPort() {
         return port;
     }
-    public int getConnectedClientCount(){
+
+    public int getConnectedClientCount() {
         return connectionManager.getClientCount();
     }
-
 
     private void acceptClient(Socket clientSocket) {
         ClientHandler clientHandler = new ClientHandler(clientSocket, requestHandler, connectionManager);
         threadPool.submit(clientHandler);
     }
-     public void start() {
+
+    public void start() {
         if (running) {
             throw new IllegalStateException("Server đang chạy");
         }
@@ -90,7 +91,8 @@ public class AuctionServer {
             stop();
         }
     }
-     public void stop() {
+
+    public void stop() {
         if (!running && (serverSocket == null || serverSocket.isClosed())) {
             return;
         }
@@ -122,6 +124,5 @@ public class AuctionServer {
             System.err.println("không thể đóng server socket: " + e.getMessage());
         }
     }
-
 
 }

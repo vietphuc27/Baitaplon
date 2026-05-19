@@ -34,13 +34,13 @@ public class PasswordUtil {
      * Kiểm tra mật khẩu plain-text có khớp với hash đã lưu không.
      */
     public static boolean verify(String plainPassword, String storedHash) {
-        // Hỗ trợ tương thích ngược: nếu hash chưa được băm (không chứa ":") thì so sánh trực tiếp
-        if (!storedHash.contains(SEPARATOR)) {
-            return storedHash.equals(plainPassword);
+        if (storedHash == null || !storedHash.contains(SEPARATOR)) {
+            return false; // plaintext password không được chấp nhận
         }
 
         String[] parts = storedHash.split(SEPARATOR, 2);
-        if (parts.length != 2) return false;
+        if (parts.length != 2)
+            return false;
 
         byte[] salt = Base64.getDecoder().decode(parts[0]);
         byte[] expectedHash = Base64.getDecoder().decode(parts[1]);

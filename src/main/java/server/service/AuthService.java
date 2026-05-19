@@ -57,12 +57,7 @@ public class AuthService {
             throw new AuthenticationException("Tài khoản đã bị khoá");
         }
 
-        boolean passwordMatches;
-        try {
-            passwordMatches = PasswordUtil.verify(normalizedPassword, user.getPassword());
-        } catch (Exception e) {
-            passwordMatches = user.getPassword().equals(normalizedPassword);
-        }
+        boolean passwordMatches = PasswordUtil.verify(normalizedPassword, user.getPassword());
 
         if (!passwordMatches) {
             throw new AuthenticationException("Sai mật khẩu");
@@ -113,7 +108,7 @@ public class AuthService {
             userDAO.update(user);
 
             User currentUser = sessionManager.getCurrentUser();
-        if (currentUser != null && currentUser.getId() == user.getId()) {
+            if (currentUser != null && currentUser.getId() == user.getId()) {
                 sessionManager.logout();
             }
         });
