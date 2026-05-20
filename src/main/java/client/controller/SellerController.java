@@ -138,6 +138,7 @@ public class SellerController implements Initializable {
         colCurrentPrice.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().currentPrice));
         colStatus.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().status));
         colEndTime.setCellValueFactory(v -> new SimpleStringProperty(v.getValue().endTime));
+        registerPushListener();
         Platform.runLater(() -> {
             if (lblSellerName.getScene() != null && lblSellerName.getScene().getWindow() != null) {
                 lblSellerName.getScene().getWindow().addEventHandler(javafx.stage.WindowEvent.WINDOW_HIDDEN,
@@ -587,6 +588,17 @@ public class SellerController implements Initializable {
     private String getTaskErrorMessage(Task<?> task) {
         Throwable exception = task.getException();
         return exception == null ? "Không tải được dữ liệu." : exception.getMessage();
+    }
+
+    private void registerPushListener() {
+        ClientSession.getSocket().setPushListener((event, data) -> {
+            Platform.runLater(() -> {
+                try {
+                    loadSellerDashboardData();
+                } catch (RuntimeException ignored) {
+                }
+            });
+        });
     }
 
     private void shutdown() {

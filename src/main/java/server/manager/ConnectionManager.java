@@ -8,10 +8,16 @@ import server.network.ClientHandler;
 
 public class ConnectionManager {
     //Quản lý các socket đang kết nối tới server.
-     private final Map<String, ClientHandler> clientsById;
+    private static final ConnectionManager INSTANCE = new ConnectionManager();
 
-    public ConnectionManager() {
+    private final Map<String, ClientHandler> clientsById;
+
+    private ConnectionManager() {
         this.clientsById = new ConcurrentHashMap<>();
+    }
+
+    public static ConnectionManager getInstance() {
+        return INSTANCE;
     }
 
     public void addClient(ClientHandler clientHandler) {

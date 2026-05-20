@@ -1,5 +1,6 @@
 package client.network;
 
+import client.application.ClientSession;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.item.Item;
@@ -17,7 +18,7 @@ public class SellerClient {
     private final SocketClient socketClient;
 
     public SellerClient() {
-        this(new SocketClient());
+        this(ClientSession.getSocket());
     }
 
     public SellerClient(SocketClient socketClient) {

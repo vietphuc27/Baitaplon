@@ -83,6 +83,7 @@ public class BidderController {
         setupHistoryTable();
         setupPriceChart();
         setupEnterActions();
+        registerPushListener();
         loadDashboardDataAsync();
         Platform.runLater(() -> {
             if (lblBidderName.getScene() != null && lblBidderName.getScene().getWindow() != null) {
@@ -537,6 +538,17 @@ public class BidderController {
             currentBidder.getWallet().setBalance(seller.getWallet().getBalance());
         }
         ClientSession.setCurrentUser(currentBidder);
+    }
+
+    private void registerPushListener() {
+        ClientSession.getSocket().setPushListener((event, data) -> {
+            Platform.runLater(() -> {
+                try {
+                    loadDashboardDataAsync();
+                } catch (RuntimeException ignored) {
+                }
+            });
+        });
     }
 
     private boolean isOwnAuction(Auction auction) {

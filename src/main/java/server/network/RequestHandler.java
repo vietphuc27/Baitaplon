@@ -14,6 +14,7 @@ import common.models.user.Seller;
 import common.models.user.User;
 import common.utils.JsonUtils;
 import server.manager.AutoBidManager;
+import server.manager.ConnectionManager;
 import server.repository.AuctionDAO;
 import server.repository.UserDAO;
 import server.service.AuctionService;
@@ -174,7 +175,9 @@ public class RequestHandler {
         String sellerId = getRequiredText(request, "sellerId");
         int auctionId = getRequiredInt(request, "auctionId");
         Auction auction = auctionService.endAuctionBySeller(sellerId, auctionId);
-        return JsonUtils.toJson(Map.of("status", "success", "auctionId", auction.getAuctionId(), "auctionStatus", String.valueOf(auction.getStatus())));
+        String response = JsonUtils.toJson(Map.of("status", "success", "auctionId", auction.getAuctionId(), "auctionStatus", String.valueOf(auction.getStatus())));
+        broadcastPush("AUCTION_ENDED", auction);
+        return response;
     }
 
     private String handleGetSellerAuctions(Map<String, Object> request) {
@@ -229,7 +232,9 @@ public class RequestHandler {
         }
         auction.setStatus(AuctionStatus.CANCELED);
         dao.update(auction);
-        return JsonUtils.toJson(Map.of("status", "success"));
+        String response = JsonUtils.toJson(Map.of("status", "success"));
+        broadcastPush("AUCTION_CANCELED", auction);
+        return response;
     }
 
     private String handleSwitchRole(Map<String, Object> request) {
@@ -247,7 +252,34 @@ public class RequestHandler {
         User user = userService.findById(bidderId).orElseThrow(() -> new IllegalArgumentException("Khong tim thay bidder"));
         if (!(user instanceof Bidder bidder)) throw new IllegalArgumentException("User khong phai bidder");
         BidTransaction bid = bidService.placeBid(auctionId, bidder, amount);
-        return JsonUtils.toJson(Map.of("status", "success", "bidId", bid.getId()));
+        String response = JsonUtils.toJson(Map.of("status", "success", "bidId", bid.getId()));
+        broadcastBidPush(auctionId, bid);
+        return response;
+    }
+
+    private void broadcastBidPush(String auctionId, BidTransaction bid) {
+        AuctionDAO dao = new AuctionDAO();
+        Auction auction = dao.findById(Integer.parseInt(auctionId)).orElse(null);
+        if (auction == null) return;
+
+        Map<String, Object> push = new LinkedHashMap<>();
+        push.put("push", "BID_PLACED");
+        push.put("auctionId", auctionId);
+        push.put("currentPrice", auction.getCurrentHighestBid());
+        push.put("bidderId", String.valueOf(bid.getBidderId()));
+        push.put("auctionStatus", auction.getStatus() != null ? auction.getStatus().name() : "-");
+
+        ConnectionManager.getInstance().broadcast(JsonUtils.toJson(push));
+    }
+
+    private void broadcastPush(String event, Auction auction) {
+        Map<String, Object> push = new LinkedHashMap<>();
+        push.put("push", event);
+        push.put("auctionId", String.valueOf(auction.getAuctionId()));
+        push.put("currentPrice", auction.getCurrentHighestBid());
+        push.put("auctionStatus", auction.getStatus() != null ? auction.getStatus().name() : "-");
+
+        ConnectionManager.getInstance().broadcast(JsonUtils.toJson(push));
     }
 
     private String handleRefreshAuctionsStatus() {

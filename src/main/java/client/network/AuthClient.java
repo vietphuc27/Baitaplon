@@ -1,5 +1,6 @@
 package client.network;
 
+import client.application.ClientSession;
 import common.models.user.Admin;
 import common.models.user.Bidder;
 import common.models.user.Seller;
@@ -14,7 +15,7 @@ public class AuthClient {
     private final SocketClient socketClient;
 
     public AuthClient() {
-        this(new SocketClient());
+        this(ClientSession.getSocket());
     }
 
     public AuthClient(SocketClient socketClient) {

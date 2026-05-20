@@ -47,7 +47,7 @@ public class AuctionServer {
         this.threadPool = Executors.newFixedThreadPool(threadCount);
         this.auctionService = new AuctionService(new ItemService());
         this.requestHandler = new RequestHandler();
-        this.connectionManager = new ConnectionManager();
+        this.connectionManager = ConnectionManager.getInstance();
     }
 
     public boolean isRunning() {

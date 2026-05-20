@@ -1,5 +1,6 @@
 package client.network;
 
+import client.application.ClientSession;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.item.Item;
@@ -16,7 +17,7 @@ public class AdminClient {
     private final SocketClient socketClient;
 
     public AdminClient() {
-        this(new SocketClient());
+        this(ClientSession.getSocket());
     }
 
     public AdminClient(SocketClient socketClient) {

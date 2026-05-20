@@ -1,5 +1,6 @@
 package client.network;
 
+import client.application.ClientSession;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.auction.BidTransaction;
@@ -13,7 +14,7 @@ public class BidClient {
     private final SocketClient socketClient;
 
     public BidClient() {
-        this(new SocketClient());
+        this(ClientSession.getSocket());
     }
 
     public BidClient(SocketClient socketClient) {

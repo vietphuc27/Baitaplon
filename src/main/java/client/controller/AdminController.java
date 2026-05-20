@@ -69,6 +69,7 @@ public class AdminController {
         itemNameCol.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().itemName));
         currentBidCol.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().currentBid));
         auctionStatusCol.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().status));
+        registerPushListener();
         Platform.runLater(() -> {
             if (txtSearch.getScene() != null && txtSearch.getScene().getWindow() != null) {
                 txtSearch.getScene().getWindow().addEventHandler(WindowEvent.WINDOW_HIDDEN, event -> shutdown());
@@ -256,6 +257,17 @@ public class AdminController {
     private String getTaskErrorMessage(Task<?> task) {
         Throwable exception = task.getException();
         return exception == null ? "Không tải được dữ liệu." : exception.getMessage();
+    }
+
+    private void registerPushListener() {
+        ClientSession.getSocket().setPushListener((event, data) -> {
+            Platform.runLater(() -> {
+                try {
+                    refreshData();
+                } catch (RuntimeException ignored) {
+                }
+            });
+        });
     }
 
     private void shutdown() {
