@@ -1,5 +1,6 @@
 package client.controller;
 
+import client.network.BidClient;
 import common.models.auction.Auction;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
@@ -18,15 +19,11 @@ import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
 import javafx.util.Duration;
-import server.manager.AutoBidManager;
-import server.repository.AuctionDAO;
-import server.service.AuctionService;
-import server.service.BidService;
-import server.service.ItemService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -114,10 +111,7 @@ public class AuctionDetailController {
     @FXML
     private VBox autoBidSection;
 
-    private final BidService bidService = new BidService();
-    private final AuctionService auctionService = new AuctionService(new ItemService());
-    private final AuctionDAO auctionDAO = new AuctionDAO();
-    private final AutoBidManager autoBidManager = AutoBidManager.getInstance();
+    private final BidClient bidClient = new BidClient();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ObservableList<BidTransaction> historyRows = FXCollections.observableArrayList();
     private Timeline refreshTimeline;
@@ -181,7 +175,7 @@ public class AuctionDetailController {
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() {
-                bidService.placeBid(String.valueOf(auction.getAuctionId()), currentBidder, amount);
+                bidClient.placeBid(String.valueOf(auction.getAuctionId()), currentBidder, amount);
                 return null;
             }
         };
@@ -251,7 +245,7 @@ public class AuctionDetailController {
         Task<Integer> task = new Task<>() {
             @Override
             protected Integer call() {
-                return autoBidManager.registerAgent(
+                return bidClient.registerAutoBid(
                         currentBidder.getId(),
                         auction.getAuctionId(),
                         fMaxBid,
@@ -295,13 +289,15 @@ public class AuctionDetailController {
         final int agentIdToCancel = currentAgentId;
         currentAgentId = -1;
 
-        // GỌI TRỰC TIẾP cancelAgent() từ UI thread.
-        // cancelAgent() chỉ set flag active=false + remove khỏi ConcurrentHashMap,
-        // KHÔNG cần lock, KHÔNG block — hoàn toàn thread-safe.
-        // Nếu processAutoBids() đang chạy đồng bộ trên executor thread,
-        // nó sẽ thấy agent đã inactive ở round tiếp theo và dừng sớm.
-        try {
-            boolean cancelled = autoBidManager.cancelAgent(agentIdToCancel);
+        Task<Boolean> task = new Task<>() {
+            @Override
+            protected Boolean call() {
+                return bidClient.cancelAutoBid(agentIdToCancel);
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            boolean cancelled = task.getValue();
             if (cancelled) {
                 refreshDataAsync();
                 autoBidToggle.setText("BẬT AUTO");
@@ -315,9 +311,12 @@ public class AuctionDetailController {
             } else {
                 showError("Không thể hủy auto-bid.");
             }
-        } catch (Exception e) {
-            showError("Lỗi khi hủy auto-bid: " + e.getMessage());
-        }
+        });
+
+        task.setOnFailed(event -> showError("Lỗi khi hủy auto-bid: "
+                + (task.getException() == null ? "" : task.getException().getMessage())));
+
+        executor.submit(task);
     }
 
     private void checkExistingAutoBid() {
@@ -328,9 +327,17 @@ public class AuctionDetailController {
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() {
-                var agent = autoBidManager.getAgent(currentBidder.getId(), auction.getAuctionId());
-                if (agent != null) {
-                    currentAgentId = agent.getAgentId();
+                Map<String, Object> status = bidClient.getAutoBidStatus(currentBidder.getId(), auction.getAuctionId());
+                boolean active = Boolean.parseBoolean(String.valueOf(status.getOrDefault("active", false)));
+                if (active) {
+                    Object agentIdRaw = status.get("agentId");
+                    if (agentIdRaw instanceof Number n) {
+                        currentAgentId = n.intValue();
+                    } else {
+                        currentAgentId = Integer.parseInt(String.valueOf(agentIdRaw));
+                    }
+                } else {
+                    currentAgentId = -1;
                 }
                 return null;
             }
@@ -338,17 +345,21 @@ public class AuctionDetailController {
 
         task.setOnSucceeded(event -> {
             if (currentAgentId > 0) {
-                var agent = autoBidManager.getAgent(currentBidder.getId(), auction.getAuctionId());
-                if (agent != null) {
+                try {
+                    Map<String, Object> status = bidClient.getAutoBidStatus(currentBidder.getId(), auction.getAuctionId());
+                    double maxBid = status.get("maxBid") instanceof Number n ? n.doubleValue() : 0.0;
+                    double increment = status.get("increment") instanceof Number n ? n.doubleValue() : 0.0;
+
                     autoBidToggle.setSelected(true);
                     autoBidToggle.setText("TẮT AUTO");
                     autoBidStatusLabel
-                            .setText("✓ Đang chạy (max: " + FormatUtils.formatCurrency(agent.getMaxBid()) + ")");
+                            .setText("✓ Đang chạy (max: " + FormatUtils.formatCurrency(maxBid) + ")");
                     autoBidStatusLabel.setStyle("-fx-text-fill: #27ae60; -fx-font-weight: bold;");
-                    maxBidField.setText(String.valueOf((long) agent.getMaxBid()));
-                    incrementField.setText(String.valueOf((long) agent.getIncrement()));
+                    maxBidField.setText(String.valueOf((long) maxBid));
+                    incrementField.setText(String.valueOf((long) increment));
                     maxBidField.setDisable(true);
                     incrementField.setDisable(true);
+                } catch (RuntimeException ignored) {
                 }
             }
         });
@@ -381,10 +392,10 @@ public class AuctionDetailController {
             @Override
             protected ObservableList<BidTransaction> call() {
                 try {
-                    auctionService.refreshAuctionsStatus();
-                    auction = auctionDAO.findById(auction.getAuctionId()).orElse(auction);
+                    bidClient.refreshAuctionsStatus();
+                    auction = bidClient.findAuctionById(auction.getAuctionId()).orElse(auction);
                     return FXCollections.observableArrayList(
-                            bidService.getAuctionBidHistory(String.valueOf(auction.getAuctionId())));
+                            bidClient.getAuctionBidHistory(String.valueOf(auction.getAuctionId())));
                 } catch (RuntimeException e) {
                     return null;
                 }
@@ -567,4 +578,3 @@ public class AuctionDetailController {
     }
 
 }
-

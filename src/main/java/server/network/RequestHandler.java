@@ -460,6 +460,7 @@ public class RequestHandler {
         map.put("itemName", auction.getItem() != null ? auction.getItem().getName() : "-");
         map.put("itemType", auction.getItem() != null ? auction.getItem().getClass().getSimpleName() : "-");
         map.put("currentPrice", auction.getCurrentHighestBid());
+        map.put("currentLeaderId", auction.getCurrentLeaderId());
         map.put("sellerId", auction.getSellerId() != null ? auction.getSellerId() : "");
         map.put("auctionStatus", auction.getStatus() != null ? auction.getStatus().name() : "-");
         map.put("startTime", auction.getStartTime() != null ? auction.getStartTime().toString() : "");

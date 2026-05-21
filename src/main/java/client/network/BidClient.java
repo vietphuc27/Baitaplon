@@ -124,6 +124,7 @@ public class BidClient {
             String sellerId = (String) m.getOrDefault("sellerId", "");
             String statusStr = String.valueOf(m.getOrDefault("auctionStatus", m.getOrDefault("status", "-")));
             double currentPrice = m.get("currentPrice") instanceof Number n ? n.doubleValue() : 0;
+            Integer currentLeaderId = parseNullableInteger(m.get("currentLeaderId"));
             String startTimeStr = (String) m.getOrDefault("startTime", "");
             String endTimeStr = (String) m.getOrDefault("endTime", "");
 
@@ -137,6 +138,7 @@ public class BidClient {
 
             Auction a = new Auction(id, item, sellerId, startTime, endTime);
             a.setCurrentHighestBid(currentPrice);
+            a.setCurrentLeaderId(currentLeaderId);
             if (!statusStr.equals("-")) {
                 try { a.setStatus(AuctionStatus.valueOf(statusStr)); } catch (Exception ignored) {}
             }
@@ -144,6 +146,14 @@ public class BidClient {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Integer parseNullableInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number n) return n.intValue();
+        String text = String.valueOf(value).trim();
+        if (text.isEmpty() || "null".equalsIgnoreCase(text)) return null;
+        return Integer.parseInt(text);
     }
 
     @SuppressWarnings("unchecked")
