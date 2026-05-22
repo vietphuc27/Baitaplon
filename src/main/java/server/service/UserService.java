@@ -4,7 +4,6 @@ import common.exceptions.AuthenticationException;
 import common.models.user.User;
 import common.models.user.UserStatus;
 import common.userfactory.UserFactory;
-import server.manager.SessionManager;
 import server.repository.UserDAO;
 import server.util.PasswordUtil;
 
@@ -19,7 +18,6 @@ public class UserService {
             "common.userfactory.AdminCreator"
     };
 
-    private final SessionManager sessionManager;
     private final UserDAO userDAO;
 
     public UserService() {
@@ -28,7 +26,6 @@ public class UserService {
 
     public UserService(UserDAO userDAO) {
         this.userDAO = userDAO;
-        this.sessionManager = SessionManager.getInstance();
         ensureUserCreatorsLoaded();
     }
 
@@ -84,20 +81,14 @@ public class UserService {
 
         user.setStatus(UserStatus.LOGIN);
         userDAO.update(user);
-        sessionManager.login(user);
         return user;
     }
 
-    public void logout() {
-        User currentUser = sessionManager.getCurrentUser();
-        if (currentUser == null) {
-            return;
-        }
-
-        User latestUser = userDAO.findById(currentUser.getId()).orElse(currentUser);
+    public void logout(int userId) {
+        User latestUser = userDAO.findById(requirePositiveId(userId, "userId"))
+                .orElseThrow(() -> new AuthenticationException("Không tìm thấy user"));
         latestUser.setStatus(UserStatus.LOGOUT);
         userDAO.update(latestUser);
-        sessionManager.logout();
     }
 
     public User switchRole(User user, String targetRole) {
@@ -122,7 +113,6 @@ public class UserService {
         }
 
         switchedUser.setStatus(UserStatus.LOGIN);
-        sessionManager.login(switchedUser);
         return switchedUser;
     }
 
@@ -130,11 +120,6 @@ public class UserService {
         User user = getRequiredUserById(id);
         user.setStatus(UserStatus.BANNED);
         userDAO.update(user);
-
-        User currentUser = sessionManager.getCurrentUser();
-        if (currentUser != null && currentUser.getId() == user.getId()) {
-            sessionManager.logout();
-        }
 
         return user;
     }
@@ -182,11 +167,11 @@ public class UserService {
     }
 
     public User getCurrentUser() {
-        return sessionManager.getCurrentUser();
+        return null;
     }
 
     public boolean isLoggedIn() {
-        return sessionManager.isUserLoggedIn();
+        return false;
     }
 
     private User getRequiredUserById(int id) {

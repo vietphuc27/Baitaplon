@@ -20,7 +20,6 @@ public class AutoBidManager {
 
     private final Map<Integer, PriorityQueue<AutoBidAgent>> agentQueues;
     private final Map<Integer, Integer> agentToAuction;
-    private final Map<Integer, ReentrantLock> auctionLocks;
     private final Map<Integer, AutoBidAgent> allAgents;
 
     private int nextAgentId;
@@ -29,7 +28,6 @@ public class AutoBidManager {
     private AutoBidManager() {
         this.agentQueues = new ConcurrentHashMap<>();
         this.agentToAuction = new ConcurrentHashMap<>();
-        this.auctionLocks = new ConcurrentHashMap<>();
         this.allAgents = new ConcurrentHashMap<>();
         this.nextAgentId = 1;
         this.autoBidDelayMillis = 450L;
@@ -226,7 +224,6 @@ public class AutoBidManager {
     public void resetForTesting() {
         agentQueues.clear();
         agentToAuction.clear();
-        auctionLocks.clear();
         allAgents.clear();
         nextAgentId = 1;
         autoBidDelayMillis = 0L;
@@ -259,7 +256,7 @@ public class AutoBidManager {
     }
 
     private ReentrantLock getLock(int auctionId) {
-        return auctionLocks.computeIfAbsent(auctionId, id -> new ReentrantLock());
+        return AuctionLockManager.getLock(auctionId);
     }
 
     private synchronized int generateAgentId() {

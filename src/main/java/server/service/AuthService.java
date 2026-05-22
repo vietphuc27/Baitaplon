@@ -3,7 +3,6 @@ package server.service;
 import common.exceptions.AuthenticationException;
 import common.models.user.User;
 import common.models.user.UserStatus;
-import server.manager.SessionManager;
 import server.repository.UserDAO;
 import server.util.PasswordUtil;
 
@@ -22,7 +21,6 @@ public class AuthService {
     private static final Map<String, AuthSession> TOKEN_STORE = new ConcurrentHashMap<>();
 
     private final UserDAO userDAO;
-    private final SessionManager sessionManager;
     private final long tokenTtlMinutes;
 
     public AuthService() {
@@ -42,7 +40,6 @@ public class AuthService {
         }
 
         this.userDAO = userDAO;
-        this.sessionManager = SessionManager.getInstance();
         this.tokenTtlMinutes = tokenTtlMinutes;
     }
 
@@ -65,7 +62,6 @@ public class AuthService {
 
         user.setStatus(UserStatus.LOGIN);
         userDAO.update(user);
-        sessionManager.login(user);
 
         String token = generateToken();
         TOKEN_STORE.put(token, new AuthSession(user.getId(), LocalDateTime.now().plusMinutes(tokenTtlMinutes)));
@@ -106,11 +102,6 @@ public class AuthService {
         userDAO.findById(session.userId()).ifPresent(user -> {
             user.setStatus(UserStatus.LOGOUT);
             userDAO.update(user);
-
-            User currentUser = sessionManager.getCurrentUser();
-            if (currentUser != null && currentUser.getId() == user.getId()) {
-                sessionManager.logout();
-            }
         });
 
         TOKEN_STORE.remove(normalizedToken);
@@ -124,11 +115,6 @@ public class AuthService {
             user.setStatus(UserStatus.LOGOUT);
             userDAO.update(user);
         });
-
-        User currentUser = sessionManager.getCurrentUser();
-        if (currentUser != null && currentUser.getId() == normalizedUserId) {
-            sessionManager.logout();
-        }
     }
 
     public int clearExpiredTokens() {

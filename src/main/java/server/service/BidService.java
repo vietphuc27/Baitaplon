@@ -9,6 +9,7 @@ import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
 import common.models.user.User;
 import server.manager.AuctionManager;
+import server.manager.AuctionLockManager;
 import server.manager.AutoBidManager;
 import server.repository.AuctionDAO;
 import server.repository.BidTransactionDAO;
@@ -22,7 +23,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BidService {
-    private static final ConcurrentHashMap<Integer, ReentrantLock> AUCTION_LOCKS = new ConcurrentHashMap<>();
     private static final ConcurrentHashMap<Integer, ReentrantLock> BIDDER_LOCKS = new ConcurrentHashMap<>();
     private static final double EPSILON = 1e-9;
 
@@ -82,7 +82,7 @@ public class BidService {
         if (bidder == null) throw new IllegalArgumentException("Khong tim thay bidder");
 
         ReentrantLock bidderLock = BIDDER_LOCKS.computeIfAbsent(bidder.getId(), id -> new ReentrantLock());
-        ReentrantLock auctionLock = AUCTION_LOCKS.computeIfAbsent(auction.getAuctionId(), id -> new ReentrantLock());
+        ReentrantLock auctionLock = AuctionLockManager.getLock(auction.getAuctionId());
 
         bidderLock.lock();
         auctionLock.lock();
@@ -198,6 +198,11 @@ public class BidService {
         if (auction.getStatus() != AuctionStatus.RUNNING && auction.getStatus() != AuctionStatus.OPEN) {
             throw new AuctionClosedException("Phien dau gia da dong");
         }
+        if (auction.getStatus() == AuctionStatus.OPEN
+                && auction.getStartTime() != null
+                && LocalDateTime.now().isBefore(auction.getStartTime())) {
+            throw new InvalidBidException("Phien dau gia chua bat dau");
+        }
         if (auction.isClosed()) throw new AuctionClosedException("Phien dau gia da dong");
         if (amount < auction.getItem().getStartingPrice()) {
             throw new InvalidBidException("Gia dat phai lon hon gia ban dau");
@@ -223,6 +228,11 @@ public class BidService {
         }
         if (auction.getStatus() != AuctionStatus.RUNNING && auction.getStatus() != AuctionStatus.OPEN) {
             throw new AuctionClosedException("Phien dau gia da dong");
+        }
+        if (auction.getStatus() == AuctionStatus.OPEN
+                && auction.getStartTime() != null
+                && LocalDateTime.now().isBefore(auction.getStartTime())) {
+            throw new InvalidBidException("Phien dau gia chua bat dau");
         }
         if (auction.isClosed()) throw new AuctionClosedException("Phien dau gia da dong");
         if (maxBid <= auction.getCurrentHighestBid()) {

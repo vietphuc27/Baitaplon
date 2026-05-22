@@ -41,7 +41,7 @@ public class AuctionManager {
     }
 
     public synchronized List<Auction> getAllActiveAuctions() {
-        return activeAuctions;
+        return List.copyOf(activeAuctions);
     }
 
     public synchronized Auction getAuctionById(int auctionId) {
@@ -55,7 +55,7 @@ public class AuctionManager {
 
     public synchronized List<Auction> getRunningAuctions() {
         return activeAuctions.stream()
-                .filter(a -> a.getStatus() == common.models.auction.AuctionStatus.OPEN)
+                .filter(a -> a.getStatus() == common.models.auction.AuctionStatus.RUNNING)
                 .collect(Collectors.toList());
     }
 }

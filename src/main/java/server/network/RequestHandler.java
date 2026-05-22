@@ -103,10 +103,13 @@ public class RequestHandler {
     }
 
     private String handleLogout(ClientHandler clientHandler) {
+        String token = clientHandler == null ? null : clientHandler.getAuthToken();
         if (clientHandler != null) {
             clientHandler.clearAuthentication();
         }
-        userService.logout();
+        if (token != null && !token.isBlank()) {
+            authService.logout(token);
+        }
         return JsonUtils.toJson(Map.of("status", "success"));
     }
 

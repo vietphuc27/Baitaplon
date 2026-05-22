@@ -13,9 +13,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class AuctionService {
+    private static final ReentrantLock REFRESH_LOCK = new ReentrantLock();
+
     private final AuctionDAO auctionDAO;
     private final AuctionManager auctionManager;
     private final ItemService itemService;
@@ -86,29 +89,36 @@ public class AuctionService {
     }
 
     public void refreshAuctionsStatus() {
-        List<Auction> allAuctions = new ArrayList<>(auctionManager.getAllActiveAuctions());
-        LocalDateTime now = LocalDateTime.now();
+        REFRESH_LOCK.lock();
+        try {
+            List<Auction> allAuctions = new ArrayList<>(auctionManager.getAllActiveAuctions());
+            LocalDateTime now = LocalDateTime.now();
 
-        for (Auction auction : allAuctions) {
-            AuctionStatus beforeRefresh = auction.getStatus();
-            boolean changed = false;
+            for (Auction auction : allAuctions) {
+                AuctionStatus beforeRefresh = auction.getStatus();
 
-            if (auction.getStatus() == AuctionStatus.OPEN && !now.isBefore(auction.getStartTime())) {
-                auction.startAuction();
-                changed = true;
-                System.out.println("He thong: Phien dau gia " + auction.getAuctionId() + " da BAT DAU.");
+                if (auction.getStatus() == AuctionStatus.OPEN && !now.isBefore(auction.getStartTime())) {
+                    auction.startAuction();
+                    if (beforeRefresh != auction.getStatus()) {
+                        System.out.println("He thong: Phien dau gia " + auction.getAuctionId() + " da BAT DAU.");
+                    }
+                }
+
+                if (auction.getStatus() == AuctionStatus.RUNNING && !now.isBefore(auction.getEndTime())) {
+                    AuctionStatus beforeEnd = auction.getStatus();
+                    auction.endAuction();
+                    if (beforeEnd != auction.getStatus() && auction.getStatus() == AuctionStatus.FINISHED) {
+                        System.out.println("He thong: Phien dau gia " + auction.getAuctionId() + " da KET THUC.");
+                        handleAuctionWinner(auction);
+                    }
+                }
+
+                if (beforeRefresh != auction.getStatus()) {
+                    auctionDAO.update(auction);
+                }
             }
-
-            if (auction.getStatus() == AuctionStatus.RUNNING && !now.isBefore(auction.getEndTime())) {
-                auction.endAuction();
-                changed = true;
-                System.out.println("He thong: Phien dau gia " + auction.getAuctionId() + " da KET THUC.");
-                handleAuctionWinner(auction);
-            }
-
-            if (changed || beforeRefresh != auction.getStatus()) {
-                auctionDAO.update(auction);
-            }
+        } finally {
+            REFRESH_LOCK.unlock();
         }
     }
 

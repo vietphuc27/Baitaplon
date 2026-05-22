@@ -36,14 +36,14 @@ public class Auction {
     }
 
     public void startAuction() {
-        if (status == AuctionStatus.OPEN && LocalDateTime.now().isAfter(startTime)) {
+        if (status == AuctionStatus.OPEN && startTime != null && !LocalDateTime.now().isBefore(startTime)) {
             status = AuctionStatus.RUNNING;
             System.out.println("Auction started");
         }
     }
 
     public void endAuction() {
-        if (status == AuctionStatus.RUNNING && LocalDateTime.now().isAfter(endTime)) {
+        if (status == AuctionStatus.RUNNING && endTime != null && !LocalDateTime.now().isBefore(endTime)) {
             status = AuctionStatus.FINISHED;
             System.out.println("Auction ended");
         }
