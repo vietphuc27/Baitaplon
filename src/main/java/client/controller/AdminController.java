@@ -27,23 +27,40 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class AdminController {
-    @FXML private TextField txtSearch;
-    @FXML private ComboBox<String> cbFilterStatus;
-    @FXML private ComboBox<String> cbSortBy;
-    @FXML private TextField txtAuctionSearch;
-    @FXML private ComboBox<String> cbAuctionFilterStatus;
-    @FXML private ComboBox<String> cbAuctionSortBy;
-    @FXML private TableView<UserRow> userTable;
-    @FXML private TableColumn<UserRow, String> userIdCol;
-    @FXML private TableColumn<UserRow, String> usernameCol;
-    @FXML private TableColumn<UserRow, String> emailCol;
-    @FXML private TableColumn<UserRow, String> roleCol;
-    @FXML private TableColumn<UserRow, String> statusCol;
-    @FXML private TableView<AuctionRow> auctionTable;
-    @FXML private TableColumn<AuctionRow, String> auctionIdCol;
-    @FXML private TableColumn<AuctionRow, String> itemNameCol;
-    @FXML private TableColumn<AuctionRow, String> currentBidCol;
-    @FXML private TableColumn<AuctionRow, String> auctionStatusCol;
+    @FXML
+    private TextField txtSearch;
+    @FXML
+    private ComboBox<String> cbFilterStatus;
+    @FXML
+    private ComboBox<String> cbSortBy;
+    @FXML
+    private TextField txtAuctionSearch;
+    @FXML
+    private ComboBox<String> cbAuctionFilterStatus;
+    @FXML
+    private ComboBox<String> cbAuctionSortBy;
+    @FXML
+    private TableView<UserRow> userTable;
+    @FXML
+    private TableColumn<UserRow, String> userIdCol;
+    @FXML
+    private TableColumn<UserRow, String> usernameCol;
+    @FXML
+    private TableColumn<UserRow, String> emailCol;
+    @FXML
+    private TableColumn<UserRow, String> roleCol;
+    @FXML
+    private TableColumn<UserRow, String> statusCol;
+    @FXML
+    private TableView<AuctionRow> auctionTable;
+    @FXML
+    private TableColumn<AuctionRow, String> auctionIdCol;
+    @FXML
+    private TableColumn<AuctionRow, String> itemNameCol;
+    @FXML
+    private TableColumn<AuctionRow, String> currentBidCol;
+    @FXML
+    private TableColumn<AuctionRow, String> auctionStatusCol;
 
     private final AdminClient adminClient = new AdminClient();
     private final BidClient bidClient = new BidClient();
@@ -55,7 +72,7 @@ public class AdminController {
         cbFilterStatus.setValue("ALL");
         cbSortBy.getItems().addAll("Username", "Role", "Status");
         cbSortBy.setValue("Username");
-        cbAuctionFilterStatus.getItems().addAll("ALL", "OPEN", "RUNNING", "FINISHED","PAID" , "CANCELED");
+        cbAuctionFilterStatus.getItems().addAll("ALL", "OPEN", "RUNNING", "FINISHED", "PAID", "CANCELED");
         cbAuctionFilterStatus.setValue("ALL");
         cbAuctionSortBy.getItems().addAll("ID", "Item name", "Current bid", "Status");
         cbAuctionSortBy.setValue("ID");
@@ -81,7 +98,8 @@ public class AdminController {
     @FXML
     public void banUser() {
         UserRow selectedUser = userTable.getSelectionModel().getSelectedItem();
-        if (selectedUser == null) return;
+        if (selectedUser == null)
+            return;
         adminClient.banUser(Integer.parseInt(selectedUser.id));
         refreshData();
     }
@@ -89,7 +107,8 @@ public class AdminController {
     @FXML
     public void activateUser() {
         UserRow selectedUser = userTable.getSelectionModel().getSelectedItem();
-        if (selectedUser == null) return;
+        if (selectedUser == null)
+            return;
         adminClient.unbanUser(Integer.parseInt(selectedUser.id));
         refreshData();
     }
@@ -165,7 +184,8 @@ public class AdminController {
                             return keyword.isEmpty() || username.contains(keyword) || email.contains(keyword);
                         })
                         .filter(u -> "ALL".equals(status) || u.getStatus().name().equalsIgnoreCase(status))
-                        .map(u -> new UserRow(String.valueOf(u.getId()), u.getUsername(), u.getEmail(), u.getRole(), u.getStatus().name()))
+                        .map(u -> new UserRow(String.valueOf(u.getId()), u.getUsername(), u.getEmail(), u.getRole(),
+                                u.getStatus().name()))
                         .sorted(resolveUserComparator(sortBy))
                         .collect(Collectors.toList());
             }
@@ -200,8 +220,7 @@ public class AdminController {
                                 String.valueOf(a.getAuctionId()),
                                 a.getItem() == null ? "-" : a.getItem().getName(),
                                 FormatUtils.formatCurrency(a.getCurrentHighestBid()),
-                                a.getStatus().name()
-                        ))
+                                a.getStatus().name()))
                         .sorted(resolveAuctionComparator(sortBy))
                         .collect(Collectors.toList());
             }
@@ -220,13 +239,15 @@ public class AdminController {
 
     @FXML
     public void logout() throws IOException {
-        ClientSession.clear();
+        try {
+            adminClient.logout();
+        } catch (Exception ignored) {
+        }
         shutdown();
         Parent root = FXMLLoader.load(getClass().getResource("/view/LogInView.fxml"));
         Stage stage = (Stage) txtSearch.getScene().getWindow();
         stage.setScene(new Scene(root));
         stage.show();
-        showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Đã đăng xuất.");
     }
 
     private Comparator<UserRow> resolveUserComparator(String sortBy) {
@@ -280,8 +301,13 @@ public class AdminController {
         private final String email;
         private final String role;
         private final String status;
+
         public UserRow(String id, String username, String email, String role, String status) {
-            this.id = id; this.username = username; this.email = email; this.role = role; this.status = status;
+            this.id = id;
+            this.username = username;
+            this.email = email;
+            this.role = role;
+            this.status = status;
         }
     }
 
@@ -290,10 +316,15 @@ public class AdminController {
         private final String itemName;
         private final String currentBid;
         private final String status;
+
         public AuctionRow(String id, String itemName, String currentBid, String status) {
-            this.id = id; this.itemName = itemName; this.currentBid = currentBid; this.status = status;
+            this.id = id;
+            this.itemName = itemName;
+            this.currentBid = currentBid;
+            this.status = status;
         }
     }
+
     private void showAlert(Alert.AlertType type, String title, String msg) {
         Alert alert = new Alert(type);
         alert.setTitle(title);

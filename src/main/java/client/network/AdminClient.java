@@ -21,7 +21,8 @@ public class AdminClient {
     }
 
     public AdminClient(SocketClient socketClient) {
-        if (socketClient == null) throw new IllegalArgumentException("socketClient khong duoc null");
+        if (socketClient == null)
+            throw new IllegalArgumentException("socketClient khong duoc null");
         this.socketClient = socketClient;
     }
 
@@ -30,11 +31,13 @@ public class AdminClient {
         Map<String, Object> response = socketClient.sendRequest("get_all_users", null);
         ensureSuccess(response);
         List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("users");
-        if (items == null) return List.of();
+        if (items == null)
+            return List.of();
         List<User> result = new ArrayList<>();
         for (Map<String, Object> m : items) {
             User u = mapToUser(m);
-            if (u != null) result.add(u);
+            if (u != null)
+                result.add(u);
         }
         return result;
     }
@@ -53,6 +56,13 @@ public class AdminClient {
         ensureSuccess(response);
     }
 
+    public void logout() {
+        try {
+            socketClient.sendRequest("logout", null);
+        } catch (Exception ignored) {
+        }
+    }
+
     public void cancelAuction(int auctionId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("auctionId", String.valueOf(auctionId));
@@ -69,8 +79,12 @@ public class AdminClient {
             String email = (String) m.getOrDefault("email", "");
             String role = (String) m.getOrDefault("role", "");
             String statusStr = (String) m.getOrDefault("userStatus", "LOGOUT");
-            User user = new User(id, username, email, "", role) {};
-            try { user.setStatus(UserStatus.valueOf(statusStr)); } catch (Exception ignored) {}
+            User user = new User(id, username, email, "", role) {
+            };
+            try {
+                user.setStatus(UserStatus.valueOf(statusStr));
+            } catch (Exception ignored) {
+            }
             return user;
         } catch (Exception e) {
             return null;
@@ -78,7 +92,8 @@ public class AdminClient {
     }
 
     private void ensureSuccess(Map<String, Object> response) {
-        if (response == null || response.isEmpty()) throw new RuntimeException("Server khong tra ve du lieu");
+        if (response == null || response.isEmpty())
+            throw new RuntimeException("Server khong tra ve du lieu");
         Object status = response.get("status");
         if (status == null || !"success".equalsIgnoreCase(String.valueOf(status))) {
             Object msg = response.get("message");
