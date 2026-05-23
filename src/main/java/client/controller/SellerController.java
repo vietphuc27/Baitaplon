@@ -290,8 +290,10 @@ public class SellerController implements Initializable {
         AuctionDetailController.closeAllWindows();
         try {
             authClient.logout();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         ClientSession.clear();
+        shutdown();
         showLoginScreen();
         showAlert(Alert.AlertType.INFORMATION, "Thông báo", "Đã đăng xuất.");
     }

@@ -19,7 +19,8 @@ public class AuthClient {
     }
 
     public AuthClient(SocketClient socketClient) {
-        if (socketClient == null) throw new IllegalArgumentException("socketClient khong duoc null");
+        if (socketClient == null)
+            throw new IllegalArgumentException("socketClient khong duoc null");
         this.socketClient = socketClient;
     }
 
@@ -44,7 +45,7 @@ public class AuthClient {
     }
 
     public void logout() {
-        socketClient.sendRequest("logout", null);
+        socketClient.sendRequestAsync("logout", null);
     }
 
     public User switchRole(int userId, String targetRole) {
@@ -101,7 +102,8 @@ public class AuthClient {
     }
 
     private void ensureSuccess(Map<String, Object> response) {
-        if (response == null || response.isEmpty()) throw new RuntimeException("Server khong tra ve du lieu");
+        if (response == null || response.isEmpty())
+            throw new RuntimeException("Server khong tra ve du lieu");
         Object status = response.get("status");
         if (status == null || !"success".equalsIgnoreCase(String.valueOf(status))) {
             Object message = response.get("message");
@@ -110,21 +112,28 @@ public class AuthClient {
     }
 
     private String requireText(String value, String fieldName) {
-        if (value == null || value.trim().isEmpty()) throw new IllegalArgumentException(fieldName + " khong duoc de trong");
+        if (value == null || value.trim().isEmpty())
+            throw new IllegalArgumentException(fieldName + " khong duoc de trong");
         return value.trim();
     }
 
     private String readText(Map<String, Object> response, String key) {
         Object value = response.get(key);
-        if (value == null || String.valueOf(value).trim().isEmpty()) throw new RuntimeException("Server thieu truong " + key);
+        if (value == null || String.valueOf(value).trim().isEmpty())
+            throw new RuntimeException("Server thieu truong " + key);
         return String.valueOf(value).trim();
     }
 
     private int readInt(Map<String, Object> response, String key) {
         Object value = response.get(key);
-        if (value == null) throw new RuntimeException("Server thieu truong " + key);
-        if (value instanceof Number number) return number.intValue();
-        try { return Integer.parseInt(String.valueOf(value).trim()); }
-        catch (NumberFormatException e) { throw new RuntimeException("Gia tri " + key + " khong hop le"); }
+        if (value == null)
+            throw new RuntimeException("Server thieu truong " + key);
+        if (value instanceof Number number)
+            return number.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value).trim());
+        } catch (NumberFormatException e) {
+            throw new RuntimeException("Gia tri " + key + " khong hop le");
+        }
     }
 }

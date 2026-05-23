@@ -243,6 +243,7 @@ public class AdminController {
             adminClient.logout();
         } catch (Exception ignored) {
         }
+        ClientSession.clear();
         shutdown();
         Parent root = FXMLLoader.load(getClass().getResource("/view/LogInView.fxml"));
         Stage stage = (Stage) txtSearch.getScene().getWindow();

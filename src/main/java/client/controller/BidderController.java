@@ -35,33 +35,60 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class BidderController {
-    @FXML private Label lblWalletBalance;
-    @FXML private Label lblBidderName;
-    @FXML private TextField txtSearch;
-    @FXML private TextField txtSearch1;
-    @FXML private ComboBox<String> cbStatusFilter;
-    @FXML private ComboBox<String> cbSortBy;
-    @FXML private TableView<AuctionRow> tblAuctions;
-    @FXML private TableColumn<AuctionRow, String> colId;
-    @FXML private TableColumn<AuctionRow, String> colItem;
-    @FXML private TableColumn<AuctionRow, String> colType;
-    @FXML private TableColumn<AuctionRow, String> colCurrentPrice;
-    @FXML private TableColumn<AuctionRow, String> colSeller;
-    @FXML private TableColumn<AuctionRow, String> colStatus;
-    @FXML private TableColumn<AuctionRow, String> colEndTime;
-    @FXML private TextField txtBidAmount;
-    @FXML private TableView<BidHistoryRow> tblBidHistory;
-    @FXML private TableColumn<BidHistoryRow, String> colHistoryId;
-    @FXML private TableColumn<BidHistoryRow, String> colHistoryItem;
-    @FXML private TableColumn<BidHistoryRow, String> colHistoryBid;
-    @FXML private TableColumn<BidHistoryRow, String> colHistoryTime;
-    @FXML private TableColumn<BidHistoryRow, String> colHistoryResult;
-    @FXML private Label lblBalance;
-    @FXML private Label lblTotalWon;
-    @FXML private TextField txtDepositAmount;
-    @FXML private LineChart<Number, Number> priceHistoryChart;
-    @FXML private NumberAxis xAxis;
-    @FXML private NumberAxis yAxis;
+    @FXML
+    private Label lblWalletBalance;
+    @FXML
+    private Label lblBidderName;
+    @FXML
+    private TextField txtSearch;
+    @FXML
+    private TextField txtSearch1;
+    @FXML
+    private ComboBox<String> cbStatusFilter;
+    @FXML
+    private ComboBox<String> cbSortBy;
+    @FXML
+    private TableView<AuctionRow> tblAuctions;
+    @FXML
+    private TableColumn<AuctionRow, String> colId;
+    @FXML
+    private TableColumn<AuctionRow, String> colItem;
+    @FXML
+    private TableColumn<AuctionRow, String> colType;
+    @FXML
+    private TableColumn<AuctionRow, String> colCurrentPrice;
+    @FXML
+    private TableColumn<AuctionRow, String> colSeller;
+    @FXML
+    private TableColumn<AuctionRow, String> colStatus;
+    @FXML
+    private TableColumn<AuctionRow, String> colEndTime;
+    @FXML
+    private TextField txtBidAmount;
+    @FXML
+    private TableView<BidHistoryRow> tblBidHistory;
+    @FXML
+    private TableColumn<BidHistoryRow, String> colHistoryId;
+    @FXML
+    private TableColumn<BidHistoryRow, String> colHistoryItem;
+    @FXML
+    private TableColumn<BidHistoryRow, String> colHistoryBid;
+    @FXML
+    private TableColumn<BidHistoryRow, String> colHistoryTime;
+    @FXML
+    private TableColumn<BidHistoryRow, String> colHistoryResult;
+    @FXML
+    private Label lblBalance;
+    @FXML
+    private Label lblTotalWon;
+    @FXML
+    private TextField txtDepositAmount;
+    @FXML
+    private LineChart<Number, Number> priceHistoryChart;
+    @FXML
+    private NumberAxis xAxis;
+    @FXML
+    private NumberAxis yAxis;
 
     private final BidClient bidClient = new BidClient();
     private final AuthClient authClient = new AuthClient();
@@ -112,7 +139,8 @@ public class BidderController {
 
     @FXML
     private void handleSwitchToSeller() {
-        if (!ensureBidderCanContinue()) return;
+        if (!ensureBidderCanContinue())
+            return;
         try {
             User switched = authClient.switchRole(currentBidder.getId(), "seller");
             ClientSession.setCurrentUser(switched);
@@ -128,31 +156,36 @@ public class BidderController {
 
     @FXML
     private void handleRefreshAuctions() {
-        if (!ensureBidderCanContinue()) return;
+        if (!ensureBidderCanContinue())
+            return;
         loadAuctionsAsync();
     }
 
     @FXML
     private void handleRefreshHistory() {
-        if (!ensureBidderCanContinue()) return;
+        if (!ensureBidderCanContinue())
+            return;
         loadBidHistoryAsync();
     }
 
     @FXML
     private void handleSearchAuctions() {
-        if (!ensureBidderCanContinue()) return;
+        if (!ensureBidderCanContinue())
+            return;
         loadAuctionsAsync();
     }
 
     @FXML
     private void handleSearchHistory() {
-        if (!ensureBidderCanContinue()) return;
+        if (!ensureBidderCanContinue())
+            return;
         loadBidHistoryAsync();
     }
 
     @FXML
     private void handlePlaceBid() {
-        if (!ensureBidderCanContinue()) return;
+        if (!ensureBidderCanContinue())
+            return;
 
         AuctionRow selectedRow = tblAuctions.getSelectionModel().getSelectedItem();
         if (selectedRow == null) {
@@ -188,7 +221,8 @@ public class BidderController {
 
     @FXML
     private void handleViewDetails() {
-        if (!ensureBidderCanContinue()) return;
+        if (!ensureBidderCanContinue())
+            return;
 
         AuctionRow selectedRow = tblAuctions.getSelectionModel().getSelectedItem();
         if (selectedRow == null) {
@@ -214,7 +248,8 @@ public class BidderController {
 
     @FXML
     private void handleDeposit() {
-        if (!ensureBidderCanContinue()) return;
+        if (!ensureBidderCanContinue())
+            return;
 
         double amount;
         try {
@@ -282,8 +317,10 @@ public class BidderController {
     }
 
     private void setupPriceChart() {
-        if (xAxis != null) xAxis.setLabel("Lần đặt giá");
-        if (yAxis != null) yAxis.setLabel("Giá (VND)");
+        if (xAxis != null)
+            xAxis.setLabel("Lần đặt giá");
+        if (yAxis != null)
+            yAxis.setLabel("Giá (VND)");
     }
 
     private void setupEnterActions() {
@@ -327,13 +364,16 @@ public class BidderController {
         runInBackground(() -> {
             List<BidTransaction> bids = bidClient.getBidderBidHistory(String.valueOf(currentBidder.getId()));
             return bids.stream()
-                    .sorted(Comparator.comparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.naturalOrder())).reversed())
+                    .sorted(Comparator
+                            .comparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.naturalOrder()))
+                            .reversed())
                     .map(this::toBidHistoryRow)
                     .filter(row -> matchesHistoryKeyword(row, keyword))
                     .toList();
         }, rows -> {
             bidHistoryRows.setAll(rows);
-            long wonCount = rows.stream().filter(r -> "Đang dẫn đầu".equals(r.result) || "Đã thắng".equals(r.result)).count();
+            long wonCount = rows.stream().filter(r -> "Đang dẫn đầu".equals(r.result) || "Đã thắng".equals(r.result))
+                    .count();
             lblTotalWon.setText(wonCount + " phiên");
         });
     }
@@ -345,25 +385,33 @@ public class BidderController {
                         || String.valueOf(a.getAuctionId()).contains(keyword)
                         || a.getItem().getName().toLowerCase(Locale.ROOT).contains(keyword)
                         || (a.getSellerId() != null && a.getSellerId().toLowerCase(Locale.ROOT).contains(keyword)))
-                .filter(a -> "Tất cả".equals(status) || (a.getStatus() != null && a.getStatus().name().equalsIgnoreCase(status)))
+                .filter(a -> "Tất cả".equals(status)
+                        || (a.getStatus() != null && a.getStatus().name().equalsIgnoreCase(status)))
                 .sorted(resolveComparator(sort))
                 .map(this::toAuctionRow)
                 .toList();
     }
 
     private Comparator<Auction> resolveComparator(String sort) {
-        if ("Giá cao nhất".equals(sort)) return Comparator.comparingDouble(Auction::getCurrentHighestBid).reversed();
-        if ("Giá thấp nhất".equals(sort)) return Comparator.comparingDouble(Auction::getCurrentHighestBid);
-        if ("Sắp kết thúc".equals(sort)) return Comparator.comparing(Auction::getEndTime, Comparator.nullsLast(Comparator.naturalOrder()));
+        if ("Giá cao nhất".equals(sort))
+            return Comparator.comparingDouble(Auction::getCurrentHighestBid).reversed();
+        if ("Giá thấp nhất".equals(sort))
+            return Comparator.comparingDouble(Auction::getCurrentHighestBid);
+        if ("Sắp kết thúc".equals(sort))
+            return Comparator.comparing(Auction::getEndTime, Comparator.nullsLast(Comparator.naturalOrder()));
         return Comparator.comparing(Auction::getStartTime, Comparator.nullsLast(Comparator.naturalOrder())).reversed();
     }
 
     private AuctionRow toAuctionRow(Auction a) {
+        double displayPrice = a.getCurrentHighestBid();
+        if (displayPrice == 0 && a.getItem() != null) {
+            displayPrice = a.getItem().getStartingPrice();
+        }
         return new AuctionRow(
                 String.valueOf(a.getAuctionId()),
                 a.getItem() == null ? "-" : a.getItem().getName(),
                 a.getItem() == null ? "-" : a.getItem().getClass().getSimpleName(),
-                formatCurrency(a.getCurrentHighestBid()),
+                formatCurrency(displayPrice),
                 a.getSellerId() != null ? a.getSellerId() : "-",
                 a.getStatus() == null ? "-" : a.getStatus().name(),
                 FormatUtils.formatDateTime(a.getEndTime()),
@@ -382,7 +430,8 @@ public class BidderController {
     }
 
     private String resolveBidResult(Auction auction, BidTransaction bid) {
-        if (auction == null || auction.getCurrentLeaderId() == null || auction.getCurrentLeaderId() != bid.getBidderId()) {
+        if (auction == null || auction.getCurrentLeaderId() == null
+                || auction.getCurrentLeaderId() != bid.getBidderId()) {
             return "Đã bị vượt";
         }
         if (auction.getStatus() == common.models.auction.AuctionStatus.FINISHED
@@ -404,7 +453,8 @@ public class BidderController {
     private Auction findAuctionSafe(int auctionId) {
         // Tim tu cache truoc
         for (Auction a : cachedAuctions) {
-            if (a.getAuctionId() == auctionId) return a;
+            if (a.getAuctionId() == auctionId)
+                return a;
         }
         // Neu khong co thi goi server
         try {
@@ -423,7 +473,8 @@ public class BidderController {
             XYChart.Series<Number, Number> series = new XYChart.Series<>();
             series.setName("Giá đặt");
             List<BidTransaction> sorted = bids.stream()
-                    .sorted(Comparator.comparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.naturalOrder())))
+                    .sorted(Comparator.comparing(BidTransaction::getBidTime,
+                            Comparator.nullsLast(Comparator.naturalOrder())))
                     .toList();
             int index = 1;
             for (BidTransaction bid : sorted) {
@@ -434,18 +485,20 @@ public class BidderController {
     }
 
     private void clearChart() {
-        if (priceHistoryChart != null) priceHistoryChart.getData().clear();
+        if (priceHistoryChart != null)
+            priceHistoryChart.getData().clear();
     }
 
     private <T> void runInBackground(BackgroundSupplier<T> supplier, java.util.function.Consumer<T> onSuccess) {
         Task<T> task = new Task<>() {
             @Override
-            protected T call() { return supplier.get(); }
+            protected T call() {
+                return supplier.get();
+            }
         };
         task.setOnSucceeded(event -> onSuccess.accept(task.getValue()));
-        task.setOnFailed(event -> Platform.runLater(() ->
-                showAlert(Alert.AlertType.ERROR, "Lỗi hệ thống",
-                        task.getException() == null ? "Không thể tải dữ liệu." : task.getException().getMessage())));
+        task.setOnFailed(event -> Platform.runLater(() -> showAlert(Alert.AlertType.ERROR, "Lỗi hệ thống",
+                task.getException() == null ? "Không thể tải dữ liệu." : task.getException().getMessage())));
         backgroundExecutor.submit(task);
     }
 
@@ -471,8 +524,10 @@ public class BidderController {
         shutdown();
         try {
             authClient.logout();
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
         ClientSession.clear();
+        shutdown();
         try {
             showLoginScreen();
         } catch (IOException e) {
@@ -524,8 +579,10 @@ public class BidderController {
     private void syncBidderState() {
         try {
             User latestUser = authClient.getUserById(currentBidder.getId()).orElse(null);
-            if (latestUser != null) syncBidderState(latestUser);
-        } catch (RuntimeException ignored) {}
+            if (latestUser != null)
+                syncBidderState(latestUser);
+        } catch (RuntimeException ignored) {
+        }
     }
 
     private void syncBidderState(User latestUser) {
@@ -552,7 +609,8 @@ public class BidderController {
     }
 
     private boolean isOwnAuction(Auction auction) {
-        if (auction == null || currentBidder == null || auction.getSellerId() == null) return false;
+        if (auction == null || currentBidder == null || auction.getSellerId() == null)
+            return false;
         return auction.getSellerId().trim().equals(String.valueOf(currentBidder.getId()));
     }
 
@@ -571,7 +629,8 @@ public class BidderController {
         public final String endTime;
         public final Auction auction;
 
-        public AuctionRow(String id, String itemName, String type, String currentPrice, String seller, String status, String endTime, Auction auction) {
+        public AuctionRow(String id, String itemName, String type, String currentPrice, String seller, String status,
+                String endTime, Auction auction) {
             this.id = id;
             this.itemName = itemName;
             this.type = type;

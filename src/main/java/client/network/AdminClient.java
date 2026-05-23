@@ -57,10 +57,7 @@ public class AdminClient {
     }
 
     public void logout() {
-        try {
-            socketClient.sendRequest("logout", null);
-        } catch (Exception ignored) {
-        }
+        socketClient.sendRequestAsync("logout", null);
     }
 
     public void cancelAuction(int auctionId) {

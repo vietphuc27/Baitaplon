@@ -18,7 +18,8 @@ public class BidClient {
     }
 
     public BidClient(SocketClient socketClient) {
-        if (socketClient == null) throw new IllegalArgumentException("socketClient khong duoc null");
+        if (socketClient == null)
+            throw new IllegalArgumentException("socketClient khong duoc null");
         this.socketClient = socketClient;
     }
 
@@ -32,11 +33,13 @@ public class BidClient {
         Map<String, Object> response = socketClient.sendRequest("get_all_auctions", null);
         ensureSuccess(response);
         List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("auctions");
-        if (items == null) return List.of();
+        if (items == null)
+            return List.of();
         List<Auction> result = new ArrayList<>();
         for (Map<String, Object> m : items) {
             Auction a = mapToAuction(m);
-            if (a != null) result.add(a);
+            if (a != null)
+                result.add(a);
         }
         return result;
     }
@@ -124,6 +127,7 @@ public class BidClient {
             String sellerId = (String) m.getOrDefault("sellerId", "");
             String statusStr = String.valueOf(m.getOrDefault("auctionStatus", m.getOrDefault("status", "-")));
             double currentPrice = m.get("currentPrice") instanceof Number n ? n.doubleValue() : 0;
+            double startingPrice = m.get("startingPrice") instanceof Number n ? n.doubleValue() : currentPrice;
             Integer currentLeaderId = parseNullableInteger(m.get("currentLeaderId"));
             String startTimeStr = (String) m.getOrDefault("startTime", "");
             String endTimeStr = (String) m.getOrDefault("endTime", "");
@@ -132,15 +136,21 @@ public class BidClient {
             LocalDateTime endTime = endTimeStr.isEmpty() ? null : LocalDateTime.parse(endTimeStr);
 
             // Tao item fake de Item.getName() khong bi null
-            Item item = new Item(0, itemName, "", currentPrice, sellerId) {
-                @Override public String getInfo() { return itemName; }
+            Item item = new Item(0, itemName, "", startingPrice, sellerId) {
+                @Override
+                public String getInfo() {
+                    return itemName;
+                }
             };
 
             Auction a = new Auction(id, item, sellerId, startTime, endTime);
             a.setCurrentHighestBid(currentPrice);
             a.setCurrentLeaderId(currentLeaderId);
             if (!statusStr.equals("-")) {
-                try { a.setStatus(AuctionStatus.valueOf(statusStr)); } catch (Exception ignored) {}
+                try {
+                    a.setStatus(AuctionStatus.valueOf(statusStr));
+                } catch (Exception ignored) {
+                }
             }
             return a;
         } catch (Exception e) {
@@ -149,17 +159,21 @@ public class BidClient {
     }
 
     private Integer parseNullableInteger(Object value) {
-        if (value == null) return null;
-        if (value instanceof Number n) return n.intValue();
+        if (value == null)
+            return null;
+        if (value instanceof Number n)
+            return n.intValue();
         String text = String.valueOf(value).trim();
-        if (text.isEmpty() || "null".equalsIgnoreCase(text)) return null;
+        if (text.isEmpty() || "null".equalsIgnoreCase(text))
+            return null;
         return Integer.parseInt(text);
     }
 
     @SuppressWarnings("unchecked")
     private List<BidTransaction> parseBidList(Map<String, Object> response) {
         List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("bids");
-        if (items == null) return List.of();
+        if (items == null)
+            return List.of();
         List<BidTransaction> result = new ArrayList<>();
         for (Map<String, Object> m : items) {
             try {
@@ -170,16 +184,21 @@ public class BidClient {
                 String timeStr = (String) m.getOrDefault("bidTime", "");
                 BidTransaction b = new BidTransaction(bidId, auctionId, bidderId, amount);
                 if (!timeStr.isEmpty()) {
-                    try { b.setBidTime(LocalDateTime.parse(timeStr)); } catch (Exception ignored) {}
+                    try {
+                        b.setBidTime(LocalDateTime.parse(timeStr));
+                    } catch (Exception ignored) {
+                    }
                 }
                 result.add(b);
-            } catch (Exception ignored) {}
+            } catch (Exception ignored) {
+            }
         }
         return result;
     }
 
     private void ensureSuccess(Map<String, Object> response) {
-        if (response == null || response.isEmpty()) throw new RuntimeException("Server khong tra ve du lieu");
+        if (response == null || response.isEmpty())
+            throw new RuntimeException("Server khong tra ve du lieu");
         Object status = response.get("status");
         if (status == null || !"success".equalsIgnoreCase(String.valueOf(status))) {
             Object msg = response.get("message");

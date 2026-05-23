@@ -25,7 +25,7 @@ public class SocketClient implements Closeable {
 
     private static final String DEFAULT_HOST = "127.0.0.1";
     private static final int DEFAULT_PORT = 2026;
-    private static final long RESPONSE_TIMEOUT_MS = 30_000;
+    private static final long RESPONSE_TIMEOUT_MS = 5_000;
 
     private final String host;
     private final int port;
@@ -91,11 +91,37 @@ public class SocketClient implements Closeable {
         return sendRawRequest(request);
     }
 
+    /**
+     * Gửi request nhưng KHÔNG chờ response (fire-and-forget).
+     * Dùng cho các action như logout mà không cần response.
+     */
+    public void sendRequestAsync(String action, Map<String, Object> payload) {
+        if (action == null || action.trim().isEmpty()) {
+            throw new IllegalArgumentException("action khong duoc de trong");
+        }
+
+        LinkedHashMap<String, Object> request = new LinkedHashMap<>();
+        request.put("action", action.trim());
+        if (payload != null) {
+            request.putAll(payload);
+        }
+
+        synchronized (ioLock) {
+            try {
+                ensureConnected();
+                writer.println(JsonUtils.toJson(request));
+                writer.flush();
+            } catch (RuntimeException e) {
+                // Không throw lỗi vì đây là fire-and-forget
+            }
+        }
+    }
+
     public Map<String, Object> sendRawRequest(Map<String, Object> request) {
         // Gửi request
         synchronized (ioLock) {
-            ensureConnected();
             try {
+                ensureConnected();
                 writer.println(JsonUtils.toJson(request));
                 writer.flush();
             } catch (RuntimeException e) {
@@ -116,6 +142,8 @@ public class SocketClient implements Closeable {
             return response;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            closeQuietly();
+            connected = false;
             throw new RuntimeException("Bị gián đoạn khi chờ phản hồi từ server", e);
         }
     }
@@ -155,7 +183,7 @@ public class SocketClient implements Closeable {
         try {
             socket = new Socket();
             socket.connect(new InetSocketAddress(host, port), 3000);
-            socket.setSoTimeout(0);
+            socket.setSoTimeout(5000);
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             writer = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8);
 

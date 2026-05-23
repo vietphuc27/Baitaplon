@@ -140,12 +140,14 @@ public class RequestHandler {
         return id;
     }
 
-    private Item buildItem(int itemId, String sellerId, String itemName, String description, double startPrice, String itemType, Map<String, Object> request) {
+    private Item buildItem(int itemId, String sellerId, String itemName, String description, double startPrice,
+            String itemType, Map<String, Object> request) {
         String type = normalizeItemType(itemType);
         return switch (type) {
             case "art" -> {
                 String artist = getOptionalText(request, "artist");
-                if (artist == null) throw new IllegalArgumentException("Thieu truong artist");
+                if (artist == null)
+                    throw new IllegalArgumentException("Thieu truong artist");
                 yield new Art(itemId, itemName, description, startPrice, sellerId, artist);
             }
             case "electronics" ->
@@ -161,15 +163,19 @@ public class RequestHandler {
 
     private String normalizeItemType(String rawType) {
         String type = rawType.toLowerCase();
-        if (type.contains("ngh") || type.contains("art")) return "art";
-        if (type.contains("dien") || type.contains("điện") || type.contains("electronic")) return "electronics";
-        if (type.contains("phuong") || type.contains("phương") || type.contains("vehicle")) return "vehicle";
+        if (type.contains("ngh") || type.contains("art"))
+            return "art";
+        if (type.contains("dien") || type.contains("điện") || type.contains("electronic"))
+            return "electronics";
+        if (type.contains("phuong") || type.contains("phương") || type.contains("vehicle"))
+            return "vehicle";
         return type;
     }
 
     private String getOptionalText(Map<String, Object> request, String key) {
         Object value = request.get(key);
-        if (value == null) return null;
+        if (value == null)
+            return null;
         String text = String.valueOf(value).trim();
         return text.isEmpty() ? null : text;
     }
@@ -178,7 +184,8 @@ public class RequestHandler {
         String sellerId = getRequiredText(request, "sellerId");
         int auctionId = getRequiredInt(request, "auctionId");
         Auction auction = auctionService.endAuctionBySeller(sellerId, auctionId);
-        String response = JsonUtils.toJson(Map.of("status", "success", "auctionId", auction.getAuctionId(), "auctionStatus", String.valueOf(auction.getStatus())));
+        String response = JsonUtils.toJson(Map.of("status", "success", "auctionId", auction.getAuctionId(),
+                "auctionStatus", String.valueOf(auction.getStatus())));
         broadcastPush("AUCTION_ENDED", auction);
         return response;
     }
@@ -252,8 +259,10 @@ public class RequestHandler {
         String auctionId = getRequiredText(request, "auctionId");
         int bidderId = getRequiredInt(request, "bidderId");
         double amount = getRequiredDouble(request, "amount");
-        User user = userService.findById(bidderId).orElseThrow(() -> new IllegalArgumentException("Khong tim thay bidder"));
-        if (!(user instanceof Bidder bidder)) throw new IllegalArgumentException("User khong phai bidder");
+        User user = userService.findById(bidderId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay bidder"));
+        if (!(user instanceof Bidder bidder))
+            throw new IllegalArgumentException("User khong phai bidder");
         BidTransaction bid = bidService.placeBid(auctionId, bidder, amount);
         String response = JsonUtils.toJson(Map.of("status", "success", "bidId", bid.getId()));
         broadcastBidPush(auctionId, bid);
@@ -263,7 +272,8 @@ public class RequestHandler {
     private void broadcastBidPush(String auctionId, BidTransaction bid) {
         AuctionDAO dao = new AuctionDAO();
         Auction auction = dao.findById(Integer.parseInt(auctionId)).orElse(null);
-        if (auction == null) return;
+        if (auction == null)
+            return;
 
         Map<String, Object> push = new LinkedHashMap<>();
         push.put("push", "BID_PLACED");
@@ -305,7 +315,8 @@ public class RequestHandler {
         int auctionId = getRequiredInt(request, "auctionId");
         AuctionDAO dao = new AuctionDAO();
         Auction a = dao.findById(auctionId).orElse(null);
-        if (a == null) return buildError("Khong tim thay phien dau gia: " + auctionId);
+        if (a == null)
+            return buildError("Khong tim thay phien dau gia: " + auctionId);
         Map<String, Object> m = new LinkedHashMap<>(toAuctionMap(a));
         m.put("status", "success");
         return JsonUtils.toJson(m);
@@ -346,7 +357,8 @@ public class RequestHandler {
     private String handleGetUserById(Map<String, Object> request) {
         int userId = getRequiredInt(request, "userId");
         Optional<User> opt = userService.findById(userId);
-        if (opt.isEmpty()) return buildError("Khong tim thay user: " + userId);
+        if (opt.isEmpty())
+            return buildError("Khong tim thay user: " + userId);
         User u = opt.get();
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("status", "success");
@@ -367,20 +379,24 @@ public class RequestHandler {
         int userId = getRequiredInt(request, "userId");
         double amount = getRequiredDouble(request, "amount");
         Optional<User> opt = userService.findById(userId);
-        if (opt.isEmpty()) return buildError("Khong tim thay user");
+        if (opt.isEmpty())
+            return buildError("Khong tim thay user");
         User u = opt.get();
         boolean success = false;
         UserDAO dao = new UserDAO();
         if (u instanceof Bidder b) {
             success = b.getWallet().deposit(amount);
-            if (success) dao.update(b);
+            if (success)
+                dao.update(b);
         } else if (u instanceof Seller s) {
             success = s.getWallet().deposit(amount);
-            if (success) dao.update(s);
+            if (success)
+                dao.update(s);
         } else {
             return buildError("Khong the nap tien cho user nay");
         }
-        if (!success) return buildError("Nap tien khong thanh cong");
+        if (!success)
+            return buildError("Nap tien khong thanh cong");
         return JsonUtils.toJson(Map.of("status", "success"));
     }
 
@@ -397,7 +413,8 @@ public class RequestHandler {
         int agentId = getRequiredInt(request, "agentId");
         AutoBidManager manager = AutoBidManager.getInstance();
         boolean cancelled = manager.cancelAgent(agentId);
-        if (!cancelled) return buildError("Khong tim thay agent auto-bid");
+        if (!cancelled)
+            return buildError("Khong tim thay agent auto-bid");
         return JsonUtils.toJson(Map.of("status", "success", "message", "Da huy auto-bid"));
     }
 
@@ -407,14 +424,17 @@ public class RequestHandler {
         AutoBidManager manager = AutoBidManager.getInstance();
         boolean hasActive = manager.hasActiveAgent(bidderId, auctionId);
         AutoBidAgent agent = manager.getAgent(bidderId, auctionId);
-        if (!hasActive || agent == null) return JsonUtils.toJson(Map.of("status", "success", "active", false));
-        return JsonUtils.toJson(Map.of("status", "success", "active", true, "agentId", agent.getAgentId(), "maxBid", agent.getMaxBid(), "increment", agent.getIncrement()));
+        if (!hasActive || agent == null)
+            return JsonUtils.toJson(Map.of("status", "success", "active", false));
+        return JsonUtils.toJson(Map.of("status", "success", "active", true, "agentId", agent.getAgentId(), "maxBid",
+                agent.getMaxBid(), "increment", agent.getIncrement()));
     }
 
     private String buildUserResponse(User user, String token) {
         LinkedHashMap<String, Object> response = new LinkedHashMap<>();
         response.put("status", "success");
-        if (token != null && !token.isBlank()) response.put("token", token);
+        if (token != null && !token.isBlank())
+            response.put("token", token);
         response.put("userId", user.getId());
         response.put("username", user.getUsername());
         response.put("email", user.getEmail());
@@ -431,26 +451,38 @@ public class RequestHandler {
 
     private String getRequiredText(Map<String, Object> request, String key) {
         Object value = request.get(key);
-        if (value == null) throw new IllegalArgumentException(key + " khong duoc de trong");
+        if (value == null)
+            throw new IllegalArgumentException(key + " khong duoc de trong");
         String text = String.valueOf(value).trim();
-        if (text.isEmpty()) throw new IllegalArgumentException(key + " khong duoc de trong");
+        if (text.isEmpty())
+            throw new IllegalArgumentException(key + " khong duoc de trong");
         return text;
     }
 
     private int getRequiredInt(Map<String, Object> request, String key) {
         Object value = request.get(key);
-        if (value == null) throw new IllegalArgumentException(key + " khong duoc de trong");
-        if (value instanceof Number n) return n.intValue();
-        try { return Integer.parseInt(String.valueOf(value).trim()); }
-        catch (NumberFormatException e) { throw new IllegalArgumentException(key + " phai la so nguyen"); }
+        if (value == null)
+            throw new IllegalArgumentException(key + " khong duoc de trong");
+        if (value instanceof Number n)
+            return n.intValue();
+        try {
+            return Integer.parseInt(String.valueOf(value).trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(key + " phai la so nguyen");
+        }
     }
 
     private double getRequiredDouble(Map<String, Object> request, String key) {
         Object value = request.get(key);
-        if (value == null) throw new IllegalArgumentException(key + " khong duoc de trong");
-        if (value instanceof Number n) return n.doubleValue();
-        try { return Double.parseDouble(String.valueOf(value).trim()); }
-        catch (NumberFormatException e) { throw new IllegalArgumentException(key + " phai la so"); }
+        if (value == null)
+            throw new IllegalArgumentException(key + " khong duoc de trong");
+        if (value instanceof Number n)
+            return n.doubleValue();
+        try {
+            return Double.parseDouble(String.valueOf(value).trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(key + " phai la so");
+        }
     }
 
     private String buildError(String message) {
@@ -462,6 +494,7 @@ public class RequestHandler {
         map.put("auctionId", String.valueOf(auction.getAuctionId()));
         map.put("itemName", auction.getItem() != null ? auction.getItem().getName() : "-");
         map.put("itemType", auction.getItem() != null ? auction.getItem().getClass().getSimpleName() : "-");
+        map.put("startingPrice", auction.getItem() != null ? auction.getItem().getStartingPrice() : 0);
         map.put("currentPrice", auction.getCurrentHighestBid());
         map.put("currentLeaderId", auction.getCurrentLeaderId());
         map.put("sellerId", auction.getSellerId() != null ? auction.getSellerId() : "");
