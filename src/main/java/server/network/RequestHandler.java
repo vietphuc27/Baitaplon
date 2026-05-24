@@ -494,6 +494,7 @@ public class RequestHandler {
         map.put("auctionId", String.valueOf(auction.getAuctionId()));
         map.put("itemName", auction.getItem() != null ? auction.getItem().getName() : "-");
         map.put("itemType", auction.getItem() != null ? auction.getItem().getClass().getSimpleName() : "-");
+        map.put("description", auction.getItem() != null ? auction.getItem().getDescription() : "");
         map.put("startingPrice", auction.getItem() != null ? auction.getItem().getStartingPrice() : 0);
         map.put("currentPrice", auction.getCurrentHighestBid());
         map.put("currentLeaderId", auction.getCurrentLeaderId());

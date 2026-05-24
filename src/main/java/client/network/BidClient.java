@@ -124,6 +124,7 @@ public class BidClient {
         try {
             int id = Integer.parseInt(String.valueOf(m.get("auctionId")));
             String itemName = (String) m.getOrDefault("itemName", "-");
+            String description = (String) m.getOrDefault("description", "");
             String sellerId = (String) m.getOrDefault("sellerId", "");
             String statusStr = String.valueOf(m.getOrDefault("auctionStatus", m.getOrDefault("status", "-")));
             double currentPrice = m.get("currentPrice") instanceof Number n ? n.doubleValue() : 0;
@@ -136,7 +137,7 @@ public class BidClient {
             LocalDateTime endTime = endTimeStr.isEmpty() ? null : LocalDateTime.parse(endTimeStr);
 
             // Tao item fake de Item.getName() khong bi null
-            Item item = new Item(0, itemName, "", startingPrice, sellerId) {
+            Item item = new Item(0, itemName, description, startingPrice, sellerId) {
                 @Override
                 public String getInfo() {
                     return itemName;
