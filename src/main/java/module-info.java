@@ -21,8 +21,7 @@ module view.btl {
     exports common.models.item;
     exports common.models.auction;
     exports server.manager;
-
-    opens server.manager to javafx.fxml;
+    opens server.manager;
 
     exports server.repository;
 
@@ -33,5 +32,6 @@ module view.btl {
     opens server.repository.dao to javafx.fxml;
 
     exports server.service;
+    opens server.service;
     exports server.config;
 }

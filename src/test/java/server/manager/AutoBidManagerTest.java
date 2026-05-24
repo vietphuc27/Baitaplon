@@ -8,8 +8,13 @@ import common.models.user.Bidder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import server.repository.AuctionDAO;
+import server.repository.BidTransactionDAO;
+import server.repository.UserDAO;
 
+import java.sql.Connection;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -348,7 +353,12 @@ public class AutoBidManagerTest {
         // 2. Agent 1 can still bid: 200 + 50 = 250 (loop continues)
         // 3. Agent 2 can still bid: 250 + 50 = 300 (loop continues)
         // ... until one reaches their maxBid
-        List<BidTransaction> autoBids = manager.processAutoBids(auction, initialBid);
+        List<BidTransaction> autoBids = manager.processAutoBids(
+                auction,
+                initialBid,
+                new InMemoryBidTransactionDAO(),
+                new InMemoryUserDAO(),
+                new InMemoryAuctionDAO());
         
         System.out.println("\nFinal bid price after auto-bidding: " + auction.getCurrentHighestBid());
         System.out.println("Total auto-bids generated: " + autoBids.size());
@@ -380,7 +390,12 @@ public class AutoBidManagerTest {
         boolean bidAccepted = auction.processBid(initialBid);
         assertTrue(bidAccepted, "Initial bid should be accepted");
 
-        List<BidTransaction> autoBids = manager.processAutoBids(auction, initialBid);
+        List<BidTransaction> autoBids = manager.processAutoBids(
+                auction,
+                initialBid,
+                new InMemoryBidTransactionDAO(),
+                new InMemoryUserDAO(),
+                new InMemoryAuctionDAO());
 
         // 1 agent (BIDDER_2) + 1 manual bidder (BIDDER_1) = 1 autobid hợp lệ
         assertEquals(1, autoBids.size(), "Single agent should bid once against a manual bidder");
@@ -413,5 +428,34 @@ public class AutoBidManagerTest {
 
     private void assertGreater(int actual, int expected, String message) {
         assertTrue(actual > expected, message);
+    }
+
+    private static final class InMemoryAuctionDAO extends AuctionDAO {
+        @Override
+        public void update(Auction auction) {
+            // no-op for unit tests
+        }
+
+        @Override
+        public void update(Connection conn, Auction auction) {
+            // no-op for unit tests
+        }
+    }
+
+    private static final class InMemoryBidTransactionDAO extends BidTransactionDAO {
+        private final List<BidTransaction> bids = new ArrayList<>();
+
+        @Override
+        public void save(BidTransaction bid) {
+            bids.add(bid);
+        }
+
+        @Override
+        public void save(Connection conn, BidTransaction bid) {
+            bids.add(bid);
+        }
+    }
+
+    private static final class InMemoryUserDAO extends UserDAO {
     }
 }

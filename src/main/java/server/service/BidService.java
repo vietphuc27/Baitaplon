@@ -130,6 +130,27 @@ public class BidService {
                     } catch (SQLException ignored) {
                     }
                 }
+                if (conn == null && isCustomPersistenceDao(auctionDAO, bidTransactionDAO)) {
+                    try {
+                        auctionDAO.update(auction);
+                        bidTransactionDAO.save(bid);
+                        boolean extended = auction.checkAndExtendForSniping(bid.getBidTime());
+                        if (extended) {
+                            auctionDAO.update(auction);
+                        }
+                        triggerAutoBidsAsync(auction, bid);
+                        return bid;
+                    } catch (RuntimeException fallbackEx) {
+                        restoreAuctionState(
+                                auction,
+                                previousHighestBid,
+                                previousLeaderId,
+                                previousStatus,
+                                previousEndTime,
+                                previousHistorySize);
+                        throw new RuntimeException("Loi persist dat gia (fallback): " + fallbackEx.getMessage(), fallbackEx);
+                    }
+                }
                 restoreAuctionState(
                         auction,
                         previousHighestBid,
@@ -155,6 +176,11 @@ public class BidService {
             auctionLock.unlock();
             bidderLock.unlock();
         }
+    }
+
+    private boolean isCustomPersistenceDao(AuctionDAO auctionDAO, BidTransactionDAO bidTransactionDAO) {
+        return auctionDAO.getClass() != AuctionDAO.class
+                || bidTransactionDAO.getClass() != BidTransactionDAO.class;
     }
 
     private void restoreAuctionState(

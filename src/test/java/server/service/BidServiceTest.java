@@ -18,6 +18,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Connection;
 import java.time.LocalDateTime;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -321,6 +322,11 @@ class BidServiceTest {
         }
 
         @Override
+        public void update(Connection conn, Auction auction) {
+            auctions.put(auction.getAuctionId(), auction);
+        }
+
+        @Override
         public void delete(int id) {
             auctions.remove(id);
         }
@@ -331,6 +337,11 @@ class BidServiceTest {
 
         @Override
         public void save(BidTransaction bid) {
+            bids.add(bid);
+        }
+
+        @Override
+        public void save(Connection conn, BidTransaction bid) {
             bids.add(bid);
         }
 
