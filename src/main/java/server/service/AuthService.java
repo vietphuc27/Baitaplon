@@ -3,6 +3,7 @@ package server.service;
 import common.exceptions.AuthenticationException;
 import common.models.user.User;
 import common.models.user.UserStatus;
+import server.manager.SessionManager;
 import server.repository.UserDAO;
 import server.util.PasswordUtil;
 
@@ -62,6 +63,7 @@ public class AuthService {
 
         user.setStatus(UserStatus.LOGIN);
         userDAO.update(user);
+        SessionManager.getInstance().login(user);
 
         String token = generateToken();
         TOKEN_STORE.put(token, new AuthSession(user.getId(), LocalDateTime.now().plusMinutes(tokenTtlMinutes)));

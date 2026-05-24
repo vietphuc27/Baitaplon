@@ -50,8 +50,7 @@ public class BidService {
             AuctionManager auctionManager,
             AuctionDAO auctionDAO,
             BidTransactionDAO bidTransactionDAO,
-            UserDAO userDAO
-    ) {
+            UserDAO userDAO) {
         this.auctionManager = auctionManager;
         this.auctionDAO = auctionDAO;
         this.bidTransactionDAO = bidTransactionDAO;
@@ -78,8 +77,10 @@ public class BidService {
     }
 
     public BidTransaction placeBid(Auction auction, Bidder bidder, double amount) {
-        if (auction == null) throw new IllegalArgumentException("Khong tim thay phien dau gia");
-        if (bidder == null) throw new IllegalArgumentException("Khong tim thay bidder");
+        if (auction == null)
+            throw new IllegalArgumentException("Khong tim thay phien dau gia");
+        if (bidder == null)
+            throw new IllegalArgumentException("Khong tim thay bidder");
 
         ReentrantLock bidderLock = BIDDER_LOCKS.computeIfAbsent(bidder.getId(), id -> new ReentrantLock());
         ReentrantLock auctionLock = AuctionLockManager.getLock(auction.getAuctionId());
@@ -188,10 +189,12 @@ public class BidService {
     }
 
     private void validateBid(Auction auction, Bidder bidder, double amount) {
-        if (amount <= 0) throw new InvalidBidException("Gia khong hop le");
+        if (amount <= 0)
+            throw new InvalidBidException("Gia khong hop le");
 
-        if (auction.getItem() == null) throw new InvalidBidException("Phien dau gia khong hop le");
-        
+        if (auction.getItem() == null)
+            throw new InvalidBidException("Phien dau gia khong hop le");
+
         if (isSellerBiddingOwnAuction(auction, bidder)) {
             throw new InvalidBidException("Khong the tu dau gia san pham cua chinh minh");
         }
@@ -203,14 +206,16 @@ public class BidService {
                 && LocalDateTime.now().isBefore(auction.getStartTime())) {
             throw new InvalidBidException("Phien dau gia chua bat dau");
         }
-        if (auction.isClosed()) throw new AuctionClosedException("Phien dau gia da dong");
+        if (auction.isClosed())
+            throw new AuctionClosedException("Phien dau gia da dong");
         if (amount < auction.getItem().getStartingPrice()) {
             throw new InvalidBidException("Gia dat phai lon hon gia ban dau");
         }
         if (auction.getCurrentHighestBid() > 0 && amount <= auction.getCurrentHighestBid()) {
             throw new InvalidBidException("Gia dat phai lon hon gia cao nhat");
         }
-        if (bidder.getWallet() == null) throw new InvalidBidException("Khong du so du");
+        if (bidder.getWallet() == null)
+            throw new InvalidBidException("Khong du so du");
 
         double available = calculateAvailableForAuction(bidder, auction.getAuctionId());
         if (amount > available + EPSILON) {
@@ -222,7 +227,8 @@ public class BidService {
         if (maxBid <= 0 || increment <= 0) {
             throw new InvalidBidException("Thong so auto-bid khong hop le");
         }
-        if (auction.getItem() == null) throw new InvalidBidException("Phien dau gia khong hop le");
+        if (auction.getItem() == null)
+            throw new InvalidBidException("Phien dau gia khong hop le");
         if (isSellerBiddingOwnAuction(auction, bidder)) {
             throw new InvalidBidException("Khong the tu dau gia san pham cua chinh minh");
         }
@@ -234,11 +240,13 @@ public class BidService {
                 && LocalDateTime.now().isBefore(auction.getStartTime())) {
             throw new InvalidBidException("Phien dau gia chua bat dau");
         }
-        if (auction.isClosed()) throw new AuctionClosedException("Phien dau gia da dong");
+        if (auction.isClosed())
+            throw new AuctionClosedException("Phien dau gia da dong");
         if (maxBid <= auction.getCurrentHighestBid()) {
             throw new InvalidBidException("Gia tran phai lon hon gia hien tai");
         }
-        if (bidder.getWallet() == null) throw new InvalidBidException("Khong du so du");
+        if (bidder.getWallet() == null)
+            throw new InvalidBidException("Khong du so du");
 
         double available = calculateAvailableForAuction(bidder, auction.getAuctionId());
         if (maxBid > available + EPSILON) {

@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -37,8 +38,15 @@ class BidServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Reset AuctionManager singleton to avoid state pollution from other tests
+        try {
+            Field instanceField = AuctionManager.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            instanceField.set(null, null);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot reset AuctionManager", e);
+        }
         auctionManager = AuctionManager.getInstance();
-        auctionManager.getAllActiveAuctions().clear();
         // Reset AutoBidManager singleton to avoid state pollution from other tests
         server.manager.AutoBidManager.getInstance().resetForTesting();
         server.manager.AutoBidManager.getInstance().setAutoBidDelayMillis(0);
@@ -50,7 +58,13 @@ class BidServiceTest {
 
     @AfterEach
     void tearDown() {
-        auctionManager.getAllActiveAuctions().clear();
+        try {
+            Field instanceField = AuctionManager.class.getDeclaredField("instance");
+            instanceField.setAccessible(true);
+            instanceField.set(null, null);
+        } catch (Exception e) {
+            throw new RuntimeException("Cannot reset AuctionManager", e);
+        }
     }
 
     @Test
@@ -129,7 +143,6 @@ class BidServiceTest {
         assertEquals(2, bidTransactionDAO.findByAuctionId(6).size());
         assertEquals(100.01, bidService.getCurrentHighestBid("6").getBidAmount(), 0.0001);
     }
-
 
     @Test
     void placeBidRejectsWhenBalanceIsBelowBidAmount() {
@@ -265,14 +278,14 @@ class BidServiceTest {
     }
 
     private Auction createRunningAuction(int auctionId, double startingPrice) {
-        Item item = new Art(1000 + auctionId, "Painting " + auctionId, "Landscape", startingPrice, "seller-1", "Artist");
+        Item item = new Art(1000 + auctionId, "Painting " + auctionId, "Landscape", startingPrice, "seller-1",
+                "Artist");
         Auction auction = new Auction(
                 auctionId,
                 item,
                 "seller-1",
                 LocalDateTime.now().minusHours(1),
-                LocalDateTime.now().plusHours(1)
-        );
+                LocalDateTime.now().plusHours(1));
         auction.setStatus(AuctionStatus.RUNNING);
         return auction;
     }
