@@ -11,10 +11,13 @@ import common.models.user.User;
 import server.manager.AuctionManager;
 import server.manager.AuctionLockManager;
 import server.manager.AutoBidManager;
+import server.config.DatabaseConnection;
 import server.repository.AuctionDAO;
 import server.repository.BidTransactionDAO;
 import server.repository.UserDAO;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -89,6 +92,11 @@ public class BidService {
         auctionLock.lock();
         try {
             validateBid(auction, bidder, amount);
+            double previousHighestBid = auction.getCurrentHighestBid();
+            Integer previousLeaderId = auction.getCurrentLeaderId();
+            AuctionStatus previousStatus = auction.getStatus();
+            LocalDateTime previousEndTime = auction.getEndTime();
+            int previousHistorySize = auction.getBidHistory() == null ? 0 : auction.getBidHistory().size();
 
             BidTransaction bid = new BidTransaction(0, auction.getAuctionId(), bidder.getId(), amount);
             bid.setBidTime(LocalDateTime.now());
@@ -99,29 +107,72 @@ public class BidService {
                 throw new InvalidBidException("Gia dat khong hop le hoac phien da dong");
             }
 
+            Connection conn = null;
             try {
-                auctionDAO.update(auction);
-                bidTransactionDAO.save(bid);
+                conn = DatabaseConnection.getConnection();
+                conn.setAutoCommit(false);
+
+                auctionDAO.update(conn, auction);
+                bidTransactionDAO.save(conn, bid);
 
                 boolean extended = auction.checkAndExtendForSniping(bid.getBidTime());
                 if (extended) {
-                    auctionDAO.update(auction);
+                    auctionDAO.update(conn, auction);
                 }
 
+                conn.commit();
                 triggerAutoBidsAsync(auction, bid);
                 return bid;
-            } catch (RuntimeException e) {
-                rollbackAuctionState(auction, bid);
-                try {
-                    auctionDAO.update(auction);
-                } catch (RuntimeException ignored) {
+            } catch (RuntimeException | SQLException e) {
+                if (conn != null) {
+                    try {
+                        conn.rollback();
+                    } catch (SQLException ignored) {
+                    }
                 }
-                throw e;
+                restoreAuctionState(
+                        auction,
+                        previousHighestBid,
+                        previousLeaderId,
+                        previousStatus,
+                        previousEndTime,
+                        previousHistorySize);
+                        
+                throw new RuntimeException("Loi persist dat gia: " + e.getMessage(), e);
+            } finally {
+                if (conn != null) {
+                    try {
+                        conn.setAutoCommit(true);
+                    } catch (SQLException ignored) {
+                    }
+                    try {
+                        conn.close();
+                    } catch (SQLException ignored) {
+                    }
+                }
             }
         } finally {
             auctionLock.unlock();
             bidderLock.unlock();
         }
+    }
+
+    private void restoreAuctionState(
+            Auction auction,
+            double previousHighestBid,
+            Integer previousLeaderId,
+            AuctionStatus previousStatus,
+            LocalDateTime previousEndTime,
+            int previousHistorySize) {
+        if (auction.getBidHistory() != null) {
+            while (auction.getBidHistory().size() > previousHistorySize) {
+                auction.getBidHistory().remove(auction.getBidHistory().size() - 1);
+            }
+        }
+        auction.setCurrentHighestBid(previousHighestBid);
+        auction.setCurrentLeaderId(previousLeaderId);
+        auction.setStatus(previousStatus);
+        auction.setEndTime(previousEndTime);
     }
 
     public int registerAutoBid(int bidderId, int auctionId, double maxBid, double increment) {
@@ -290,15 +341,5 @@ public class BidService {
                 && auction.getSellerId().equals(String.valueOf(bidder.getId()));
     }
 
-    private void rollbackAuctionState(Auction auction, BidTransaction bid) {
-        auction.getBidHistory().remove(bid);
-        if (!auction.getBidHistory().isEmpty()) {
-            BidTransaction last = auction.getBidHistory().get(auction.getBidHistory().size() - 1);
-            auction.setCurrentHighestBid(last.getBidAmount());
-            auction.setCurrentLeaderId(last.getBidderId());
-        } else {
-            auction.setCurrentHighestBid(auction.getItem() != null ? auction.getItem().getStartingPrice() : 0);
-            auction.setCurrentLeaderId(null);
-        }
-    }
+    
 }

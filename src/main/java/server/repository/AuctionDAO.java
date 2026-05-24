@@ -150,13 +150,20 @@ public class AuctionDAO implements AuctionRepository {
     // ─── UPDATE ───────────────────────────────────────────────────
     @Override
     public void update(Auction auction) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            update(conn, auction);
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi cập nhật auction: " + e.getMessage());
+        }
+    }
+
+    public void update(Connection conn, Auction auction) {
         String sql = "UPDATE auctions "
                 + "SET current_highest_bid = ?, current_leader_id = ?, "
                 + "status = ?, end_time = ? "
                 + "WHERE id = ?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setDouble(1, auction.getCurrentHighestBid());
             if (auction.getCurrentLeaderId() == null) {

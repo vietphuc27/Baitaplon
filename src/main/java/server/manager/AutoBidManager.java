@@ -2,11 +2,15 @@ package server.manager;
 
 import common.models.auction.AutoBidAgent;
 import common.models.auction.Auction;
+import common.models.auction.AuctionStatus;
 import common.models.auction.BidTransaction;
+import server.config.DatabaseConnection;
 import server.repository.AuctionDAO;
 import server.repository.BidTransactionDAO;
 import server.repository.UserDAO;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +34,7 @@ public class AutoBidManager {
         this.agentToAuction = new ConcurrentHashMap<>();
         this.allAgents = new ConcurrentHashMap<>();
         this.nextAgentId = 1;
-        this.autoBidDelayMillis = 450L;
+        this.autoBidDelayMillis = 1000L;
     }
 
     public static AutoBidManager getInstance() {
@@ -103,24 +107,10 @@ public class AutoBidManager {
         while (hasMoreBids && roundCount < maxRounds) {
             roundCount++;
 
-            List<BidTransaction> roundAutoBids = processAutoBidsOneRound(auction, currentTrigger);
+            List<BidTransaction> roundAutoBids = processAutoBidsOneRound(auction, currentTrigger, bidDAO, auctionDAO);
             if (roundAutoBids.isEmpty()) {
                 hasMoreBids = false;
             } else {
-                for (BidTransaction autoBid : roundAutoBids) {
-                    try {
-                        bidDAO.save(autoBid);
-                    } catch (RuntimeException e) {
-                        System.err.println("AutoBid persist error for auction " + autoBid.getAuctionId() + ": " + e.getMessage());
-                    }
-                }
-
-                try {
-                    auctionDAO.update(auction);
-                } catch (RuntimeException e) {
-                    System.err.println("AutoBid update auction error: " + e.getMessage());
-                }
-
                 allAutoBids.addAll(roundAutoBids);
                 currentTrigger = roundAutoBids.get(roundAutoBids.size() - 1);
             }
@@ -142,7 +132,11 @@ public class AutoBidManager {
         return allAutoBids;
     }
 
-    private List<BidTransaction> processAutoBidsOneRound(Auction auction, BidTransaction triggeredBid) {
+    private List<BidTransaction> processAutoBidsOneRound(
+            Auction auction,
+            BidTransaction triggeredBid,
+            BidTransactionDAO bidDAO,
+            AuctionDAO auctionDAO) {
         List<BidTransaction> autoBids = new ArrayList<>();
         int auctionId = auction.getAuctionId();
 
@@ -187,8 +181,26 @@ public class AutoBidManager {
                 BidTransaction autoBid = new BidTransaction(0, auctionId, agent.getBidderId(), proposedBid);
                 autoBid.setBidTime(LocalDateTime.now());
 
+                double previousHighestBid = auction.getCurrentHighestBid();
+                Integer previousLeaderId = auction.getCurrentLeaderId();
+                AuctionStatus previousStatus = auction.getStatus();
+                LocalDateTime previousEndTime = auction.getEndTime();
+                int previousHistorySize = auction.getBidHistory() == null ? 0 : auction.getBidHistory().size();
+
                 boolean accepted = auction.processBid(autoBid);
                 if (!accepted) {
+                    cleanupAgent(agent);
+                    continue;
+                }
+
+                if (!persistAutoBidAtomically(auction, autoBid, bidDAO, auctionDAO)) {
+                    restoreAuctionState(
+                            auction,
+                            previousHighestBid,
+                            previousLeaderId,
+                            previousStatus,
+                            previousEndTime,
+                            previousHistorySize);
                     cleanupAgent(agent);
                     continue;
                 }
@@ -261,5 +273,59 @@ public class AutoBidManager {
 
     private synchronized int generateAgentId() {
         return nextAgentId++;
+    }
+
+    private boolean persistAutoBidAtomically(
+            Auction auction,
+            BidTransaction autoBid,
+            BidTransactionDAO bidDAO,
+            AuctionDAO auctionDAO) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
+            auctionDAO.update(conn, auction);
+            bidDAO.save(conn, autoBid);
+            conn.commit();
+            return true;
+        } catch (RuntimeException | SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
+            }
+            System.err.println("AutoBid persist error for auction " + autoBid.getAuctionId() + ": " + e.getMessage());
+            return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException ignored) {
+                }
+                try {
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
+            }
+        }
+    }
+
+    private void restoreAuctionState(
+            Auction auction,
+            double previousHighestBid,
+            Integer previousLeaderId,
+            AuctionStatus previousStatus,
+            LocalDateTime previousEndTime,
+            int previousHistorySize) {
+        if (auction.getBidHistory() != null) {
+            while (auction.getBidHistory().size() > previousHistorySize) {
+                auction.getBidHistory().remove(auction.getBidHistory().size() - 1);
+            }
+        }
+        auction.setCurrentHighestBid(previousHighestBid);
+        auction.setCurrentLeaderId(previousLeaderId);
+        auction.setStatus(previousStatus);
+        auction.setEndTime(previousEndTime);
     }
 }

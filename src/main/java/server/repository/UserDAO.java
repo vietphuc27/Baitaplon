@@ -78,11 +78,18 @@ public class UserDAO implements UserRepository {
     // ─── UPDATE ───────────────────────────────────────────────────
     @Override
     public void update(User user) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            update(conn, user);
+        } catch (SQLException e) {
+            throw new RuntimeException("Lỗi cập nhật user: " + e.getMessage());
+        }
+    }
+
+    public void update(Connection conn, User user) {
         String sql = "UPDATE users SET username=?, email=?, password=?, status=?, wallet_balance=? "
                 + "WHERE id=?";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, user.getUsername());
             stmt.setString(2, user.getEmail());

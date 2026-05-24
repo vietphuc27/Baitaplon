@@ -19,11 +19,18 @@ public class BidTransactionDAO implements BidTransactionRepository {
 
     @Override
     public void save(BidTransaction bid) {
+        try (Connection conn = DatabaseConnection.getConnection()) {
+            save(conn, bid);
+        } catch (SQLException e) {
+            throw new RuntimeException("Loi luu BidTransaction: " + e.getMessage());
+        }
+    }
+
+    public void save(Connection conn, BidTransaction bid) {
         String sql = "INSERT INTO bid_transactions (auction_id, bidder_id, bid_amount, bid_time) "
                 + "VALUES (?, ?, ?, ?)";
 
-        try (Connection conn = DatabaseConnection.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             stmt.setInt(1, bid.getAuctionId());
             stmt.setInt(2, bid.getBidderId());

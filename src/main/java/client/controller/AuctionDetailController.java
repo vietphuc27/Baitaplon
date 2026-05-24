@@ -29,6 +29,7 @@ import java.util.concurrent.Executors;
 
 public class AuctionDetailController {
     private static final Duration AUTO_REFRESH_INTERVAL = Duration.millis(300);
+    private static final long ERROR_MIN_DISPLAY_MILLIS = 2500L;
 
     // Static list tracking all open AuctionDetail windows
     private static final List<javafx.stage.Stage> OPEN_STAGES = new ArrayList<>();
@@ -61,6 +62,7 @@ public class AuctionDetailController {
     private volatile boolean refreshInProgress = false;
     private volatile boolean refreshQueued = false;
     private String lastHistorySignature = "";
+    private volatile long errorVisibleSinceMillis = 0L;
 
     @FXML
     private Label itemNameLabel;
@@ -481,7 +483,7 @@ public class AuctionDetailController {
     private void updateBidPanelState() {
         if (viewOnly) {
             setBidPanelVisible(false);
-            hideError();
+            hideErrorIfDisplayTimeElapsed();
             return;
         }
         boolean canBid = currentBidder != null && !isOwnAuction();
@@ -496,7 +498,7 @@ public class AuctionDetailController {
             return;
         }
         setBidInputEnabled(true);
-        hideError();
+        hideErrorIfDisplayTimeElapsed();
     }
 
     private void applyStatusStyle() {
@@ -536,12 +538,25 @@ public class AuctionDetailController {
         Platform.runLater(() -> {
             errorLabel.setText(message);
             errorLabel.setVisible(true);
+            errorVisibleSinceMillis = System.currentTimeMillis();
         });
     }
 
     private void hideError() {
         errorLabel.setVisible(false);
         errorLabel.setText("");
+        errorVisibleSinceMillis = 0L;
+    }
+
+    private void hideErrorIfDisplayTimeElapsed() {
+        if (errorLabel == null || !errorLabel.isVisible()) {
+            return;
+        }
+        long elapsed = System.currentTimeMillis() - errorVisibleSinceMillis;
+        if (elapsed < ERROR_MIN_DISPLAY_MILLIS) {
+            return;
+        }
+        hideError();
     }
 
     private boolean isOwnAuction() {

@@ -6,9 +6,12 @@ import common.models.item.Item;
 import common.models.user.Bidder;
 import common.models.user.User;
 import server.manager.AuctionManager;
+import server.config.DatabaseConnection;
 import server.repository.AuctionDAO;
 import server.repository.UserDAO;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -168,19 +171,36 @@ public class AuctionService {
             return;
         }
 
+        Connection conn = null;
         try {
-            userDAO.update(bidder);
+            conn = DatabaseConnection.getConnection();
+            conn.setAutoCommit(false);
+            userDAO.update(conn, bidder);
             auction.setStatus(AuctionStatus.PAID);
-            auctionDAO.update(auction);
+            auctionDAO.update(conn, auction);
+            conn.commit();
             System.out.println("Da tru " + winningAmount + " tu nguoi thang " + winnerId
                     + " cho phien " + auction.getAuctionId() + ".");
-        } catch (RuntimeException e) {
-            bidder.getWallet().deposit(winningAmount);
-            try {
-                userDAO.update(bidder);
-            } catch (RuntimeException ignored) {
+        } catch (RuntimeException | SQLException e) {
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ignored) {
+                }
             }
-            throw e;
+            bidder.getWallet().deposit(winningAmount);
+            throw new RuntimeException("Loi persist thanh toan winner: " + e.getMessage(), e);
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException ignored) {
+                }
+                try {
+                    conn.close();
+                } catch (SQLException ignored) {
+                }
+            }
         }
     }
 
