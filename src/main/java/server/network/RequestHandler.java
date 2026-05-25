@@ -491,7 +491,6 @@ public class RequestHandler {
 
     private String toItemTypeDisplay(Item item) {
         if (item instanceof Art)
-        )
             return "Tác phẩm nghệ thuật";
         if (item instanceof Electronics)
             return "Điện tử";
