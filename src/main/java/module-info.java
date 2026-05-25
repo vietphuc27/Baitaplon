@@ -13,19 +13,36 @@ module view.btl {
     opens common.models.entity to javafx.fxml;
     opens common.models.item to javafx.fxml;
     opens common.models.auction to javafx.fxml;
-    opens client.controller to javafx.fxml;
+    opens client.controller;
+    opens client.network;
+    opens client.application;
 
     // Export packages used by the application
     exports common.models.user;
     exports common.models.entity;
     exports common.models.item;
     exports common.models.auction;
+
+    // Export & Open util, factory, and exception packages for tests
+    exports common.utils;
+    opens common.utils;
+
+    exports common.exceptions;
+    opens common.exceptions;
+
+    exports common.itemfactory;
+    opens common.itemfactory;
+
+    exports common.userfactory;
+    opens common.userfactory;
+
+    opens common.models;
+
     exports server.manager;
     opens server.manager;
 
     exports server.repository;
-
-    opens server.repository to javafx.fxml;
+    opens server.repository;
 
     exports server.repository.dao;
 

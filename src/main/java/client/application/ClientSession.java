@@ -21,7 +21,6 @@ public final class ClientSession {
     public static SocketClient getSocket() {
         if (sharedSocket == null) {
             sharedSocket = new SocketClient();
-            sharedSocket.connect();
         }
         return sharedSocket;
     }
