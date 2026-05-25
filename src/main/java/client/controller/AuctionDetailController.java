@@ -1,12 +1,12 @@
 package client.controller;
 
+import client.application.ClientSession;
 import client.network.BidClient;
+import client.network.SocketClient;
 import common.models.auction.Auction;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
 import common.utils.FormatUtils;
-import javafx.animation.KeyFrame;
-import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -18,7 +18,6 @@ import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.stage.WindowEvent;
-import javafx.util.Duration;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -28,7 +27,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class AuctionDetailController {
-    private static final Duration AUTO_REFRESH_INTERVAL = Duration.millis(300);
     private static final long ERROR_MIN_DISPLAY_MILLIS = 2500L;
 
     // Static list tracking all open AuctionDetail windows
@@ -116,7 +114,7 @@ public class AuctionDetailController {
     private final BidClient bidClient = new BidClient();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final ObservableList<BidTransaction> historyRows = FXCollections.observableArrayList();
-    private Timeline refreshTimeline;
+    private final SocketClient.PushListener auctionPushListener = this::handlePushEvent;
     private Auction auction;
     private Bidder currentBidder;
     private boolean viewOnly = false;
@@ -145,7 +143,7 @@ public class AuctionDetailController {
         updateBidPanelState();
         updateHeader();
         refreshDataAsync();
-        startAutoRefresh();
+        registerAuctionPushListener();
         checkExistingAutoBid();
     }
 
@@ -371,13 +369,29 @@ public class AuctionDetailController {
 
     // ====== END AUTO-BID ======
 
-    private void startAutoRefresh() {
-        if (refreshTimeline != null) {
-            refreshTimeline.stop();
+    private void registerAuctionPushListener() {
+        try {
+            ClientSession.getSocket().addPushListener(auctionPushListener);
+        } catch (RuntimeException e) {
+            showError("Khong the dang ky kenh cap nhat realtime.");
         }
-        refreshTimeline = new Timeline(new KeyFrame(AUTO_REFRESH_INTERVAL, event -> refreshDataAsync()));
-        refreshTimeline.setCycleCount(Timeline.INDEFINITE);
-        refreshTimeline.play();
+    }
+
+    private void handlePushEvent(String event, Map<String, Object> data) {
+        if (auction == null || data == null || !data.containsKey("auctionId")) {
+            return;
+        }
+
+        String eventAuctionId = String.valueOf(data.get("auctionId")).trim();
+        if (!eventAuctionId.equals(String.valueOf(auction.getAuctionId()))) {
+            return;
+        }
+
+        if (!"BID_PLACED".equals(event) && !"AUCTION_ENDED".equals(event) && !"AUCTION_CANCELED".equals(event)) {
+            return;
+        }
+
+        Platform.runLater(this::refreshDataAsync);
     }
 
     private void refreshDataAsync() {
@@ -567,8 +581,9 @@ public class AuctionDetailController {
     }
 
     private void shutdown() {
-        if (refreshTimeline != null) {
-            refreshTimeline.stop();
+        try {
+            ClientSession.getSocket().removePushListener(auctionPushListener);
+        } catch (RuntimeException ignored) {
         }
         executor.shutdownNow();
     }

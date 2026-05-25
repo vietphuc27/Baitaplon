@@ -10,9 +10,12 @@ import java.io.PrintWriter;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -32,6 +35,7 @@ public class SocketClient implements Closeable {
     private final Object ioLock = new Object();
     private final Object listenerLock = new Object();
     private final BlockingQueue<Map<String, Object>> responseQueue = new LinkedBlockingQueue<>();
+    private final CopyOnWriteArrayList<PushListener> pushListeners = new CopyOnWriteArrayList<>();
 
     private Socket socket;
     private BufferedReader reader;
@@ -61,6 +65,20 @@ public class SocketClient implements Closeable {
         synchronized (listenerLock) {
             this.pushListener = listener;
         }
+    }
+
+    public void addPushListener(PushListener listener) {
+        if (listener == null) {
+            return;
+        }
+        pushListeners.addIfAbsent(listener);
+    }
+
+    public void removePushListener(PushListener listener) {
+        if (listener == null) {
+            return;
+        }
+        pushListeners.remove(listener);
     }
 
     /**
@@ -244,19 +262,26 @@ public class SocketClient implements Closeable {
 
     @SuppressWarnings("unchecked")
     private void dispatchPush(Map<String, Object> message) {
-        PushListener listener;
+        PushListener singleListener;
         synchronized (listenerLock) {
-            listener = this.pushListener;
+            singleListener = this.pushListener;
         }
-        if (listener == null) {
+        List<PushListener> listeners = new ArrayList<>(pushListeners);
+        if (singleListener != null && !listeners.contains(singleListener)) {
+            listeners.add(singleListener);
+        }
+
+        if (listeners.isEmpty()) {
             return;
         }
 
         String event = String.valueOf(message.getOrDefault("push", ""));
-        try {
-            listener.onPush(event, message);
-        } catch (RuntimeException e) {
-            System.err.println("[SocketClient] Lỗi xử lý push event '" + event + "': " + e.getMessage());
+        for (PushListener listener : listeners) {
+            try {
+                listener.onPush(event, message);
+            } catch (RuntimeException e) {
+                System.err.println("[SocketClient] Lỗi xử lý push event '" + event + "': " + e.getMessage());
+            }
         }
     }
 
