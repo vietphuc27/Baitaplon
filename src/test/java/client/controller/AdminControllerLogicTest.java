@@ -2,9 +2,7 @@ package client.controller;
 
 import client.application.ClientSession;
 import client.network.TestSocketClient;
-import javafx.application.Platform;
 import javafx.concurrent.Task;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,25 +10,12 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Comparator;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AdminControllerLogicTest {
-
-    @BeforeAll
-    static void initFxToolkit() throws Exception {
-        CountDownLatch latch = new CountDownLatch(1);
-        try {
-            Platform.startup(latch::countDown);
-        } catch (IllegalStateException alreadyStarted) {
-            latch.countDown();
-        }
-        assertTrue(latch.await(5, TimeUnit.SECONDS));
-    }
 
     @BeforeEach
     void setUp() throws Exception {
