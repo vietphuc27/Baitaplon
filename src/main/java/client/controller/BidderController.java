@@ -411,7 +411,7 @@ public class BidderController {
         return new AuctionRow(
                 String.valueOf(a.getAuctionId()),
                 a.getItem() == null ? "-" : a.getItem().getName(),
-                a.getItem() == null ? "-" : a.getItem().getClass().getSimpleName(),
+                a.getItem() == null ? "-" : a.getItem().getClass_SimpleName(),
                 formatCurrency(displayPrice),
                 a.getSellerId() != null ? a.getSellerId() : "-",
                 a.getStatus() == null ? "-" : a.getStatus().name(),
