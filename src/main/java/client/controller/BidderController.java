@@ -141,6 +141,7 @@ public class BidderController {
     private void handleSwitchToSeller() {
         if (!ensureBidderCanContinue())
             return;
+        AuctionDetailController.closeAllWindows();
         try {
             User switched = authClient.switchRole(currentBidder.getId(), "seller");
             ClientSession.setCurrentUser(switched);

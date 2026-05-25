@@ -306,8 +306,8 @@ public class AuctionDetailController {
                 maxBidField.setDisable(false);
                 incrementField.setDisable(false);
                 hideError();
-                System.out.println("Auto-Bid: Đã tắt cho auction " + auction.getAuctionId() 
-                    + ", cancelled immediately=" + cancelled);
+                System.out.println("Auto-Bid: Đã tắt cho auction " + auction.getAuctionId()
+                        + ", cancelled immediately=" + cancelled);
             } else {
                 showError("Không thể hủy auto-bid.");
             }
@@ -346,7 +346,8 @@ public class AuctionDetailController {
         task.setOnSucceeded(event -> {
             if (currentAgentId > 0) {
                 try {
-                    Map<String, Object> status = bidClient.getAutoBidStatus(currentBidder.getId(), auction.getAuctionId());
+                    Map<String, Object> status = bidClient.getAutoBidStatus(currentBidder.getId(),
+                            auction.getAuctionId());
                     double maxBid = status.get("maxBid") instanceof Number n ? n.doubleValue() : 0.0;
                     double increment = status.get("increment") instanceof Number n ? n.doubleValue() : 0.0;
 
@@ -480,7 +481,7 @@ public class AuctionDetailController {
         countdownLabel.setText("Thời gian còn lại: " + remainingTimeText());
         if (auction.getItem() != null) {
             lblProductName.setText(itemName);
-            lblProductType.setText(auction.getItem().getClass().getSimpleName());
+            lblProductType.setText(auction.getItem().getClass_SimpleName());
             lblSellerId.setText(auction.getSellerId());
             lblStartPrice.setText(FormatUtils.formatCurrency(auction.getItem().getStartingPrice()));
             txtDescription

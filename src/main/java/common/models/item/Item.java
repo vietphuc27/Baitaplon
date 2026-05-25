@@ -18,6 +18,10 @@ public abstract class Item extends Entity {
 
     public abstract String getInfo();
 
+    public String getClass_SimpleName() {
+        return this.getClass().getSimpleName();
+    }
+
     public String getName() {
         return name;
     }

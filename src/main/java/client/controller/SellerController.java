@@ -219,6 +219,7 @@ public class SellerController implements Initializable {
             return;
         }
 
+        AuctionDetailController.closeAllWindows();
         try {
             User switchedUser = authClient.switchRole(ClientSession.getCurrentUser().getId(), "bidder");
             ClientSession.setCurrentUser(switchedUser);

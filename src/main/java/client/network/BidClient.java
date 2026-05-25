@@ -132,15 +132,22 @@ public class BidClient {
             Integer currentLeaderId = parseNullableInteger(m.get("currentLeaderId"));
             String startTimeStr = (String) m.getOrDefault("startTime", "");
             String endTimeStr = (String) m.getOrDefault("endTime", "");
+            // Doc itemType tu server response
+            final String itemTypeRaw = m.getOrDefault("itemType", "-") instanceof String s ? s : "-";
 
             LocalDateTime startTime = startTimeStr.isEmpty() ? null : LocalDateTime.parse(startTimeStr);
             LocalDateTime endTime = endTimeStr.isEmpty() ? null : LocalDateTime.parse(endTimeStr);
 
-            // Tao item fake de Item.getName() khong bi null
+            // Tao item wrapper giu lai itemType tu server
             Item item = new Item(0, itemName, description, startingPrice, sellerId) {
                 @Override
                 public String getInfo() {
                     return itemName;
+                }
+
+                @Override
+                public String getClass_SimpleName() {
+                    return itemTypeRaw;
                 }
             };
 

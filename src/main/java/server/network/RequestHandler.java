@@ -489,11 +489,22 @@ public class RequestHandler {
         return JsonUtils.toJson(Map.of("status", "error", "message", message));
     }
 
+    private String toItemTypeDisplay(Item item) {
+        if (item instanceof Art)
+        )
+            return "Tác phẩm nghệ thuật";
+        if (item instanceof Electronics)
+            return "Điện tử";
+        if (item instanceof Vehicle)
+            return "Phương tiện";
+        return item.getClass_SimpleName();
+    }
+
     private Map<String, Object> toAuctionMap(Auction auction) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("auctionId", String.valueOf(auction.getAuctionId()));
         map.put("itemName", auction.getItem() != null ? auction.getItem().getName() : "-");
-        map.put("itemType", auction.getItem() != null ? auction.getItem().getClass().getSimpleName() : "-");
+        map.put("itemType", auction.getItem() != null ? toItemTypeDisplay(auction.getItem()) : "-");
         map.put("description", auction.getItem() != null ? auction.getItem().getDescription() : "");
         map.put("startingPrice", auction.getItem() != null ? auction.getItem().getStartingPrice() : 0);
         map.put("currentPrice", auction.getCurrentHighestBid());
