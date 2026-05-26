@@ -32,6 +32,8 @@ import java.util.Map;
 import java.util.Optional;
 
 public class RequestHandler {
+    // Router trung tam cho toan bo request JSON tu client.
+    // Moi action se duoc map vao 1 nhom chuc nang: auth, auction, bid, admin, wallet, auto-bid.
     private final AuthService authService;
     private final UserService userService;
     private final ItemService itemService;
@@ -46,6 +48,11 @@ public class RequestHandler {
         this.bidService = new BidService();
     }
 
+    // ===== GROUP 1: Request routing & error boundary =====
+    // handle() chi lam 3 viec:
+    // 1) parse JSON request
+    // 2) route theo "action"
+    // 3) chuan hoa error response
     public String handle(String rawRequest, ClientHandler clientHandler) {
         try {
             Map<String, Object> request = JsonUtils.fromJson(rawRequest, Map.class);
@@ -85,6 +92,8 @@ public class RequestHandler {
         }
     }
 
+    // ===== GROUP 2: Authentication flows =====
+    // login/register/logout/refresh token
     private String handleLogin(Map<String, Object> request, ClientHandler clientHandler) {
         String username = getRequiredText(request, "username");
         String password = getRequiredText(request, "password");
@@ -143,6 +152,8 @@ public class RequestHandler {
         return JsonUtils.toJson(Map.of("status", "success"));
     }
 
+    // ===== GROUP 3: Auction lifecycle (seller/admin side) =====
+    // create/end/cancel/get seller auctions + helper tao item
     private String handleCreateAuction(Map<String, Object> request) {
         String sellerId = getRequiredText(request, "sellerId");
         String itemName = getRequiredText(request, "itemName");
@@ -285,6 +296,8 @@ public class RequestHandler {
         return buildUserResponse(switchedUser, null);
     }
 
+    // ===== GROUP 4: Bidding flows =====
+    // place bid + push realtime + query auctions/bid history
     private String handlePlaceBid(Map<String, Object> request) {
         // 1. Xác thực token — lấy userId thật từ JWT
         String token = getRequiredText(request, "token");
@@ -388,6 +401,7 @@ public class RequestHandler {
         return JsonUtils.toJson(Map.of("status", "success", "bids", list));
     }
 
+    // ===== GROUP 5: User profile / wallet =====
     private String handleGetUserById(Map<String, Object> request) {
         int userId = getRequiredInt(request, "userId");
         Optional<User> opt = userService.findById(userId);
@@ -434,6 +448,8 @@ public class RequestHandler {
         return JsonUtils.toJson(Map.of("status", "success"));
     }
 
+    // ===== GROUP 6: Auto-bid control =====
+    // register/cancel/status cho auto-bid agent
     private String handleRegisterAutoBid(Map<String, Object> request) {
         int bidderId = getRequiredInt(request, "bidderId");
         int auctionId = getRequiredInt(request, "auctionId");
@@ -464,6 +480,7 @@ public class RequestHandler {
                 agent.getMaxBid(), "increment", agent.getIncrement()));
     }
 
+    // ===== GROUP 7: Response builders & input validation helpers =====
     private String buildUserResponse(User user, String token) {
         LinkedHashMap<String, Object> response = new LinkedHashMap<>();
         response.put("status", "success");
@@ -523,6 +540,7 @@ public class RequestHandler {
         return JsonUtils.toJson(Map.of("status", "error", "message", message));
     }
 
+    // ===== GROUP 8: Mapping domain -> response DTO =====
     private String toItemTypeDisplay(Item item) {
         if (item instanceof Art)
             return "Tác phẩm nghệ thuật";

@@ -20,8 +20,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
 public class AuctionService {
+    // Khoa toan cuc de tranh refresh trung lap khi nhieu luong chay cung luc
     private static final ReentrantLock REFRESH_LOCK = new ReentrantLock();
 
+    // Phu thuoc chinh: DAO, manager in-memory, service item, DAO user
     private final AuctionDAO auctionDAO;
     private final AuctionManager auctionManager;
     private final ItemService itemService;
@@ -35,6 +37,8 @@ public class AuctionService {
         bootstrapAuctionsFromDatabase();
     }
 
+    // ==================== NGHIEP VU TAO/KET THUC AUCTION ====================
+    // Tao phien dau gia moi sau khi validate seller/item/time
     public Auction createAuction(String sellerId, int itemId, LocalDateTime startTime, LocalDateTime endTime) {
         String normalizedSellerId = requireText(sellerId, "sellerId");
         int normalizedItemId = requirePositiveId(itemId, "itemId");
@@ -68,6 +72,7 @@ public class AuctionService {
         return auction;
     }
 
+    // Seller ket thuc phien cua chinh minh
     public Auction endAuctionBySeller(String sellerId, int auctionId) {
         String normalizedSellerId = requireText(sellerId, "sellerId");
         int normalizedAuctionId = requirePositiveId(auctionId, "auctionId");
@@ -91,6 +96,8 @@ public class AuctionService {
         return auction;
     }
 
+    // ==================== CAP NHAT TRANG THAI THEO THOI GIAN ====================
+    // Chay dinh ky: OPEN -> RUNNING, RUNNING -> FINISHED va xu ly winner
     public void refreshAuctionsStatus() {
         REFRESH_LOCK.lock();
         try {
@@ -125,12 +132,15 @@ public class AuctionService {
         }
     }
 
+    // Lay cac phien dang RUNNING de hien thi real-time
     public List<Auction> getLiveAuctions() {
         return auctionManager.getAllActiveAuctions().stream()
                 .filter(auction -> auction.getStatus() == AuctionStatus.RUNNING)
                 .collect(Collectors.toList());
     }
 
+    // ==================== HAM NOI BO ====================
+    // Nap toan bo auction tu DB vao manager khi khoi tao service
     private void bootstrapAuctionsFromDatabase() {
         try {
             for (Auction auction : auctionDAO.findAll()) {
@@ -143,6 +153,7 @@ public class AuctionService {
         }
     }
 
+    // Xu ly thanh toan nguoi thang: tru tien vi va danh dau PAID
     private void handleAuctionWinner(Auction auction) {
         Integer winnerId = auction.getCurrentLeaderId();
         if (winnerId == null) {
@@ -204,12 +215,14 @@ public class AuctionService {
         }
     }
 
+    // Kiem tra 1 item da co phien chua dong hay chua
     private boolean hasActiveAuctionForItem(int itemId) {
         return auctionManager.getAllActiveAuctions().stream()
                 .filter(auction -> auction.getItem() != null)
                 .anyMatch(auction -> itemId == auction.getItem().getId() && !auction.isClosed());
     }
 
+    // Validate chuoi bat buoc
     private String requireText(String value, String fieldName) {
         if (value == null || value.trim().isEmpty()) {
             throw new IllegalArgumentException(fieldName + " khong duoc de trong");
@@ -217,6 +230,7 @@ public class AuctionService {
         return value.trim();
     }
 
+    // Validate id duong
     private int requirePositiveId(int value, String fieldName) {
         if (value <= 0) {
             throw new IllegalArgumentException(fieldName + " khong hop le");
@@ -224,6 +238,7 @@ public class AuctionService {
         return value;
     }
 
+    // Sinh auction ID ngau nhien khong trung
     private int generateAuctionId() {
         int id;
         do {
@@ -232,6 +247,7 @@ public class AuctionService {
         return id;
     }
 
+    // Validate thoi gian bat buoc
     private LocalDateTime requireTime(LocalDateTime value, String fieldName) {
         if (value == null) {
             throw new IllegalArgumentException(fieldName + " khong duoc de trong");

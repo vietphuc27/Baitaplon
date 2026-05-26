@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class UserService {
+    // Danh sach class creator can load de UserFactory tao dung subtype
     private static final String[] USER_CREATOR_CLASSES = {
             "common.userfactory.SellerCreator",
             "common.userfactory.BidderCreator",
@@ -29,6 +30,8 @@ public class UserService {
         ensureUserCreatorsLoaded();
     }
 
+    // ==================== DANG KY / DANG NHAP ====================
+    // Dang ky voi id cho truoc (dung cho test hoac import)
     public User register(int id, String username, String email, String password, String role) {
         int normalizedId = requirePositiveId(id, "id");
         String normalizedUsername = requireText(username, "username");
@@ -58,10 +61,12 @@ public class UserService {
         return user;
     }
 
+    // Dang ky id tu sinh ngau nhien
     public User register(String username, String email, String password, String role) {
         return register(generateUserId(), username, email, password, role);
     }
 
+    // Dang nhap theo username/password, cap nhat status LOGIN
     public User login(String username, String password) {
         String normalizedUsername = requireText(username, "username");
         String normalizedPassword = requireText(password, "password");
@@ -84,6 +89,7 @@ public class UserService {
         return user;
     }
 
+    // Dang xuat theo userId
     public void logout(int userId) {
         User latestUser = userDAO.findById(requirePositiveId(userId, "userId"))
                 .orElseThrow(() -> new AuthenticationException("Không tìm thấy user"));
@@ -91,6 +97,8 @@ public class UserService {
         userDAO.update(latestUser);
     }
 
+    // ==================== QUAN LY TAI KHOAN ====================
+    // Chuyen role va giu trang thai dang nhap
     public User switchRole(User user, String targetRole) {
         if (user == null) {
             throw new AuthenticationException("Không tìm thấy user hiện tại");
@@ -116,6 +124,7 @@ public class UserService {
         return switchedUser;
     }
 
+    // Khoa tai khoan user
     public User banUser(int id) {
         User user = getRequiredUserById(id);
         user.setStatus(UserStatus.BANNED);
@@ -124,6 +133,7 @@ public class UserService {
         return user;
     }
 
+    // Mo khoa tai khoan user
     public User unbanUser(int id) {
         User user = getRequiredUserById(id);
         user.setStatus(UserStatus.LOGOUT);
@@ -131,6 +141,7 @@ public class UserService {
         return user;
     }
 
+    // Doi mat khau sau khi verify mat khau cu
     public User changePassword(String username, String oldPassword, String newPassword) {
         String normalizedUsername = requireText(username, "username");
         String normalizedOldPassword = requireText(oldPassword, "oldPassword");
@@ -150,35 +161,45 @@ public class UserService {
         return user;
     }
 
+    // ==================== TRUY VAN ====================
+    // Lay tat ca users
     public List<User> getAllUsers() {
         return userDAO.findAll();
     }
 
+    // Tim user theo id
     public Optional<User> findById(int id) {
         return userDAO.findById(requirePositiveId(id, "id"));
     }
 
+    // Tim user theo username
     public Optional<User> findByUsername(String username) {
         return userDAO.findByUsername(requireText(username, "username"));
     }
 
+    // Tim user theo email
     public Optional<User> findByEmail(String email) {
         return userDAO.findByEmail(requireText(email, "email"));
     }
 
+    // Chua duoc trien khai trong phien ban hien tai
     public User getCurrentUser() {
         return null;
     }
 
+    // Chua duoc trien khai trong phien ban hien tai
     public boolean isLoggedIn() {
         return false;
     }
 
+    // ==================== HAM NOI BO ====================
+    // Bat buoc phai ton tai user theo id
     private User getRequiredUserById(int id) {
         return userDAO.findById(requirePositiveId(id, "id"))
                 .orElseThrow(() -> new AuthenticationException("Không tìm thấy user"));
     }
 
+    // Dam bao cac user creator class da duoc load vao UserFactory
     private void ensureUserCreatorsLoaded() {
         for (String creatorClass : USER_CREATOR_CLASSES) {
             try {
@@ -189,6 +210,7 @@ public class UserService {
         }
     }
 
+    // Chuan hoa va validate role
     private String normalizeRole(String role) {
         String normalizedRole = requireText(role, "role").toLowerCase();
         if (!normalizedRole.equals("seller")
@@ -199,6 +221,7 @@ public class UserService {
         return normalizedRole;
     }
 
+    // Validate text bat buoc
     private String requireText(String value, String fieldName) {
         if (value == null) {
             throw new AuthenticationException(fieldName + " không được để trống");
@@ -212,6 +235,7 @@ public class UserService {
         return trimmed;
     }
 
+    // Sinh user id ngau nhien khong trung
     private int generateUserId() {
         int id;
         do {
@@ -220,6 +244,7 @@ public class UserService {
         return id;
     }
 
+    // Validate id duong
     private int requirePositiveId(int value, String fieldName) {
         if (value <= 0) {
             throw new AuthenticationException(fieldName + " phải lớn hơn 0");

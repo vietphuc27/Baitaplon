@@ -10,8 +10,9 @@ import java.nio.charset.StandardCharsets;
 
 import server.manager.ConnectionManager;
 
-public class ClientHandler implements Runnable{
-    //Khi 1 client kết nối, server ném nó cho ClientHandler lo. Nó sẽ nhận dữ liệu (JSON) từ client gửi lên và trả kết quả về.
+public class ClientHandler implements Runnable {
+    // Bridge giua 1 TCP client va RequestHandler.
+    // Nhiem vu: nhan request JSON, goi xu ly, gui response va don dep ket noi.
     private final Socket clientSocket;
     private final RequestHandler requestHandler;
     private final ConnectionManager connectionManager;
@@ -25,8 +26,7 @@ public class ClientHandler implements Runnable{
     private volatile boolean connected;
     private volatile boolean closed;
 
-    public ClientHandler( Socket clientSocket, RequestHandler requestHandler, ConnectionManager connectionManager
-    ) {
+    public ClientHandler(Socket clientSocket, RequestHandler requestHandler, ConnectionManager connectionManager) {
         if (clientSocket == null) {
             throw new IllegalArgumentException("clientSocket không được null");
         }
@@ -42,6 +42,8 @@ public class ClientHandler implements Runnable{
         this.connectionManager = connectionManager;
     }
 
+    // ===== GROUP 1: Connection lifecycle =====
+    // Khoi tao stream IO, dang ky ket noi, gui handshake, sau do xu ly request loop.
     @Override
     public void run() {
         try {
@@ -78,6 +80,8 @@ public class ClientHandler implements Runnable{
         }
     }
 
+    // ===== GROUP 2: Authentication context =====
+    // Luu userId/token cho socket hien tai sau khi login thanh cong.
     public void markAuthenticated(Integer userId, String authToken) {
         this.userId = userId;
         this.authToken = authToken;
@@ -88,6 +92,8 @@ public class ClientHandler implements Runnable{
         this.authToken = null;
     }
 
+    // ===== GROUP 3: Outbound messaging =====
+    // sendLock dam bao khong co 2 luong ghi chen vao cung output stream.
     public void send(String message) {
         if (!isConnected() || message == null || message.isBlank()) {
             return;
@@ -103,6 +109,7 @@ public class ClientHandler implements Runnable{
         }
     }
 
+    // ===== GROUP 4: Accessors / state =====
     public String getClientId() {
         return clientId;
     }
@@ -127,6 +134,8 @@ public class ClientHandler implements Runnable{
         return connected && !closed && !clientSocket.isClosed();
     }
 
+    // ===== GROUP 5: Shutdown and cleanup =====
+    // close() duoc goi o finally de chac chan thu hoi tai nguyen.
     public void close() {
         if (closed) {
             return;
@@ -144,6 +153,7 @@ public class ClientHandler implements Runnable{
         closeSocket();
     }
 
+    // Gui goi loi an toan neu co exception runtime trong vong xu ly request.
     private void sendSafeError() {
         try {
             send("{\"status\":\"error\",\"message\":\"Lỗi hệ thống\"}");
@@ -151,6 +161,7 @@ public class ClientHandler implements Runnable{
         }
     }
 
+    // Dong tung resource rieng de tranh leak khi ket noi bi ngat dot ngot.
     private void closeReader() {
         try {
             if (reader != null) {
@@ -181,6 +192,7 @@ public class ClientHandler implements Runnable{
         return clientSocket.getInetAddress().getHostAddress() + ":" + clientSocket.getPort();
     }
 
+    // ===== GROUP 6: Logging helpers =====
     private void logInfo(String message) {
         System.out.println("[ClientHandler] " + message);
     }

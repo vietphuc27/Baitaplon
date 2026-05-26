@@ -26,15 +26,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class BidService {
+    // Khoa theo bidder de tranh race condition khi 1 bidder dat nhieu lenh cung luc
     private static final ConcurrentHashMap<Integer, ReentrantLock> BIDDER_LOCKS = new ConcurrentHashMap<>();
     private static final double EPSILON = 1e-9;
 
+    // Xu ly auto-bid bat dong bo, gom 1 luong de dam bao thu tu
     private static final ExecutorService AUTO_BID_EXECUTOR = Executors.newSingleThreadExecutor(r -> {
         Thread t = new Thread(r, "auto-bid-processor");
         t.setDaemon(true);
         return t;
     });
 
+    // Phu thuoc chinh cho nghiep vu dat gia
     private final AuctionManager auctionManager;
     private final AuctionDAO auctionDAO;
     private final BidTransactionDAO bidTransactionDAO;
@@ -61,6 +64,8 @@ public class BidService {
         this.autoBidManager = AutoBidManager.getInstance();
     }
 
+    // ==================== DAT GIA ====================
+    // Dat gia theo auctionId string (map sang object auction)
     public BidTransaction placeBid(String auctionId, Bidder bidder, double amount) {
         int auctionIdInt;
         try {
@@ -79,6 +84,7 @@ public class BidService {
         return placeBid(auction, bidder, amount);
     }
 
+    // Dat gia vao auction cu the, co lock + transaction + rollback state khi loi
     public BidTransaction placeBid(Auction auction, Bidder bidder, double amount) {
         if (auction == null)
             throw new IllegalArgumentException("Khong tim thay phien dau gia");
@@ -178,11 +184,13 @@ public class BidService {
         }
     }
 
+    // Kiem tra xem DAO hien tai co phai custom/mock (phuc vu test fallback)
     private boolean isCustomPersistenceDao(AuctionDAO auctionDAO, BidTransactionDAO bidTransactionDAO) {
         return auctionDAO.getClass() != AuctionDAO.class
                 || bidTransactionDAO.getClass() != BidTransactionDAO.class;
     }
 
+    // Khoi phuc lai trang thai auction trong RAM neu persist that bai
     private void restoreAuctionState(
             Auction auction,
             double previousHighestBid,
@@ -201,6 +209,8 @@ public class BidService {
         auction.setEndTime(previousEndTime);
     }
 
+    // ==================== AUTO-BID ====================
+    // Dang ky auto-bid cho bidder tren 1 auction
     public int registerAutoBid(int bidderId, int auctionId, double maxBid, double increment) {
         ReentrantLock bidderLock = BIDDER_LOCKS.computeIfAbsent(bidderId, id -> new ReentrantLock());
         bidderLock.lock();
@@ -230,6 +240,7 @@ public class BidService {
         }
     }
 
+    // Kich hoat xu ly auto-bid sau khi co bid moi
     private void triggerAutoBidsAsync(Auction auction, BidTransaction triggeredBid) {
         AUTO_BID_EXECUTOR.submit(() -> {
             try {
@@ -245,16 +256,20 @@ public class BidService {
         });
     }
 
+    // ==================== TRUY VAN LICH SU BID ====================
+    // Lay lich su bid theo auction
     public List<BidTransaction> getAuctionBidHistory(String auctionId) {
         int id = Integer.parseInt(auctionId);
         return bidTransactionDAO.findByAuctionId(id);
     }
 
+    // Lay lich su bid theo bidder
     public List<BidTransaction> getBidderBidHistory(String bidderId) {
         int id = Integer.parseInt(bidderId);
         return bidTransactionDAO.findByBidderId(id);
     }
 
+    // Lay bid cao nhat hien tai cua 1 auction
     public BidTransaction getCurrentHighestBid(String auctionId) {
         int id;
         try {
@@ -265,6 +280,8 @@ public class BidService {
         return bidTransactionDAO.findHighestBidByAuctionId(id);
     }
 
+    // ==================== VALIDATE NGHIEP VU ====================
+    // Validate dat gia tay (manual bid)
     private void validateBid(Auction auction, Bidder bidder, double amount) {
         if (amount <= 0)
             throw new InvalidBidException("Gia khong hop le");
@@ -300,6 +317,7 @@ public class BidService {
         }
     }
 
+    // Validate dang ky auto-bid
     private void validateAutoBidRegistration(Auction auction, Bidder bidder, double maxBid, double increment) {
         if (maxBid <= 0 || increment <= 0) {
             throw new InvalidBidException("Thong so auto-bid khong hop le");
@@ -331,12 +349,14 @@ public class BidService {
         }
     }
 
+    // Tinh so du kha dung cho 1 auction = vi - so tien dang bi "giu" o cac auction khac
     private double calculateAvailableForAuction(Bidder bidder, int currentAuctionId) {
         double walletBalance = bidder.getWallet() == null ? 0.0 : bidder.getWallet().getBalance();
         double locked = calculateLockedAmountExcludingAuction(bidder.getId(), currentAuctionId);
         return Math.max(0.0, walletBalance - locked);
     }
 
+    // Tinh tong tien dang lock o auction khac do dang dan dau hoac co auto-bid
     private double calculateLockedAmountExcludingAuction(int bidderId, int excludedAuctionId) {
         double lockedAmount = 0.0;
         for (Auction activeAuction : auctionDAO.findAll()) {
@@ -361,6 +381,7 @@ public class BidService {
         return lockedAmount;
     }
 
+    // Chan seller tu dat gia vao chinh auction cua minh
     private boolean isSellerBiddingOwnAuction(Auction auction, Bidder bidder) {
         return auction.getSellerId() != null
                 && bidder != null
