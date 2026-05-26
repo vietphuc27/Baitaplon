@@ -288,10 +288,14 @@ public void placeBid(String auctionId, double amount) {
     payload.put("auctionId", auctionId);
     payload.put("amount", amount);
     payload.put("token", ClientSession.getAuthToken());  // <-- QUAN TRỌNG: gửi kèm JWT
-    Map<String, Object> response = socketClient.sendRequest("place_bid", payload);
+    Map<String, Object> response = socketClient.sendRequestWithAutoRefresh("place_bid", payload);
     ensureSuccess(response);
 }
 ```
+
+**`sendRequestWithAutoRefresh()` khác `sendRequest()` ở điểm nào?**
+- Nếu token hết hạn (sau 15 phút), `sendRequest()` sẽ trả về lỗi "Token không hợp lệ"
+- `sendRequestWithAutoRefresh()` tự động phát hiện lỗi này → gọi API `refresh_token` với refresh token → nhận access token mới → gửi lại request với token mới → user không bị mất thao tác
 
 **Tại sao không gửi bidderId mà gửi token?**
 - Nếu gửi `bidderId`, hacker có thể sửa thành `bidderId` của người khác

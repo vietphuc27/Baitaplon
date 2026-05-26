@@ -60,7 +60,7 @@ public class BidClient {
         payload.put("amount", amount);
         // Gửi JWT token — server sẽ verify và lấy userId từ token
         payload.put("token", ClientSession.getAuthToken());
-        Map<String, Object> response = socketClient.sendRequest("place_bid", payload);
+        Map<String, Object> response = socketClient.sendRequestWithAutoRefresh("place_bid", payload);
         ensureSuccess(response);
     }
 
