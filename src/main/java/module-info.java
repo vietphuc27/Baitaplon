@@ -24,8 +24,6 @@ module view.btl {
     exports common.models.entity;
     exports common.models.item;
     exports common.models.auction;
-    exports common.models;
-    opens common.models;
 
     // Export & Open util, factory, and exception packages for tests
     exports common.utils;
