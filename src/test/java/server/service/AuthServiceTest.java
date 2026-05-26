@@ -4,7 +4,9 @@ import common.exceptions.AuthenticationException;
 import common.models.user.Bidder;
 import common.models.user.User;
 import common.models.user.UserStatus;
+import common.userfactory.AdminCreator;
 import common.userfactory.BidderCreator;
+import common.userfactory.SellerCreator;
 import common.userfactory.UserFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +15,6 @@ import server.manager.SessionManager;
 import server.repository.UserDAO;
 import server.util.PasswordUtil;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -26,25 +27,23 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Load creator classes to register them with UserFactory
         new BidderCreator();
+        new SellerCreator();
+        new AdminCreator();
         userDAO = new InMemoryUserDAO();
-        authService = new AuthService(userDAO, 1);
-        resetAuthState();
+        authService = new AuthService(userDAO);
+        SessionManager.getInstance().logout();
     }
 
     @AfterEach
     void tearDown() {
-        resetAuthState();
+        SessionManager.getInstance().logout();
     }
 
     @Test
     void constructorRejectsNullUserDao() {
-        assertThrows(IllegalArgumentException.class, () -> new AuthService(null, 1));
-    }
-
-    @Test
-    void constructorRejectsNonPositiveTtl() {
-        assertThrows(IllegalArgumentException.class, () -> new AuthService(userDAO, 0));
+        assertThrows(IllegalArgumentException.class, () -> new AuthService(null));
     }
 
     @Test
@@ -53,13 +52,14 @@ class AuthServiceTest {
         user.setStatus(UserStatus.LOGOUT);
         userDAO.put(user);
 
-        String token = authService.login("alice", "secret");
+        Map<String, Object> result = authService.login("alice", "secret");
 
-        assertNotNull(token);
-        assertFalse(token.isBlank());
-        assertTrue(authService.validateToken(token));
+        assertNotNull(result);
+        String accessToken = (String) result.get("accessToken");
+        assertNotNull(accessToken);
+        assertFalse(accessToken.isBlank());
+        assertTrue(authService.validateToken(accessToken));
         assertEquals(UserStatus.LOGIN, userDAO.findById(1).orElseThrow().getStatus());
-        assertEquals("alice", SessionManager.getInstance().getCurrentUser().getUsername());
     }
 
     @Test
@@ -67,11 +67,12 @@ class AuthServiceTest {
         Bidder user = createBidder(2, "diana", "diana@example.com", "secret");
         userDAO.put(user);
 
-        String token = authService.login("  diana  ", "secret");
+        Map<String, Object> result = authService.login("  diana  ", "secret");
 
-        assertNotNull(token);
-        assertTrue(authService.validateToken(token));
-        assertEquals("diana", SessionManager.getInstance().getCurrentUser().getUsername());
+        assertNotNull(result);
+        String accessToken = (String) result.get("accessToken");
+        assertNotNull(accessToken);
+        assertTrue(authService.validateToken(accessToken));
     }
 
     @Test
@@ -105,7 +106,6 @@ class AuthServiceTest {
         userDAO.put(user);
 
         assertThrows(AuthenticationException.class, () -> authService.login("bob", "wrong"));
-        assertNull(SessionManager.getInstance().getCurrentUser());
     }
 
     @Test
@@ -115,7 +115,6 @@ class AuthServiceTest {
         userDAO.put(user);
 
         assertThrows(AuthenticationException.class, () -> authService.login("charlie", "secret"));
-        assertNull(SessionManager.getInstance().getCurrentUser());
     }
 
     @Test
@@ -123,18 +122,24 @@ class AuthServiceTest {
         assertThrows(AuthenticationException.class, () -> authService.authenticate("unknown-token"));
     }
 
-    private void resetAuthState() {
-        try {
-            Field tokenStoreField = AuthService.class.getDeclaredField("TOKEN_STORE");
-            tokenStoreField.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            Map<String, ?> tokenStore = (Map<String, ?>) tokenStoreField.get(null);
-            tokenStore.clear();
+    @Test
+    void validateTokenReturnsFalseForInvalidToken() {
+        assertFalse(authService.validateToken(null));
+        assertFalse(authService.validateToken(""));
+        assertFalse(authService.validateToken("invalid.jwt.token"));
+    }
 
-            SessionManager.getInstance().logout();
-        } catch (ReflectiveOperationException e) {
-            throw new IllegalStateException("Cannot reset auth state", e);
-        }
+    @Test
+    void validateTokenReturnsTrueForValidToken() {
+        Bidder user = createBidder(5, "eve", "eve@example.com", "secret");
+        user.setStatus(UserStatus.LOGOUT);
+        userDAO.put(user);
+
+        Map<String, Object> result = authService.login("eve", "secret");
+        String token = (String) result.get("accessToken");
+
+        assertNotNull(token);
+        assertTrue(authService.validateToken(token));
     }
 
     private Bidder createBidder(int id, String username, String email, String password) {

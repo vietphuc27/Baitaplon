@@ -175,7 +175,7 @@ public class AuctionDetailController {
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() {
-                bidClient.placeBid(String.valueOf(auction.getAuctionId()), currentBidder, amount);
+                bidClient.placeBid(String.valueOf(auction.getAuctionId()), amount);
                 return null;
             }
         };

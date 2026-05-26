@@ -5,46 +5,33 @@ import common.models.user.User;
 import common.models.user.UserStatus;
 import server.manager.SessionManager;
 import server.repository.UserDAO;
+import server.util.JwtUtil;
 import server.util.PasswordUtil;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
-import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class AuthService {
-    private static final int TOKEN_BYTE_LENGTH = 32;
-    private static final long DEFAULT_TOKEN_TTL_MINUTES = 120;
-
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
-    private static final Map<String, AuthSession> TOKEN_STORE = new ConcurrentHashMap<>();
 
     private final UserDAO userDAO;
-    private final long tokenTtlMinutes;
 
     public AuthService() {
-        this(new UserDAO(), DEFAULT_TOKEN_TTL_MINUTES);
+        this(new UserDAO());
     }
 
     public AuthService(UserDAO userDAO) {
-        this(userDAO, DEFAULT_TOKEN_TTL_MINUTES);
-    }
-
-    public AuthService(UserDAO userDAO, long tokenTtlMinutes) {
         if (userDAO == null) {
             throw new IllegalArgumentException("Chưa có UserDao để xử lý đăng nhập");
         }
-        if (tokenTtlMinutes <= 0) {
-            throw new IllegalArgumentException("Thời gian tồn tại của token phải lớn hơn 0");
-        }
-
         this.userDAO = userDAO;
-        this.tokenTtlMinutes = tokenTtlMinutes;
     }
 
-    public String login(String username, String password) {
+    /**
+     * Đăng nhập → trả về Map chứa: accessToken + refreshToken + user info.
+     * Access token: hạn 15 phút
+     * Refresh token: hạn 7 ngày
+     */
+    public Map<String, Object> login(String username, String password) {
         String normalizedUsername = requireText(username, "username");
         String normalizedPassword = requireText(password, "password");
 
@@ -65,24 +52,45 @@ public class AuthService {
         userDAO.update(user);
         SessionManager.getInstance().login(user);
 
-        String token = generateToken();
-        TOKEN_STORE.put(token, new AuthSession(user.getId(), LocalDateTime.now().plusMinutes(tokenTtlMinutes)));
-        return token;
+        // Tạo access token (15 phút) + refresh token (7 ngày)
+        String accessToken = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
+        String refreshToken = JwtUtil.generateRefreshToken(user.getId(), user.getUsername(), user.getRole());
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("accessToken", accessToken);
+        result.put("refreshToken", refreshToken);
+        result.put("user", user);
+        return result;
     }
 
-    public boolean validateToken(String token) {
-        return findValidSession(token).isPresent();
+    /**
+     * Làm mới access token từ refresh token.
+     * @return Map chứa accessToken mới, hoặc throw exception nếu refresh token không hợp lệ
+     */
+    public Map<String, Object> refreshAccessToken(String refreshToken) {
+        String refreshed = JwtUtil.refreshAccessToken(refreshToken);
+        if (refreshed == null) {
+            throw new AuthenticationException("Refresh token không hợp lệ hoặc đã hết hạn, vui lòng đăng nhập lại");
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("accessToken", refreshed);
+        return result;
     }
 
+    /**
+     * Xác thực token JWT → trả về User.
+     * Kiểm tra token hết hạn, user bị BANNED.
+     */
     public User authenticate(String token) {
-        AuthSession session = findValidSession(token)
-                .orElseThrow(() -> new AuthenticationException("Token không hợp lệ hoặc đã hết hạn"));
+        int userId = JwtUtil.getUserIdFromToken(token);
+        if (userId <= 0) {
+            throw new AuthenticationException("Token không hợp lệ hoặc đã hết hạn");
+        }
 
-        User user = userDAO.findById(session.userId())
+        User user = userDAO.findById(userId)
                 .orElseThrow(() -> new AuthenticationException("Không tìm thấy user của token"));
 
         if (user.getStatus() == UserStatus.BANNED) {
-            TOKEN_STORE.remove(normalizeToken(token));
             throw new AuthenticationException("Tài khoản đã bị khoá");
         }
 
@@ -94,76 +102,39 @@ public class AuthService {
     }
 
     public void logout(String token) {
-        String normalizedToken = normalizeToken(token);
-        AuthSession session = findValidSession(normalizedToken).orElse(null);
-        if (session == null) {
-            TOKEN_STORE.remove(normalizedToken);
-            return;
+        // JWT stateless — chỉ cần clear session phía server
+        int userId = JwtUtil.getUserIdFromToken(token);
+        if (userId > 0) {
+            userDAO.findById(userId).ifPresent(user -> {
+                user.setStatus(UserStatus.LOGOUT);
+                userDAO.update(user);
+            });
         }
-
-        userDAO.findById(session.userId()).ifPresent(user -> {
-            user.setStatus(UserStatus.LOGOUT);
-            userDAO.update(user);
-        });
-
-        TOKEN_STORE.remove(normalizedToken);
     }
 
     public void logoutAll(int userId) {
-        int normalizedUserId = requirePositiveId(userId, "userId");
-        TOKEN_STORE.entrySet().removeIf(entry -> entry.getValue().userId() == normalizedUserId);
-
-        userDAO.findById(normalizedUserId).ifPresent(user -> {
+        requirePositiveId(userId, "userId");
+        userDAO.findById(userId).ifPresent(user -> {
             user.setStatus(UserStatus.LOGOUT);
             userDAO.update(user);
         });
     }
 
-    public int clearExpiredTokens() {
-        int before = TOKEN_STORE.size();
-        TOKEN_STORE.entrySet().removeIf(entry -> entry.getValue().isExpired());
-        return before - TOKEN_STORE.size();
-    }
-
-    private Optional<AuthSession> findValidSession(String token) {
-        String normalizedToken = normalizeToken(token);
-        if (normalizedToken.isEmpty()) {
-            return Optional.empty();
-        }
-
-        AuthSession session = TOKEN_STORE.get(normalizedToken);
-        if (session == null) {
-            return Optional.empty();
-        }
-
-        if (session.isExpired()) {
-            TOKEN_STORE.remove(normalizedToken);
-            return Optional.empty();
-        }
-
-        return Optional.of(session);
-    }
-
-    private String generateToken() {
-        byte[] bytes = new byte[TOKEN_BYTE_LENGTH];
-        SECURE_RANDOM.nextBytes(bytes);
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private String normalizeToken(String token) {
-        return token == null ? "" : token.trim();
+    /**
+     * Kiểm tra token JWT có hợp lệ không (dùng cho middleware).
+     */
+    public boolean validateToken(String token) {
+        return JwtUtil.validateToken(token) != null;
     }
 
     private String requireText(String value, String fieldName) {
         if (value == null) {
             throw new AuthenticationException(fieldName + " không được để trống");
         }
-
         String trimmed = value.trim();
         if (trimmed.isEmpty()) {
             throw new AuthenticationException(fieldName + " không được để trống");
         }
-
         return trimmed;
     }
 
@@ -172,11 +143,5 @@ public class AuthService {
             throw new AuthenticationException(fieldName + " phải lớn hơn 0");
         }
         return value;
-    }
-
-    private record AuthSession(int userId, LocalDateTime expiresAt) {
-        private boolean isExpired() {
-            return LocalDateTime.now().isAfter(expiresAt);
-        }
     }
 }

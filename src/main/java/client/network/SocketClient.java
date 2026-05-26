@@ -1,5 +1,6 @@
 package client.network;
 
+import client.application.ClientSession;
 import common.utils.JsonUtils;
 
 import java.io.BufferedReader;
@@ -164,6 +165,63 @@ public class SocketClient implements Closeable {
             connected = false;
             throw new RuntimeException("Bị gián đoạn khi chờ phản hồi từ server", e);
         }
+    }
+
+    /**
+     * Gửi request — nếu server trả về lỗi "token hết hạn" thì tự động refresh token và gửi lại.
+     */
+    public Map<String, Object> sendRequestWithAutoRefresh(String action, Map<String, Object> payload) {
+        Map<String, Object> response = sendRequest(action, payload);
+        // Kiểm tra nếu token hết hạn
+        if (isTokenExpiredError(response)) {
+            // Thử refresh access token
+            boolean refreshed = tryRefreshToken();
+            if (refreshed) {
+                // Cập nhật token trong payload và gửi lại
+                if (payload != null) {
+                    payload.put("token", ClientSession.getAuthToken());
+                }
+                response = sendRequest(action, payload);
+            }
+        }
+        return response;
+    }
+
+    /**
+     * Kiểm tra response có phải lỗi token hết hạn không.
+     */
+    private boolean isTokenExpiredError(Map<String, Object> response) {
+        if (response == null) return false;
+        Object status = response.get("status");
+        if (status == null || !"error".equalsIgnoreCase(String.valueOf(status))) return false;
+        Object message = response.get("message");
+        if (message == null) return false;
+        String msg = String.valueOf(message).toLowerCase();
+        return msg.contains("hết hạn") || msg.contains("expired") || msg.contains("không hợp lệ");
+    }
+
+    /**
+     * Gọi server để refresh access token từ refresh token.
+     * @return true nếu refresh thành công
+     */
+    private boolean tryRefreshToken() {
+        String refreshToken = ClientSession.getRefreshToken();
+        if (refreshToken == null || refreshToken.isBlank()) return false;
+
+        try {
+            LinkedHashMap<String, Object> refreshPayload = new LinkedHashMap<>();
+            refreshPayload.put("refreshToken", refreshToken);
+            Map<String, Object> refreshResponse = sendRequest("refresh_token", refreshPayload);
+
+            if (refreshResponse != null && "success".equalsIgnoreCase(String.valueOf(refreshResponse.get("status")))) {
+                String newAccessToken = String.valueOf(refreshResponse.get("accessToken"));
+                ClientSession.setAuthToken(newAccessToken);
+                return true;
+            }
+        } catch (RuntimeException e) {
+            // Refresh thất bại — user cần đăng nhập lại
+        }
+        return false;
     }
 
     public boolean isConnected() {

@@ -211,7 +211,7 @@ public class BidderController {
         }
 
         runInBackground(() -> {
-            bidClient.placeBid(selectedRow.id, currentBidder, amount);
+            bidClient.placeBid(selectedRow.id, amount);
             return null;
         }, () -> {
             txtBidAmount.clear();

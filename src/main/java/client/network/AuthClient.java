@@ -30,6 +30,17 @@ public class AuthClient {
         payload.put("password", requireText(password, "password"));
         Map<String, Object> response = socketClient.sendRequest("login", payload);
         ensureSuccess(response);
+
+        // Lưu access token + refresh token từ server vào ClientSession
+        Object accessTokenObj = response.get("accessToken");
+        if (accessTokenObj != null) {
+            ClientSession.setAuthToken(String.valueOf(accessTokenObj));
+        }
+        Object refreshTokenObj = response.get("refreshToken");
+        if (refreshTokenObj != null) {
+            ClientSession.setRefreshToken(String.valueOf(refreshTokenObj));
+        }
+
         return toUser(response);
     }
 

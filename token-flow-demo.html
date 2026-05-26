@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token Flow - Đặt Giá An Toàn</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 40px 20px;
+  }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 50px;
+  }
+  .header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #818cf8, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+  }
+  .header p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+  }
+
+  /* Card */
+  .card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  }
+  .card-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #818cf8;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card-title .icon { font-size: 1.5rem; }
+
+  /* Flow Diagram */
+  .flow-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 20px 0;
+  }
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .flow-box {
+    background: #0f172a;
+    border: 2px solid #334155;
+    border-radius: 12px;
+    padding: 20px 28px;
+    text-align: center;
+    min-width: 180px;
+    transition: all 0.3s;
+  }
+  .flow-box:hover {
+    border-color: #818cf8;
+    transform: translateY(-2px);
+    box-shadow: 0 0 20px rgba(129, 140, 248, 0.15);
+  }
+  .flow-box .label {
+    font-size: 0.8rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .flow-box .value {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  .flow-box.highlight {
+    border-color: #34d399;
+    background: rgba(52, 211, 153, 0.08);
+  }
+  .flow-box.error {
+    border-color: #f87171;
+    background: rgba(248, 113, 113, 0.08);
+  }
+  .flow-arrow {
+    color: #475569;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  /* Token Visual */
+  .token-visual {
+    font-family: 'Fira Code', monospace;
+    background: #0f172a;
+    border: 2px dashed #334155;
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    word-break: break-all;
+  }
+  .token-visual .token-text {
+    color: #34d399;
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .token-visual .token-label {
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .token-parts {
+    display: flex;
+    gap: 4px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85rem;
+  }
+  .token-parts .part {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .part-header { background: #1e3a5f; color: #60a5fa; }
+  .part-payload { background: #1a3a2e; color: #34d399; }
+  .part-sig { background: #3a1a1a; color: #f87171; }
+
+  /* Code blocks */
+  .code-block {
+    background: #0f172a;
+    border-radius: 10px;
+    padding: 20px;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    overflow-x: auto;
+    position: relative;
+  }
+  .code-block .comment { color: #64748b; font-style: italic; }
+  .code-block .keyword { color: #818cf8; }
+  .code-block .string { color: #34d399; }
+  .code-block .number { color: #fbbf24; }
+  .code-block .type { color: #f472b6; }
+  .code-block .highlight-line {
+    background: rgba(52, 211, 153, 0.1);
+    border-left: 3px solid #34d399;
+    padding-left: 12px;
+    display: block;
+  }
+  .code-block .error-line {
+    background: rgba(248, 113, 113, 0.1);
+    border-left: 3px solid #f87171;
+    padding-left: 12px;
+    display: block;
+  }
+
+  /* Steps timeline */
+  .timeline {
+    position: relative;
+    padding-left: 30px;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #334155;
+  }
+  .timeline-item {
+    position: relative;
+    margin-bottom: 28px;
+    padding: 16px 20px;
+    background: #0f172a;
+    border-radius: 10px;
+    border: 1px solid #1e293b;
+  }
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -26px;
+    top: 22px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #818cf8;
+    background: #0f172a;
+  }
+  .timeline-item.active::before { background: #34d399; border-color: #34d399; }
+  .timeline-item.error-tl::before { background: #f87171; border-color: #f87171; }
+  .timeline-item .step {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .timeline-item h3 {
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: #e2e8f0;
+  }
+  .timeline-item p {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  /* Two column layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 768px) {
+    .two-col { grid-template-columns: 1fr; }
+    .flow-row { flex-direction: column; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+
+  /* Table */
+  .comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+  .comparison-table th,
+  .comparison-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #1e293b;
+    font-size: 0.9rem;
+  }
+  .comparison-table th {
+    background: #0f172a;
+    color: #818cf8;
+    font-weight: 600;
+  }
+  .comparison-table tr:hover td { background: rgba(129, 140, 248, 0.04); }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-safe { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+  .badge-unsafe { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+  .badge-info { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+
+  /* Animations */
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 10px rgba(52, 211, 153, 0.2); }
+    50% { box-shadow: 0 0 25px rgba(52, 211, 153, 0.4); }
+  }
+  .animate-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .slide-in { animation: slideIn 0.5s ease-out forwards; }
+
+  /* Threat indicators */
+  .threat {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+  .threat-high { background: rgba(248, 113, 113, 0.15); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.3); }
+  .threat-low { background: rgba(251, 191, 36, 0.15); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.3); }
+  .threat-none { background: rgba(52, 211, 153, 0.15); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.3); }
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- HEADER -->
+  <div class="header">
+    <h1>🔐 Token Flow — Đặt Giá Bằng Token Nhạy Cảm</h1>
+    <p>Minh hoạ lý thuyết: Token được tạo, lưu trữ và gửi kèm khi đặt giá như thế nào</p>
+  </div>
+
+  <!-- SECTION 1: HIỆN TRẠNG (KHÔNG TOKEN) -->
+  <div class="card" style="border-color: #f87171;">
+    <div class="card-title">
+      <span class="icon">⚠️</span>
+      Hiện Trạng: Đặt Giá KHÔNG Có Token
+    </div>
+    <p style="color: #94a3b8; margin-bottom: 16px;">
+      Trong code hiện tại, <strong style="color: #f87171;">không có bất kỳ token hay xác thực nào</strong> khi đặt giá.
+      Ai cũng có thể giả mạo <code>bidderId</code> và đặt giá thay người khác — chỉ cần biết ID số.
+    </p>
+
+    <div class="two-col">
+      <div>
+        <h4 style="color: #f87171; margin-bottom: 8px;">📤 Client gửi (BidClient.java dòng 57-64)</h4>
+        <div class="code-block">
+<span class="comment">// Gửi request place_bid — KHÔNG có token!</span>
+Map<String, Object> payload = Map.of(
+  <span class="string">"auctionId"</span>, auctionId,
+  <span class="string">"bidderId"</span>, String.valueOf(bidder.getId()),  <span class="comment">// ← Chỉ là số ID</span>
+  <span class="string">"amount"</span>, amount
+);
+Map<String, Object> response = socketClient.sendRequest(<span class="string">"place_bid"</span>, payload);
+        </div>
+      </div>
+      <div>
+        <h4 style="color: #f87171; margin-bottom: 8px;">📥 Server nhận (RequestHandler.java dòng 258-270)</h4>
+        <div class="code-block">
+<span class="comment">// Server lấy bidderId từ request — KHÔNG verify token</span>
+<span class="type">int</span> bidderId = getRequiredInt(request, <span class="string">"bidderId"</span>);
+<span class="type">double</span> amount = getRequiredDouble(request, <span class="string">"amount"</span>);
+User user = userService.findById(bidderId)
+  .orElseThrow(() -> ...);
+BidTransaction bid = bidService.placeBid(auctionId, (<span class="type">Bidder</span>) user, amount);
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap;">
+      <span class="threat threat-high">🔴 Lỗ hổng: Giả mạo bidderId — ai cũng có thể đặt giá thay người khác</span>
+      <span class="threat threat-high">🔴 Lỗ hổng: Không có xác thực chủ quyền request</span>
+    </div>
+  </div>
+
+  <!-- SECTION 2: LÝ THUYẾT TOKEN FLOW -->
+  <div class="card slide-in">
+    <div class="card-title">
+      <span class="icon">🔄</span>
+      Lý Thuyết: Luồng Token Khi Đặt Giá
+    </div>
+
+    <div class="flow-container">
+      <!-- Bước 1: Login -->
+      <div class="flow-row">
+        <div class="flow-box">
+          <div class="label">Bước 1</div>
+          <div class="value">🔑 Đăng nhập</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight">
+          <div class="label">Tạo Token</div>
+          <div class="value" style="font-size:0.8rem;font-family:'Fira Code',monospace;color:#34d399;">
+            SecureRandom(32 bytes) → Base64URL
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">
+          <div class="label">Lưu Server</div>
+          <div class="value" style="font-size:0.85rem;">
+            TOKEN_STORE.put(token, AuthSession)
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box">
+          <div class="label">Trả về Client</div>
+          <div class="value" style="font-size:0.85rem; color:#60a5fa;">
+            { "token": "abc123...xyz" }
+          </div>
+        </div>
+      </div>
+
+      <!-- Bước 2: Lưu token client -->
+      <div class="flow-row">
+        <div class="flow-box">
+          <div class="label">Bước 2</div>
+          <div class="value">💾 Lưu token vào ClientSession</div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight animate-glow">
+          <div class="label">Bước 3 — ĐẶT GIÁ</div>
+          <div class="value" style="font-size:0.85rem;">
+            Gửi request + Token trong header
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight">
+          <div class="label">Server Verify</div>
+          <div class="value" style="font-size:0.85rem;color:#34d399;">
+            authService.authenticate(token) → userId
+          </div>
+        </div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box highlight">
+          <div class="label">Xử lý Bid</div>
+          <div class="value" style="font-size:0.85rem;color:#34d399;">
+            ✅ Chỉ bidder thật sự mới được đặt
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: TOKEN LÀ GÌ? -->
+  <div class="card slide-in">
+    <div class="card-title">
+      <span class="icon">🔑</span>
+      Cấu Trúc Token Lý Thuyết (JWT-like)
+    </div>
+    <p style="color:#94a3b8; margin-bottom: 16px;">
+      Token là một chuỗi chứa <strong>thông tin định danh</strong> và <strong>chữ ký số</strong> để đảm bảo không thể giả mạo.
+      Dưới đây là minh hoạ token mẫu (JWT 3 phần):
+    </p>
+
+    <div class="token-visual">
+      <span class="token-label">TOKEN MẪU:</span>
+      <span class="token-parts">
+        <span class="part part-header">header</span>
+        <span style="color:#475569;font-weight:700;">.</span>
+        <span class="part part-payload">payload</span>
+        <span style="color:#475569;font-weight:700;">.</span>
+        <span class="part part-sig">signature</span>
+      </span>
+    </div>
+
+    <div class="code-block" style="margin-top: 12px;">
+<span class="comment">// Header: Thuật toán mã hoá</span>
+{
+  <span class="string">"alg"</span>: <span class="string">"HS256"</span>,
+  <span class="string">"typ"</span>: <span class="string">"JWT"</span>
+}
+<span class="comment">// Payload: Dữ liệu định danh người dùng</span>
+{
+  <span class="string">"userId"</span>: <span class="number">42</span>,
+  <span class="string">"username"</span>: <span class="string">"vietphuc"</span>,
+  <span class="string">"role"</span>: <span class="string">"BIDDER"</span>
+}
+<span class="comment">// Signature: HMAC-SHA256(base64(header) + "." + base64(payload), SECRET_KEY)</span>
+<span class="comment">// → Đảm bảo token không thể bị sửa đổi</span>
+    </div>
+  </div>
+
+  <!-- SECTION 4: CÁCH GỬI TOKEN KHI ĐẶT GIÁ -->
+  <div class="card slide-in">
+    <div class="card-title">
+      <span class="icon">📤</span>
+      Cách Gửi Token Khi Đặt Giá — Chi Tiết
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-item active">
+        <div class="step">Bước 1 — Client Lưu Token Sau Login</div>
+        <div class="code-block">
+<span class="comment">// AuthService trả về token cho client</span>
+<span class="type">String</span> token = authService.login(username, password);
+<span class="comment">// Client lưu token vào session</span>
+ClientSession.setAuthToken(token);  <span class="comment">// ← Phải lưu token, hiện tại KHÔNG có!</span>
+        </div>
+      </div>
+
+      <div class="timeline-item active">
+        <div class="step">Bước 2 — Gửi Token Kèm Khi Đặt Giá</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <div>
+            <h4 style="color: #34d399; margin-bottom: 6px;">✅ CÓ Token — An toàn</h4>
+            <div class="code-block">
+<span class="comment">// BidClient gửi token + bid data</span>
+Map<String, Object> payload = Map.of(
+  <span class="string">"auctionId"</span>, auctionId,
+  <span class="string">"amount"</span>, amount,
+  <span class="string">"token"</span>, ClientSession.getAuthToken()  <span class="comment">// ← GỬI TOKEN</span>
+);
+            </div>
+          </div>
+          <div>
+            <h4 style="color: #f87171; margin-bottom: 6px;">❌ KHÔNG Token — Hiện tại</h4>
+            <div class="code-block error-line">
+<span class="comment">// BidClient gửi bidderId trần — giả mạo được!</span>
+Map<String, Object> payload = Map.of(
+  <span class="string">"auctionId"</span>, auctionId,
+  <span class="string">"bidderId"</span>, <span class="string">"42"</span>,                <span class="comment">// ← Ai cũng ghi được số 42</span>
+  <span class="string">"amount"</span>, amount
+);
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline-item active">
+        <div class="step">Bước 3 — Server Xác Thực Token Trước Khi Xử Lý</div>
+        <div class="code-block">
+<span class="highlight-line"><span class="comment">// 1. Lấy token từ request</span></span>
+<span class="highlight-line"><span class="type">String</span> token = getRequiredText(request, <span class="string">"token"</span>);</span>
+<span class="highlight-line"><span class="comment">// 2. Xác thực token → lấy userId thật</span></span>
+<span class="highlight-line">User user = authService.authenticate(token);</span>
+<span class="highlight-line"><span class="comment">// 3. Chỉ dùng userId từ token — KHÔNG tin bidderId từ request!</span></span>
+<span class="highlight-line"><span class="keyword">if</span> (!(user <span class="keyword">instanceof</span> Bidder bidder))</span>
+<span class="highlight-line">  <span class="keyword">throw new</span> AuthenticationException(<span class="string">"Khong phai bidder"</span>);</span>
+<span class="highlight-line"><span class="comment">// 4. Đặt giá — xác thực rồi mới cho qua</span></span>
+<span class="highlight-line">BidTransaction bid = bidService.placeBid(auctionId, bidder, amount);</span>
+        </div>
+      </div>
+
+      <div class="timeline-item active">
+        <div class="step">Bước 4 — Server Kiểm Tra Token Còn Hạn Không</div>
+        <div class="two-col">
+          <div>
+            <h4 style="color: #34d399; margin-bottom: 8px;">📦 AuthSession (trong TOKEN_STORE)</h4>
+            <div class="code-block">
+<span class="keyword">private record</span> AuthSession(
+  <span class="type">int</span> userId,
+  LocalDateTime expiresAt  <span class="comment">// Hết hạn sau 120 phút</span>
+) {
+  <span class="keyword">public boolean</span> isExpired() {
+    <span class="keyword">return</span> LocalDateTime.now().isAfter(expiresAt);
+  }
+}
+            </div>
+          </div>
+          <div>
+            <h4 style="color: #f87171; margin-bottom: 8px;">🚫 Token hết hạn → Từ chối</h4>
+            <div class="code-block error-line">
+<span class="comment">// AuthService.authenticate():</span>
+<span class="keyword">if</span> (session.isExpired()) {
+  TOKEN_STORE.remove(normalizedToken);
+  <span class="keyword">throw new</span> AuthenticationException(
+    <span class="string">"Token khong hop le hoac da het han"</span>
+  );
+}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: SO SÁNH CÓ VS KHÔNG TOKEN -->
+  <div class="card slide-in">
+    <div class="card-title">
+      <span class="icon">⚖️</span>
+      So Sánh: Có Token vs. Không Token
+    </div>
+    <table class="comparison-table">
+      <thead>
+        <tr>
+          <th>Tiêu chí</th>
+          <th>❌ Hiện tại (Không token)</th>
+          <th>✅ Có token</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Xác thực danh tính</td>
+          <td><span class="badge badge-unsafe">Không</span> — Dùng bidderId từ request</td>
+          <td><span class="badge badge-safe">Có</span> — verify token → lấy userId thật</td>
+        </tr>
+        <tr>
+          <td>Giả mạo request</td>
+          <td><span class="badge badge-unsafe">Dễ dàng</span> — Ai cũng gửi được bidderId=42</td>
+          <td><span class="badge badge-safe">Không thể</span> — Cần token hợp lệ</td>
+        </tr>
+        <tr>
+          <td>Replay attack</td>
+          <td><span class="badge badge-unsafe">Có</span> — Bắt request rồi gửi lại</td>
+          <td><span class="badge badge-info">Giảm</span> — Token có hạn, nonce/expiry</td>
+        </tr>
+        <tr>
+          <td>Phiên đăng nhập</td>
+          <td><span class="badge badge-unsafe">Không quản lý</span> — Bidder tự do đặt</td>
+          <td><span class="badge badge-safe">Có</span> — Token gắn với session</td>
+        </tr>
+        <tr>
+          <td>Logout vô hiệu hoá</td>
+          <td><span class="badge badge-unsafe">Không</span> — Dùng thoải mái</td>
+          <td><span class="badge badge-safe">Có</span> — Xoá token khỏi store</td>
+        </tr>
+        <tr>
+          <td>Ban user</td>
+          <td><span class="badge badge-unsafe">Không ngăn ngay</span></td>
+          <td><span class="badge badge-safe">Ngăn ngay lập tức</span> — authenticate kiểm tra BANNED</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+    <!-- SECTION 6: MÃ NGUỒN JWT THỰC TẾ -->
+    <div class="card slide-in">
+      <div class="card-title">
+        <span class="icon">📝</span>
+        Code JWT Thực Tế Đã Triển Khai
+      </div>
+
+      <div class="two-col">
+        <div>
+          <h4 style="color: #60a5fa; margin-bottom: 8px;">1. JwtUtil.java — Tạo & Verify JWT</h4>
+          <div class="code-block">
+<span class="keyword">public final class</span> JwtUtil {
+  <span class="keyword">private static final</span> SecretKey SECRET_KEY =
+    Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+  <span class="keyword">private static final long</span> EXPIRATION_MS = 120 * 60 * 1000;
+
+  <span class="comment">// Tạo JWT với HMAC-SHA256</span>
+  <span class="keyword">public static</span> String generateToken(<span class="type">int</span> userId, String username, String role) {
+    <span class="keyword">return</span> Jwts.builder()
+      .subject(String.valueOf(userId))
+      .claim(<span class="string">"username"</span>, username)
+      .claim(<span class="string">"role"</span>, role)
+      .issuedAt(<span class="keyword">new</span> Date())
+      .expiration(<span class="keyword">new</span> Date(System.currentTimeMillis() + EXPIRATION_MS))
+      .signWith(SECRET_KEY)
+      .compact();
+  }
+
+  <span class="comment">// Verify chữ ký số — trả về null nếu không hợp lệ</span>
+  <span class="keyword">public static</span> Claims validateToken(String token) {
+    <span class="keyword">try</span> {
+      <span class="keyword">return</span> Jwts.parser()
+        .verifyWith(SECRET_KEY)
+        .build()
+        .parseSignedClaims(token)
+        .getPayload();
+    } <span class="keyword">catch</span> (JwtException e) {
+      <span class="keyword">return null</span>; <span class="comment">// Token giả mạo!</span>
+    }
+  }
+}
+        </div>
+      </div>
+      <div>
+        <h4 style="color: #60a5fa; margin-bottom: 8px;">2. AuthService.java — Dùng JWT thay TOKEN_STORE</h4>
+        <div class="code-block">
+<span class="comment">// AuthService KHÔNG còn TOKEN_STORE nữa!</span>
+<span class="comment">// JWT là stateless — server chỉ verify chữ ký</span>
+
+<span class="keyword">public</span> String login(String username, String password) {
+  User user = userDAO.findByUsername(username).orElseThrow(...);
+  <span class="comment">// ... verify password ...</span>
+  <span class="highlight-line"><span class="keyword">return</span> JwtUtil.generateToken(</span>
+  <span class="highlight-line">  user.getId(), user.getUsername(), user.getRole());</span>
+}
+
+<span class="keyword">public</span> User authenticate(String token) {
+  <span class="highlight-line"><span class="type">int</span> userId = JwtUtil.getUserIdFromToken(token);</span>
+  <span class="highlight-line"><span class="keyword">if</span> (userId <= 0) <span class="keyword">throw new</span> AuthenticationException(...);</span>
+  User user = userDAO.findById(userId).orElseThrow(...);
+  <span class="keyword">if</span> (user.getStatus() == BANNED) <span class="keyword">throw new</span> ...;
+  <span class="keyword">return</span> user;
+}
+        </div>
+      </div>
+    </div>
+
+    <div class="card slide-in" style="border-color: #818cf8;">
+      <div class="card-title">
+        <span class="icon">✅</span>
+        Đã Triển Khai JWT Thực Tế! Luồng mới:
+      </div>
+      <div class="timeline">
+        <div class="timeline-item active">
+          <div class="step">Client</div>
+          <h3>1. AuthClient.login() → Lưu JWT</h3>
+          <p>Server trả về JWT token. <code>AuthClient</code> gọi <code>ClientSession.setAuthToken(jwt)</code> để lưu.</p>
+        </div>
+        <div class="timeline-item active">
+          <div class="step">Client → Server</div>
+          <h3>2. BidClient.placeBid() → Gửi JWT kèm</h3>
+          <p>Client gửi <code>{ "token": "eyJhbGciOi...", "auctionId": "5", "amount": 150000 }</code></p>
+        </div>
+        <div class="timeline-item active">
+          <div class="step">Server</div>
+          <h3>3. RequestHandler → Xác thực JWT</h3>
+          <p><code>authService.authenticate(token)</code> → <code>JwtUtil.validateToken(token)</code> → verify chữ ký HMAC-SHA256 → lấy userId thật</p>
+        </div>
+        <div class="timeline-item active">
+          <div class="step">Server</div>
+          <h3>4. Chỉ dùng userId từ JWT — Không tin request</h3>
+          <p>Dù hacker sửa <code>bidderId</code> trong request, server vẫn dùng userId từ JWT token đã ký.</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 16px; padding: 16px; background: rgba(52, 211, 153, 0.06); border-radius: 10px; border: 1px solid rgba(52, 211, 153, 0.2);">
+      <strong style="color: #34d399;">🔐 Nguyên tắc cốt lõi:</strong>
+      <p style="color: #94a3b8; margin-top: 6px; font-size: 0.9rem;">
+        <strong style="color: #e2e8f0;">"Không bao giờ tin bidderId từ request — chỉ tin userId từ token đã xác thực"</strong><br>
+        Token là bằng chứng người dùng <strong>đã đăng nhập</strong>. 
+        Server verify token → lấy userId thật → kiểm tra userId đó có quyền đặt giá không.
+        Nhờ vậy, dù hacker có sửa <code>bidderId</code> thành 999, server vẫn chỉ dùng userId trong token (42).
+      </p>
+    </div>
+  </div>
+
+  <!-- SECTION 7: DEMO LUỒNG TRỰC QUAN -->
+  <div class="card slide-in">
+    <div class="card-title">
+      <span class="icon">🖥️</span>
+      Demo Tương Tác: Gửi Token Khi Đặt Giá
+    </div>
+
+    <div style="text-align: center; margin-bottom: 20px;">
+      <p style="color: #94a3b8; margin-bottom: 16px;">
+        Click "Gửi Request" để xem dữ liệu thực tế được gửi qua socket khi có và không có token:
+      </p>
+      <div style="display: flex; justify-content: center; gap: 16px;">
+        <button onclick="sendWithToken()" style="background: #34d399; color: #0f172a; border: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer;">✅ Gửi CÓ Token</button>
+        <button onclick="sendWithoutToken()" style="background: #f87171; color: #fff; border: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer;">❌ Gửi KHÔNG Token</button>
+        <button onclick="clearDemo()" style="background: #334155; color: #94a3b8; border: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 1rem; cursor: pointer;">🗑️ Xoá</button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+      <div>
+        <h4 style="color: #94a3b8; margin-bottom: 8px;">📤 Request gửi đi (JSON qua socket)</h4>
+        <div id="requestBox" class="code-block" style="min-height: 200px; white-space: pre-wrap;">
+Nhấn nút "Gửi CÓ Token" hoặc "Gửi KHÔNG Token"
+để xem request JSON thực sự được gửi đi...
+        </div>
+      </div>
+      <div>
+        <h4 style="color: #94a3b8; margin-bottom: 8px;">📥 Server nhận được</h4>
+        <div id="serverBox" class="code-block" style="min-height: 200px; white-space: pre-wrap;">
+Chờ request...
+        </div>
+      </div>
+    </div>
+
+    <div id="verdictBox" style="margin-top: 16px; padding: 14px; border-radius: 10px; display: none;"></div>
+  </div>
+
+  <!-- SECTION 8: KẾT LUẬN -->
+  <div class="card slide-in" style="border-color: #34d399;">
+    <div class="card-title">
+      <span class="icon">🎯</span>
+      Kết Luận
+    </div>
+    <div class="two-col">
+      <div>
+        <h4 style="color: #f87171;">Hiện tại — Rủi ro</h4>
+        <ul style="color: #94a3b8; font-size: 0.9rem; line-height: 1.8; list-style: none; padding: 0;">
+          <li>❌ bidderId là plaintext — không xác thực</li>
+          <li>❌ Ai cũng có thể giả mạo ID</li>
+          <li>❌ Không có kiểm tra quyền sở hữu request</li>
+          <li>❌ Token sinh ra nhưng không được dùng</li>
+        </ul>
+      </div>
+      <div>
+        <h4 style="color: #34d399;">Cần triển khai — An toàn</h4>
+        <ul style="color: #94a3b8; font-size: 0.9rem; line-height: 1.8; list-style: none; padding: 0;">
+          <li>✅ ClientSession lưu token sau login</li>
+          <li>✅ Mọi request quan trọng gửi kèm token</li>
+          <li>✅ Server verify token → lấy userId thật</li>
+          <li>✅ Từ chối nếu token hết hạn/bị ban</li>
+        </ul>
+      </div>
+    </div>
+    <div style="margin-top: 20px; padding: 16px; background: rgba(129, 140, 248, 0.08); border-radius: 10px; text-align: center;">
+      <p style="color: #818cf8; font-weight: 600; font-size: 1.1rem;">
+        🛡️ <strong>Token = "Chứng minh thư" số của request.</strong> Không có token, server không thể tin ai đang gửi request thực sự!
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const MOCK_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQyLCJ1c2VybmFtZSI6InZpZXRwaHVjIiwicm9sZSI6IkJJRERFUiJ9.X1Y2Z3Q4Rw';
+const FAKE_BIDDER_ID = 42;
+
+function sendWithToken() {
+  const requestData = {
+    action: "place_bid",
+    auctionId: "5",
+    amount: 150000,
+    token: MOCK_TOKEN
+  };
+
+  document.getElementById('requestBox').innerHTML =
+    `<span style="color:#64748b;">// Request JSON gửi qua socket (CÓ token):</span>\n` +
+    `<span style="color:#818cf8;">"action"</span>: <span style="color:#34d399;">"place_bid"</span>,\n` +
+    `<span style="color:#818cf8;">"auctionId"</span>: <span style="color:#fbbf24;">"5"</span>,\n` +
+    `<span style="color:#818cf8;">"amount"</span>: <span style="color:#fbbf24;">150000</span>,\n` +
+    `<span style="background: rgba(52,211,153,0.15); display:inline-block; width:100%;">` +
+    `<span style="color:#818cf8;">"token"</span>: <span style="color:#34d399;">"eyJhbGciOiJIUzI1NiIs..."</span>  ← <span style="color:#34d399;font-weight:600;">✓ TOKEN!</span></span>`;
+
+  // Server xử lý
+  document.getElementById('serverBox').innerHTML =
+    `<span style="color:#64748b;">// Server nhận được — bắt đầu xác thực</span>\n` +
+    `<span style="color:#818cf8;">1.</span> Lấy token từ request: <span style="color:#34d399;">"eyJhbGciOiJIUzI1NiIs..."</span>\n` +
+    `<span style="color:#818cf8;">2.</span> Verify token → tìm AuthSession trong TOKEN_STORE\n` +
+    `<span style="color:#818cf8;">3.</span> Token hợp lệ → userId = <span style="color:#fbbf24;">42</span> (vietphuc)\n` +
+    `<span style="color:#818cf8;">4.</span> Kiểm tra user là Bidder ✅\n` +
+    `<span style="color:#818cf8;">5.</span> <span style="color:#34d399;font-weight:600;">Đặt giá 150,000 thành công!</span>`;
+
+  showVerdict(true);
+}
+
+function sendWithoutToken() {
+  const requestData = {
+    action: "place_bid",
+    auctionId: "5",
+    bidderId: "42",
+    amount: 150000
+  };
+
+  document.getElementById('requestBox').innerHTML =
+    `<span style="color:#64748b;">// Request JSON gửi qua socket (KHÔNG token):</span>\n` +
+    `<span style="color:#818cf8;">"action"</span>: <span style="color:#34d399;">"place_bid"</span>,\n` +
+    `<span style="color:#818cf8;">"auctionId"</span>: <span style="color:#fbbf24;">"5"</span>,\n` +
+    `<span style="background: rgba(248,113,113,0.15); display:inline-block; width:100%;">` +
+    `<span style="color:#818cf8;">"bidderId"</span>: <span style="color:#fbbf24;">"42"</span>  ← <span style="color:#f87171;font-weight:600;">⚠ AI CŨNG GHI ĐƯỢC SỐ 42!</span></span>\n` +
+    `<span style="color:#818cf8;">"amount"</span>: <span style="color:#fbbf24;">150000</span>\n` +
+    `<span style="color:#f87171;font-size:0.8rem;">⛔ Không có "token" trong request!</span>`;
+
+  document.getElementById('serverBox').innerHTML =
+    `<span style="color:#64748b;">// Server nhận được — không thể xác thực</span>\n` +
+    `<span style="color:#818cf8;">1.</span> Không tìm thấy "token" trong request\n` +
+    `<span style="color:#818cf8;">2.</span> Lấy bidderId = <span style="color:#fbbf24;">"42"</span> từ request\n` +
+    `<span style="color:#818cf8;">3.</span> <span style="color:#f87171;font-weight:600;">❌ KHÔNG thể biết bidderId 42 có thật không!</span>\n` +
+    `<span style="color:#818cf8;">4.</span> Giả sử hacker gửi bidderId = <span style="color:#fbbf24;">"99"</span> (người khác)\n` +
+    `<span style="color:#818cf8;">5.</span> <span style="color:#f87171;font-weight:600;">🚨 Đặt giá thành công dưới danh nghĩa người khác!</span>`;
+
+  showVerdict(false);
+}
+
+function clearDemo() {
+  document.getElementById('requestBox').innerHTML = 'Nhấn nút "Gửi CÓ Token" hoặc "Gửi KHÔNG Token"\nđể xem request JSON thực sự được gửi đi...';
+  document.getElementById('serverBox').innerHTML = 'Chờ request...';
+  document.getElementById('verdictBox').style.display = 'none';
+}
+
+function showVerdict(withToken) {
+  const box = document.getElementById('verdictBox');
+  box.style.display = 'block';
+  if (withToken) {
+    box.style.background = 'rgba(52, 211, 153, 0.08)';
+    box.style.border = '1px solid rgba(52, 211, 153, 0.3)';
+    box.innerHTML = '<strong style="color: #34d399;">✅ KẾT QUẢ: Request CÓ token — An toàn!</strong><br><span style="color: #94a3b8; font-size: 0.9rem;">Server xác thực được token → biết chính xác ai đang gửi request. Dù hacker có đổi bidderId thành số khác, server vẫn dùng userId từ token (42).</span>';
+  } else {
+    box.style.background = 'rgba(248, 113, 113, 0.08)';
+    box.style.border = '1px solid rgba(248, 113, 113, 0.3)';
+    box.innerHTML = '<strong style="color: #f87171;">❌ KẾT QUẢ: Request KHÔNG token — Mất an toàn!</strong><br><span style="color: #94a3b8; font-size: 0.9rem;">Server hoàn toàn tin tưởng bidderId gửi lên. Hacker có thể sửa bidderId thành 99, 100, bất kỳ ai — và server vẫn chấp nhận! Token là <strong>lớp bảo vệ duy nhất</strong> chống giả mạo.</span>';
+  }
+}
+</script>
+
+</body>
+</html>

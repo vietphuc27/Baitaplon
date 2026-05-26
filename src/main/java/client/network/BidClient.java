@@ -54,11 +54,12 @@ public class BidClient {
         return a != null ? Optional.of(a) : Optional.empty();
     }
 
-    public void placeBid(String auctionId, Bidder bidder, double amount) {
+    public void placeBid(String auctionId, double amount) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("auctionId", auctionId);
-        payload.put("bidderId", String.valueOf(bidder.getId()));
         payload.put("amount", amount);
+        // Gửi JWT token — server sẽ verify và lấy userId từ token
+        payload.put("token", ClientSession.getAuthToken());
         Map<String, Object> response = socketClient.sendRequest("place_bid", payload);
         ensureSuccess(response);
     }

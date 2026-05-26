@@ -55,6 +55,7 @@ public class RequestHandler {
                 case "login" -> handleLogin(request, clientHandler);
                 case "register" -> handleRegister(request);
                 case "logout" -> handleLogout(clientHandler);
+                case "refresh_token" -> handleRefreshToken(request);
                 case "create_auction" -> handleCreateAuction(request);
                 case "end_auction" -> handleEndAuction(request);
                 case "get_seller_auctions" -> handleGetSellerAuctions(request);
@@ -87,10 +88,39 @@ public class RequestHandler {
     private String handleLogin(Map<String, Object> request, ClientHandler clientHandler) {
         String username = getRequiredText(request, "username");
         String password = getRequiredText(request, "password");
-        String token = authService.login(username, password);
-        User user = authService.getCurrentUser(token);
-        clientHandler.markAuthenticated(user.getId(), token);
-        return buildUserResponse(user, token);
+        Map<String, Object> loginResult = authService.login(username, password);
+        String accessToken = (String) loginResult.get("accessToken");
+        String refreshToken = (String) loginResult.get("refreshToken");
+        User user = (User) loginResult.get("user");
+        clientHandler.markAuthenticated(user.getId(), accessToken);
+        // Trả về accessToken + refreshToken
+        LinkedHashMap<String, Object> response = new LinkedHashMap<>();
+        response.put("status", "success");
+        response.put("accessToken", accessToken);
+        response.put("refreshToken", refreshToken);
+        response.put("userId", user.getId());
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("role", user.getRole());
+        response.put("userStatus", user.getStatus() == null ? null : user.getStatus().name());
+        if (user instanceof Bidder b && b.getWallet() != null) {
+            response.put("walletBalance", b.getWallet().getBalance());
+        } else if (user instanceof Seller s && s.getWallet() != null) {
+            response.put("walletBalance", s.getWallet().getBalance());
+        }
+        return JsonUtils.toJson(response);
+    }
+
+    /**
+     * Xử lý refresh token — trả về access token mới.
+     * Request: { action: "refresh_token", refreshToken: "..." }
+     * Response: { status: "success", accessToken: "..." }
+     */
+    private String handleRefreshToken(Map<String, Object> request) {
+        String refreshToken = getRequiredText(request, "refreshToken");
+        Map<String, Object> result = authService.refreshAccessToken(refreshToken);
+        String newAccessToken = (String) result.get("accessToken");
+        return JsonUtils.toJson(Map.of("status", "success", "accessToken", newAccessToken));
     }
 
     private String handleRegister(Map<String, Object> request) {
@@ -256,13 +286,17 @@ public class RequestHandler {
     }
 
     private String handlePlaceBid(Map<String, Object> request) {
-        String auctionId = getRequiredText(request, "auctionId");
-        int bidderId = getRequiredInt(request, "bidderId");
-        double amount = getRequiredDouble(request, "amount");
-        User user = userService.findById(bidderId)
-                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay bidder"));
+        // 1. Xác thực token — lấy userId thật từ JWT
+        String token = getRequiredText(request, "token");
+        User user = authService.authenticate(token);
         if (!(user instanceof Bidder bidder))
-            throw new IllegalArgumentException("User khong phai bidder");
+            throw new AuthenticationException("User khong phai bidder");
+
+        // 2. Lấy dữ liệu từ request — KHÔNG tin bidderId, dùng userId từ token
+        String auctionId = getRequiredText(request, "auctionId");
+        double amount = getRequiredDouble(request, "amount");
+
+        // 3. Đặt giá — an toàn vì bidder đã được xác thực qua JWT
         BidTransaction bid = bidService.placeBid(auctionId, bidder, amount);
         String response = JsonUtils.toJson(Map.of("status", "success", "bidId", bid.getId()));
         broadcastBidPush(auctionId, bid);

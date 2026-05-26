@@ -4,6 +4,7 @@ module view.btl {
     requires transitive java.sql;
     requires javafx.graphics;
     requires com.google.gson;
+    requires jjwt.api;
 
     // requires com.mysql.cj;
 
@@ -35,8 +36,6 @@ module view.btl {
 
     exports common.userfactory;
     opens common.userfactory;
-
-    opens common.models;
 
     exports server.manager;
     opens server.manager;
