@@ -60,6 +60,7 @@ public class SellerClient {
         putIfPresent(payload, "vehicleBrand", request.vehicleBrand());
         putIfPresent(payload, "mileage", request.mileage());
         putIfPresent(payload, "vehicleYear", request.vehicleYear());
+        putIfPresent(payload, "imageBase64", request.imageBase64());
 
         Map<String, Object> response = socketClient.sendRequest("create_auction", payload);
         ensureSuccess(response);
@@ -100,6 +101,7 @@ public class SellerClient {
             double currentPrice = m.get("currentPrice") instanceof Number n ? n.doubleValue() : 0;
             String startTimeStr = (String) m.getOrDefault("startTime", "");
             String endTimeStr = (String) m.getOrDefault("endTime", "");
+            String imageUrl = (String) m.getOrDefault("imageUrl", "");
 
             LocalDateTime startTime = startTimeStr.isEmpty() ? null : LocalDateTime.parse(startTimeStr);
             LocalDateTime endTime = endTimeStr.isEmpty() ? null : LocalDateTime.parse(endTimeStr);
@@ -107,6 +109,9 @@ public class SellerClient {
             Item item = new Item(0, itemName, "", currentPrice, sellerId) {
                 @Override public String getInfo() { return itemName; }
             };
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                item.setImageUrl(imageUrl);
+            }
 
             Auction a = new Auction(id, item, sellerId, startTime, endTime);
             a.setCurrentHighestBid(currentPrice);
@@ -161,6 +166,7 @@ public class SellerClient {
             String condition,
             String vehicleBrand,
             String mileage,
-            String vehicleYear
+            String vehicleYear,
+            String imageBase64
     ) {}
 }

@@ -133,6 +133,7 @@ public class BidClient {
             Integer currentLeaderId = parseNullableInteger(m.get("currentLeaderId"));
             String startTimeStr = (String) m.getOrDefault("startTime", "");
             String endTimeStr = (String) m.getOrDefault("endTime", "");
+            String imageUrl = (String) m.getOrDefault("imageUrl", "");
             // Doc itemType tu server response
             final String itemTypeRaw = m.getOrDefault("itemType", "-") instanceof String s ? s : "-";
 
@@ -151,6 +152,9 @@ public class BidClient {
                     return itemTypeRaw;
                 }
             };
+            if (imageUrl != null && !imageUrl.isEmpty()) {
+                item.setImageUrl(imageUrl);
+            }
 
             Auction a = new Auction(id, item, sellerId, startTime, endTime);
             a.setCurrentHighestBid(currentPrice);

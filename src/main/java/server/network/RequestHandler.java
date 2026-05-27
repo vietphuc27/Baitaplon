@@ -23,6 +23,8 @@ import server.service.BidService;
 import server.service.ItemService;
 import server.service.UserService;
 
+import server.service.CloudinaryService;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
@@ -154,6 +156,8 @@ public class RequestHandler {
 
     // ===== GROUP 3: Auction lifecycle (seller/admin side) =====
     // create/end/cancel/get seller auctions + helper tao item
+    private final CloudinaryService cloudinaryService = new CloudinaryService();
+
     private String handleCreateAuction(Map<String, Object> request) {
         String sellerId = getRequiredText(request, "sellerId");
         String itemName = getRequiredText(request, "itemName");
@@ -166,11 +170,51 @@ public class RequestHandler {
         // Tao item truoc
         int itemId = generateItemId();
         Item item = buildItem(itemId, sellerId, itemName, description, startPrice, itemType, request);
-        itemService.createItem(item);
 
-        // Tao auction
-        Auction auction = auctionService.createAuction(sellerId, itemId, startTime, endTime);
-        return JsonUtils.toJson(Map.of("status", "success", "auctionId", auction.getAuctionId()));
+        String uploadedImageUrl = null;
+        boolean itemCreated = false;
+        try {
+            String imageBase64 = getOptionalText(request, "imageBase64");
+            if (imageBase64 != null && !imageBase64.isEmpty()) {
+                uploadedImageUrl = cloudinaryService.uploadImage(imageBase64, "item_" + itemId);
+                item.setImageUrl(uploadedImageUrl);
+            }
+
+            itemService.createItem(item);
+            itemCreated = true;
+
+            Auction auction = auctionService.createAuction(sellerId, itemId, startTime, endTime);
+            return JsonUtils.toJson(Map.of("status", "success", "auctionId", auction.getAuctionId()));
+        } catch (RuntimeException e) {
+            if (itemCreated) {
+                cleanupItemAfterFailedAuction(itemId, sellerId);
+            }
+            if (uploadedImageUrl != null) {
+                cleanupUploadedImage(uploadedImageUrl);
+            }
+            if (e instanceof IllegalArgumentException illegalArgumentException) {
+                throw illegalArgumentException;
+            }
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
+    }
+
+    private void cleanupItemAfterFailedAuction(int itemId, String sellerId) {
+        try {
+            itemService.deleteItem(itemId, sellerId);
+        } catch (RuntimeException cleanupError) {
+            System.err.println("Khong the xoa item sau khi tao auction that bai: " + cleanupError.getMessage());
+        }
+    }
+
+    private void cleanupUploadedImage(String imageUrl) {
+        try {
+            if (!cloudinaryService.deleteImage(imageUrl)) {
+                System.err.println("Khong the xoa anh Cloudinary sau khi tao auction that bai: " + imageUrl);
+            }
+        } catch (RuntimeException cleanupError) {
+            System.err.println("Khong the xoa anh Cloudinary sau khi tao auction that bai: " + cleanupError.getMessage());
+        }
     }
 
     private int generateItemId() {
@@ -564,6 +608,7 @@ public class RequestHandler {
         map.put("auctionStatus", auction.getStatus() != null ? auction.getStatus().name() : "-");
         map.put("startTime", auction.getStartTime() != null ? auction.getStartTime().toString() : "");
         map.put("endTime", auction.getEndTime() != null ? auction.getEndTime().toString() : "");
+        map.put("imageUrl", auction.getItem() != null && auction.getItem().getImageUrl() != null ? auction.getItem().getImageUrl() : "");
         return map;
     }
 }

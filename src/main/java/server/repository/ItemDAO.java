@@ -14,8 +14,8 @@ public class ItemDAO implements ItemRepository {
     public void save(Item item) {
         String sql = "INSERT INTO items "
                 + "(id, name, description, starting_price, seller_id, "
-                + "item_type, warranty_period, mileage, artist) "
-                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                + "item_type, warranty_period, mileage, artist, image_url) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
 
@@ -41,6 +41,12 @@ public class ItemDAO implements ItemRepository {
                 stmt.setNull(7, Types.INTEGER);
                 stmt.setNull(8, Types.INTEGER);
                 stmt.setNull(9, Types.VARCHAR);
+            }
+            // Set image_url
+            if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+                stmt.setString(10, item.getImageUrl());
+            } else {
+                stmt.setNull(10, Types.VARCHAR);
             }
             stmt.executeUpdate();
 
@@ -129,7 +135,7 @@ public class ItemDAO implements ItemRepository {
     @Override
     public void update(Item item) {
         String sql = "UPDATE items SET name=?, description=?, starting_price=?, "
-                + "warranty_period=?, mileage=?, artist=? WHERE id=?";
+                + "warranty_period=?, mileage=?, artist=?, image_url=? WHERE id=?";
 
         try (Connection conn = DatabaseConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -156,7 +162,14 @@ public class ItemDAO implements ItemRepository {
                 stmt.setNull(6, Types.VARCHAR);
             }
 
-            stmt.setInt(7, item.getId());
+            // Set image_url
+            if (item.getImageUrl() != null && !item.getImageUrl().isEmpty()) {
+                stmt.setString(7, item.getImageUrl());
+            } else {
+                stmt.setNull(7, Types.VARCHAR);
+            }
+
+            stmt.setInt(8, item.getId());
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -187,8 +200,9 @@ public class ItemDAO implements ItemRepository {
         double startingPrice = rs.getDouble("starting_price");
         String sellerId      = rs.getString("seller_id");
         String type          = rs.getString("item_type");
+        String imageUrl      = rs.getString("image_url");
 
-        return switch (type) {
+        Item item = switch (type) {
             case "ELECTRONICS" -> new Electronics(
                     id, name, description, startingPrice,
                     sellerId, rs.getInt("warranty_period")
@@ -203,5 +217,9 @@ public class ItemDAO implements ItemRepository {
             }
             default -> throw new SQLException("Item type không hợp lệ: " + type);
         };
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            item.setImageUrl(imageUrl);
+        }
+        return item;
     }
 }

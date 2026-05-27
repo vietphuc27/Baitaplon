@@ -17,7 +17,7 @@ public class AuctionDAO implements AuctionRepository {
     private static final String SELECT_BASE_QUERY =
             "SELECT a.*, "
                     + "i.name as item_name, i.description, i.starting_price, "
-                    + "i.seller_id as item_seller_id, i.item_type, i.warranty_period, i.mileage, i.artist "
+                    + "i.seller_id as item_seller_id, i.item_type, i.warranty_period, i.mileage, i.artist, i.image_url "
                     + "FROM auctions a JOIN items i ON a.item_id = i.id ";
 
     // ─── SAVE ─────────────────────────────────────────────────────
@@ -242,8 +242,9 @@ public class AuctionDAO implements AuctionRepository {
         double startingPrice = rs.getDouble("starting_price");
         String sellerId      = rs.getString("item_seller_id"); // Lấy từ alias đã tạo
         String type          = rs.getString("item_type");
+        String imageUrl      = rs.getString("image_url");
 
-        return switch (type) {
+        Item item = switch (type) {
             case "ELECTRONICS" -> new Electronics(
                     itemId, name, description, startingPrice,
                     sellerId, rs.getInt("warranty_period")
@@ -258,5 +259,9 @@ public class AuctionDAO implements AuctionRepository {
             );
             default -> throw new SQLException("Item type không hợp lệ: " + type);
         };
+        if (imageUrl != null && !imageUrl.isEmpty()) {
+            item.setImageUrl(imageUrl);
+        }
+        return item;
     }
 }

@@ -23,7 +23,7 @@ class SellerClientTest {
         SellerClient client = new SellerClient(new TestSocketClient());
         SellerClient.CreateAuctionRequest invalid = new SellerClient.CreateAuctionRequest(
                 "seller-1", "Item", "art", 10.0, "desc", LocalDateTime.now().minusMinutes(1),
-                "artist", "", "", "", "", "", "", "", "");
+                "artist", "", "", "", "", "", "", "", "", null);
         assertThrows(IllegalArgumentException.class, () -> client.createAuction(invalid));
     }
 
@@ -34,7 +34,7 @@ class SellerClientTest {
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
                 "seller-1", "Painting", "art", 100.0, "desc", LocalDateTime.now().plusHours(1),
-                "Artist", "2020", "Oil", "", "", "", "", "", "");
+                "Artist", "2020", "Oil", "", "", "", "", "", "", null);
 
         Auction auction = client.createAuction(request);
 
@@ -50,7 +50,7 @@ class SellerClientTest {
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
                 "seller-1", "Car", "vehicle", 300.0, "desc", LocalDateTime.now().plusHours(2),
-                "", "", "", "", "", "", "  Toyota  ", " 120000 ", "");
+                "", "", "", "", "", "", "  Toyota  ", " 120000 ", "", null);
 
         client.createAuction(request);
         Map<String, Object> payload = socket.getPayloadOf("create_auction");
@@ -61,13 +61,29 @@ class SellerClientTest {
     }
 
     @Test
+    void createAuctionIncludesImagePayloadWhenPresent() {
+        TestSocketClient socket = new TestSocketClient();
+        socket.setResponse("create_auction", Map.of("status", "success", "auctionId", 779));
+        SellerClient client = new SellerClient(socket);
+        SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
+                "seller-1", "Camera", "electronics", 500.0, "desc", LocalDateTime.now().plusHours(2),
+                "", "", "", "Canon", "", "", "", "", "",
+                "data:image/png;base64,abc123");
+
+        client.createAuction(request);
+        Map<String, Object> payload = socket.getPayloadOf("create_auction");
+
+        assertEquals("data:image/png;base64,abc123", payload.get("imageBase64"));
+    }
+
+    @Test
     void createAuctionFailsWhenAuctionIdMissingInSuccessResponse() {
         TestSocketClient socket = new TestSocketClient();
         socket.setResponse("create_auction", Map.of("status", "success"));
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
                 "seller-1", "Painting", "art", 100.0, "desc", LocalDateTime.now().plusHours(1),
-                "Artist", "", "", "", "", "", "", "", "");
+                "Artist", "", "", "", "", "", "", "", "", null);
         assertThrows(RuntimeException.class, () -> client.createAuction(request));
     }
 
@@ -87,6 +103,27 @@ class SellerClientTest {
     }
 
     @Test
+    void getSellerAuctionsPreservesImageUrl() {
+        TestSocketClient socket = new TestSocketClient();
+        socket.setResponse("get_seller_auctions", Map.of(
+                "status", "success",
+                "auctions", List.of(
+                        Map.of(
+                                "auctionId", 1,
+                                "itemName", "A",
+                                "sellerId", "s1",
+                                "auctionStatus", "RUNNING",
+                                "currentPrice", 50.0,
+                                "imageUrl", "https://res.cloudinary.com/demo/image/upload/item.png"))));
+        SellerClient client = new SellerClient(socket);
+
+        List<Auction> auctions = client.getSellerAuctions("s1");
+
+        assertEquals("https://res.cloudinary.com/demo/image/upload/item.png",
+                auctions.getFirst().getItem().getImageUrl());
+    }
+
+    @Test
     void getSellerAuctionsReturnsEmptyWhenNoAuctionsField() {
         TestSocketClient socket = new TestSocketClient();
         socket.setResponse("get_seller_auctions", Map.of("status", "success"));
@@ -103,7 +140,7 @@ class SellerClientTest {
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
                 "s1", "Item", "art", 100.0, "desc", LocalDateTime.now().plusHours(1),
-                "A", "", "", "", "", "", "", "", "");
+                "A", "", "", "", "", "", "", "", "", null);
         assertThrows(RuntimeException.class, () -> client.createAuction(request));
         assertThrows(RuntimeException.class, () -> client.getSellerAuctions("s1"));
     }

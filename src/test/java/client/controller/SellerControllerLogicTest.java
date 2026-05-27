@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 
@@ -60,6 +61,17 @@ class SellerControllerLogicTest {
         Comparator<Auction> comparator = (Comparator<Auction>) invoke(controller, "resolveAuctionComparator",
                 new Class<?>[] { String.class }, "Giá giảm");
         assertTrue(comparator.compare(phone, laptop) > 0);
+    }
+
+    @Test
+    void imageDataUriBuilderUsesProvidedMimeType() throws Exception {
+        SellerController controller = new SellerController();
+
+        String dataUri = (String) invoke(controller, "buildImageDataUri",
+                new Class<?>[] { byte[].class, String.class },
+                "hello".getBytes(StandardCharsets.UTF_8), "image/png");
+
+        assertTrue(dataUri.startsWith("data:image/png;base64,"));
     }
 
     private Auction auction(int id, String name, String sellerId, double startingPrice) {

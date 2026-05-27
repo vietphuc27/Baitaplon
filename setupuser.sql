@@ -31,6 +31,7 @@ CREATE TABLE items (
     warranty_period INT DEFAULT NULL,
     mileage INT DEFAULT NULL,
     artist VARCHAR(255) DEFAULT NULL,
+    image_url VARCHAR(500) DEFAULT NULL,
     PRIMARY KEY (id),
     KEY idx_items_seller_id (seller_id),
     KEY idx_items_type (item_type)

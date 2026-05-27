@@ -5,7 +5,8 @@ module view.btl {
     requires javafx.graphics;
     requires com.google.gson;
     requires jjwt.api;
-
+    requires cloudinary.http44;
+    requires cloudinary.core;
     // requires com.mysql.cj;
 
     exports com.example.btl_n3;

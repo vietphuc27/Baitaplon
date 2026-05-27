@@ -13,10 +13,21 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Pos;
+import javafx.geometry.Rectangle2D;
+import javafx.scene.Cursor;
+import javafx.scene.Scene;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 
 import java.time.LocalDateTime;
@@ -81,6 +92,8 @@ public class AuctionDetailController {
     @FXML
     private TextArea txtDescription;
     @FXML
+    private ImageView imgProduct;
+    @FXML
     private TextField bidAmountField;
     @FXML
     private Label errorLabel;
@@ -119,6 +132,8 @@ public class AuctionDetailController {
     private Bidder currentBidder;
     private boolean viewOnly = false;
     private int currentAgentId = -1; // -1 = chưa có agent
+    private Stage imagePreviewStage;
+    private String currentProductImageUrl;
 
     @FXML
     private void initialize() {
@@ -129,6 +144,8 @@ public class AuctionDetailController {
                 FormatUtils.formatDateTimeWithSeconds(v.getValue().getBidTime())));
         historyTable.setItems(historyRows);
         historyTable.setPlaceholder(new Label("Chưa có lượt đặt giá nào"));
+        imgProduct.setOnMouseClicked(event -> openImagePreview());
+        updateImageInteractionState(false);
         Platform.runLater(() -> {
             if (itemNameLabel.getScene() != null && itemNameLabel.getScene().getWindow() != null) {
                 itemNameLabel.getScene().getWindow().addEventHandler(WindowEvent.WINDOW_HIDDEN, e -> shutdown());
@@ -486,13 +503,193 @@ public class AuctionDetailController {
             lblStartPrice.setText(FormatUtils.formatCurrency(auction.getItem().getStartingPrice()));
             txtDescription
                     .setText(auction.getItem().getDescription() == null ? "" : auction.getItem().getDescription());
+            currentProductImageUrl = auction.getItem().getImageUrl();
+            loadProductImage(currentProductImageUrl);
         } else {
             lblProductName.setText("-");
             lblProductType.setText("-");
             lblSellerId.setText("-");
             lblStartPrice.setText("-");
             txtDescription.setText("");
+            currentProductImageUrl = null;
+            imgProduct.setImage(null);
         }
+    }
+
+    private void loadProductImage(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            imgProduct.setImage(null);
+            updateImageInteractionState(false);
+            return;
+        }
+        // Load image in background task to avoid blocking the UI
+        Task<Image> loadImageTask = new Task<>() {
+            @Override
+            protected Image call() {
+                try {
+                    return new Image(imageUrl, 200, 150, true, true, true);
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        };
+        loadImageTask.setOnSucceeded(event -> {
+            Image result = loadImageTask.getValue();
+            if (result != null && !result.isError()) {
+                imgProduct.setImage(result);
+                updateImageInteractionState(true);
+            } else {
+                imgProduct.setImage(null);
+                updateImageInteractionState(false);
+            }
+        });
+        loadImageTask.setOnFailed(event -> {
+            imgProduct.setImage(null);
+            updateImageInteractionState(false);
+        });
+        new Thread(loadImageTask).start();
+    }
+
+    private void updateImageInteractionState(boolean hasImage) {
+        imgProduct.setCursor(hasImage ? Cursor.HAND : Cursor.DEFAULT);
+        imgProduct.setOpacity(hasImage ? 1.0 : 0.65);
+    }
+
+    private void openImagePreview() {
+        if (currentProductImageUrl == null || currentProductImageUrl.isBlank()) {
+            return;
+        }
+        ImageView previewImageView;
+        Label hintLabel;
+
+        if (imagePreviewStage != null && imagePreviewStage.isShowing()) {
+            previewImageView = (ImageView) imagePreviewStage.getScene().getUserData();
+            hintLabel = (Label) imagePreviewStage.getProperties().get("hintLabel");
+            loadPreviewImage(previewImageView, hintLabel);
+            imagePreviewStage.toFront();
+            imagePreviewStage.requestFocus();
+            return;
+        }
+
+        previewImageView = new ImageView();
+        previewImageView.setSmooth(true);
+        previewImageView.setPreserveRatio(true);
+
+        hintLabel = new Label("Đang tải ảnh gốc...");
+        hintLabel.setMouseTransparent(true);
+        hintLabel.setStyle(
+                "-fx-text-fill: white; -fx-font-size: 13px; -fx-padding: 10 14; -fx-background-color: rgba(17,24,39,0.72); -fx-background-radius: 999;");
+        StackPane imageContainer = new StackPane(previewImageView);
+        imageContainer.setAlignment(Pos.CENTER);
+        imageContainer.setStyle("-fx-background-color: #111827;");
+
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(imageContainer.widthProperty());
+        clip.heightProperty().bind(imageContainer.heightProperty());
+        imageContainer.setClip(clip);
+
+        previewImageView.fitWidthProperty().bind(imageContainer.widthProperty());
+        previewImageView.fitHeightProperty().bind(imageContainer.heightProperty());
+        imageContainer.widthProperty().addListener((obs, oldValue, newValue) ->
+                updatePreviewViewport(previewImageView, imageContainer));
+        imageContainer.heightProperty().addListener((obs, oldValue, newValue) ->
+                updatePreviewViewport(previewImageView, imageContainer));
+
+        StackPane content = new StackPane(imageContainer, hintLabel);
+        content.setAlignment(hintLabel, Pos.BOTTOM_CENTER);
+        content.setStyle("-fx-background-color: #111827;");
+        StackPane.setMargin(hintLabel, new javafx.geometry.Insets(0, 0, 18, 0));
+
+        Scene scene = new Scene(content, 1000, 720, Color.web("#111827"));
+        scene.setUserData(previewImageView);
+
+        Stage stage = new Stage();
+        stage.initModality(Modality.NONE);
+        if (itemNameLabel.getScene() != null && itemNameLabel.getScene().getWindow() instanceof Stage ownerStage) {
+            stage.initOwner(ownerStage);
+        }
+        stage.setTitle("Xem ảnh sản phẩm");
+        stage.setScene(scene);
+        stage.setMinWidth(320);
+        stage.setMinHeight(240);
+        stage.getProperties().put("hintLabel", hintLabel);
+        stage.getProperties().put("imageContainer", imageContainer);
+        stage.setOnHidden(event -> imagePreviewStage = null);
+
+        imagePreviewStage = stage;
+        stage.show();
+        loadPreviewImage(previewImageView, hintLabel);
+    }
+
+    private void loadPreviewImage(ImageView previewImageView, Label hintLabel) {
+        String imageUrl = currentProductImageUrl;
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return;
+        }
+
+        hintLabel.setText("Đang tải ảnh gốc...");
+        Task<Image> loadOriginalImageTask = new Task<>() {
+            @Override
+            protected Image call() {
+                try {
+                    return new Image(imageUrl, true);
+                } catch (Exception e) {
+                    return null;
+                }
+            }
+        };
+        loadOriginalImageTask.setOnSucceeded(event -> {
+            Image image = loadOriginalImageTask.getValue();
+            if (image == null || image.isError()) {
+                previewImageView.setImage(null);
+                previewImageView.setViewport(null);
+                hintLabel.setText("Không tải được ảnh gốc.");
+                return;
+            }
+            previewImageView.setImage(image);
+            StackPane imageContainer = imagePreviewStage == null
+                    ? null
+                    : (StackPane) imagePreviewStage.getProperties().get("imageContainer");
+            if (imageContainer != null) {
+                updatePreviewViewport(previewImageView, imageContainer);
+            }
+            hintLabel.setText("Ảnh gốc - kéo cửa sổ để phóng to hoặc thu nhỏ");
+        });
+        loadOriginalImageTask.setOnFailed(event -> {
+            previewImageView.setImage(null);
+            previewImageView.setViewport(null);
+            hintLabel.setText("Không tải được ảnh gốc.");
+        });
+        new Thread(loadOriginalImageTask).start();
+    }
+
+    private void updatePreviewViewport(ImageView previewImageView, StackPane imageContainer) {
+        Image image = previewImageView.getImage();
+        if (image == null || image.isError() || imageContainer == null) {
+            previewImageView.setViewport(null);
+            return;
+        }
+
+        double containerWidth = imageContainer.getWidth();
+        double containerHeight = imageContainer.getHeight();
+        if (containerWidth <= 0 || containerHeight <= 0 || image.getWidth() <= 0 || image.getHeight() <= 0) {
+            previewImageView.setViewport(null);
+            return;
+        }
+
+        double imageAspect = image.getWidth() / image.getHeight();
+        double containerAspect = containerWidth / containerHeight;
+
+        if (imageAspect > containerAspect) {
+            double viewportWidth = image.getHeight() * containerAspect;
+            double x = (image.getWidth() - viewportWidth) / 2.0;
+            previewImageView.setViewport(new Rectangle2D(x, 0, viewportWidth, image.getHeight()));
+            return;
+        }
+
+        double viewportHeight = image.getWidth() / containerAspect;
+        double y = (image.getHeight() - viewportHeight) / 2.0;
+        previewImageView.setViewport(new Rectangle2D(0, y, image.getWidth(), viewportHeight));
     }
 
     private void updateBidPanelState() {
@@ -582,6 +779,13 @@ public class AuctionDetailController {
     }
 
     private void shutdown() {
+        if (imagePreviewStage != null) {
+            try {
+                imagePreviewStage.close();
+            } catch (RuntimeException ignored) {
+            }
+            imagePreviewStage = null;
+        }
         try {
             ClientSession.getSocket().removePushListener(auctionPushListener);
         } catch (RuntimeException ignored) {

@@ -20,17 +20,23 @@ import javafx.fxml.Initializable;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.util.StringConverter;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -40,6 +46,8 @@ import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 public class SellerController implements Initializable {
+    private static final long MAX_IMAGE_SIZE_BYTES = 15L * 1024 * 1024;
+
     private final AuthClient authClient = new AuthClient();
     private final SellerClient sellerClient = new SellerClient();
     private final BidClient bidClient = new BidClient();
@@ -115,6 +123,18 @@ public class SellerController implements Initializable {
     private Label lblActiveAuctions;
     @FXML
     private Label lblTotalRevenue;
+    // Image upload fields
+    @FXML
+    private ImageView imgPreview;
+    @FXML
+    private Button btnCreateAuction;
+    @FXML
+    private Button btnUploadImage;
+    @FXML
+    private Label lblImageStatus;
+
+    private String selectedImageBase64;
+    private File selectedImageFile;
 
     private String currentSellerId;
     private String currentSellerName;
@@ -171,29 +191,27 @@ public class SellerController implements Initializable {
             showAlert(Alert.AlertType.WARNING, "Cảnh báo", validationError);
             return;
         }
-        try {
-            Auction auction = sellerClient.createAuction(new CreateAuctionRequest(
-                    currentSellerId,
-                    txtItemName.getText().trim(),
-                    cbItemType.getValue(),
-                    Double.parseDouble(txtStartPrice.getText().trim()),
-                    txtDescription.getText().trim(),
-                    getSelectedEndTime(),
-                    txtArtist.getText(),
-                    txtArtYear.getText(),
-                    txtMaterial.getText(),
-                    txtBrand.getText(),
-                    txtModel.getText(),
-                    txtCondition.getText(),
-                    txtVehicleBrand.getText(),
-                    txtMileage.getText(),
-                    txtVehicleYear.getText()));
+        CreateAuctionRequest request = buildCreateAuctionRequest();
+        Task<Auction> task = new Task<>() {
+            @Override
+            protected Auction call() {
+                return sellerClient.createAuction(request);
+            }
+        };
+
+        task.setOnRunning(event -> setCreateAuctionInProgress(true));
+        task.setOnSucceeded(event -> {
+            setCreateAuctionInProgress(false);
+            Auction auction = task.getValue();
             showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã tạo phiên: " + auction.getAuctionId());
             clearAuctionForm();
             loadSellerDashboardData();
-        } catch (RuntimeException e) {
-            showAlert(Alert.AlertType.ERROR, "Lỗi", e.getMessage());
-        }
+        });
+        task.setOnFailed(event -> {
+            setCreateAuctionInProgress(false);
+            showAlert(Alert.AlertType.ERROR, "Lỗi", getTaskErrorMessage(task));
+        });
+        backgroundExecutor.submit(task);
     }
 
     @FXML
@@ -451,6 +469,146 @@ public class SellerController implements Initializable {
         txtVehicleBrand.clear();
         txtMileage.clear();
         txtVehicleYear.clear();
+        clearImageSelection();
+    }
+
+    @FXML
+    private void handleUploadImage() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Chọn ảnh sản phẩm");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Hình ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.webp"),
+                new FileChooser.ExtensionFilter("Tất cả file", "*.*")
+        );
+
+        File selectedFile = fileChooser.showOpenDialog(btnUploadImage.getScene().getWindow());
+        if (selectedFile != null) {
+            try {
+                byte[] fileBytes = readFileToByteArray(selectedFile);
+
+                if (fileBytes.length > MAX_IMAGE_SIZE_BYTES) {
+                    showAlert(Alert.AlertType.WARNING, "Lỗi", "Ảnh phải nhỏ hơn 15MB.");
+                    return;
+                }
+
+                String mimeType = detectImageMimeType(selectedFile);
+                if (mimeType == null) {
+                    showAlert(Alert.AlertType.WARNING, "Lỗi", "Chỉ hỗ trợ ảnh JPG, PNG, GIF, BMP hoặc WEBP.");
+                    return;
+                }
+
+                Image previewImage = new Image(selectedFile.toURI().toString(), 120, 120, true, true, true);
+                if (previewImage.isError()) {
+                    throw new IOException("File đã chọn không phải ảnh hợp lệ.");
+                }
+
+                selectedImageBase64 = buildImageDataUri(fileBytes, mimeType);
+                selectedImageFile = selectedFile;
+                imgPreview.setImage(previewImage);
+                lblImageStatus.setText("Đã chọn: " + selectedFile.getName() + " (" + formatFileSize(fileBytes.length) + ")");
+                lblImageStatus.setStyle("-fx-text-fill: #27ae60;");
+            } catch (IOException e) {
+                showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể đọc file ảnh: " + e.getMessage());
+            }
+        }
+    }
+
+    @FXML
+    private void handleRemoveImage() {
+        clearImageSelection();
+    }
+
+    private void clearImageSelection() {
+        selectedImageBase64 = null;
+        selectedImageFile = null;
+        imgPreview.setImage(null);
+        lblImageStatus.setText("Chưa chọn ảnh");
+        lblImageStatus.setStyle("-fx-text-fill: #7f8c8d;");
+    }
+
+    private byte[] readFileToByteArray(File file) throws IOException {
+        return Files.readAllBytes(file.toPath());
+    }
+
+    private CreateAuctionRequest buildCreateAuctionRequest() {
+        return new CreateAuctionRequest(
+                currentSellerId,
+                txtItemName.getText().trim(),
+                cbItemType.getValue(),
+                Double.parseDouble(txtStartPrice.getText().trim()),
+                txtDescription.getText().trim(),
+                getSelectedEndTime(),
+                txtArtist.getText(),
+                txtArtYear.getText(),
+                txtMaterial.getText(),
+                txtBrand.getText(),
+                txtModel.getText(),
+                txtCondition.getText(),
+                txtVehicleBrand.getText(),
+                txtMileage.getText(),
+                txtVehicleYear.getText(),
+                selectedImageBase64);
+    }
+
+    private void setCreateAuctionInProgress(boolean inProgress) {
+        if (btnCreateAuction != null) {
+            btnCreateAuction.setDisable(inProgress);
+            btnCreateAuction.setText(inProgress ? "Đang tạo..." : "Tạo Phiên Đấu Giá");
+        }
+        if (btnUploadImage != null) {
+            btnUploadImage.setDisable(inProgress);
+        }
+        if (lblImageStatus != null && inProgress && selectedImageFile != null) {
+            lblImageStatus.setText("Đang upload: " + selectedImageFile.getName());
+            lblImageStatus.setStyle("-fx-text-fill: #1f6feb;");
+        } else if (!inProgress && selectedImageFile != null) {
+            lblImageStatus.setText(
+                    "Đã chọn: " + selectedImageFile.getName() + " (" + formatFileSize(selectedImageFile.length()) + ")");
+            lblImageStatus.setStyle("-fx-text-fill: #27ae60;");
+        }
+    }
+
+    private String buildImageDataUri(byte[] fileBytes, String mimeType) {
+        return "data:" + mimeType + ";base64," + Base64.getEncoder().encodeToString(fileBytes);
+    }
+
+    private String detectImageMimeType(File file) throws IOException {
+        String mimeType = Files.probeContentType(file.toPath());
+        if (isSupportedImageMimeType(mimeType)) {
+            return mimeType;
+        }
+
+        String fileName = file.getName().toLowerCase(Locale.ROOT);
+        if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) {
+            return "image/jpeg";
+        }
+        if (fileName.endsWith(".png")) {
+            return "image/png";
+        }
+        if (fileName.endsWith(".gif")) {
+            return "image/gif";
+        }
+        if (fileName.endsWith(".bmp")) {
+            return "image/bmp";
+        }
+        if (fileName.endsWith(".webp")) {
+            return "image/webp";
+        }
+        return null;
+    }
+
+    private boolean isSupportedImageMimeType(String mimeType) {
+        return mimeType != null && switch (mimeType.toLowerCase(Locale.ROOT)) {
+            case "image/jpeg", "image/png", "image/gif", "image/bmp", "image/webp" -> true;
+            default -> false;
+        };
+    }
+
+    private String formatFileSize(long bytes) {
+        if (bytes >= 1024 * 1024) {
+            return String.format(Locale.ROOT, "%.1f MB", bytes / (1024.0 * 1024.0));
+        }
+        return String.format(Locale.ROOT, "%.0f KB", Math.max(1, bytes / 1024.0));
     }
 
     private void configurePriceFields() {

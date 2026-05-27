@@ -12,6 +12,7 @@
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -90,6 +91,20 @@
                         <RowConstraints />
                      </rowConstraints>
                         </GridPane>
+
+                        <!-- Image Upload Section -->
+                        <VBox spacing="10" style="-fx-background-color: #f8f9fa; -fx-border-color: #dee2e6; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 15;">
+                            <Label style="-fx-font-weight: bold; -fx-font-size: 13;" text="Ảnh sản phẩm (không bắt buộc)" />
+                            <HBox spacing="15" alignment="CENTER_LEFT">
+                                <ImageView fx:id="imgPreview" fitHeight="120" fitWidth="120" pickOnBounds="true" preserveRatio="true" style="-fx-border-color: #dee2e6; -fx-border-radius: 4; -fx-border-width: 1;" />
+                                <VBox spacing="8">
+                                    <Button fx:id="btnUploadImage" onAction="#handleUploadImage" prefWidth="150" style="-fx-background-color: #1f6feb; -fx-text-fill: white;" text="Chọn ảnh..." />
+                                    <Button onAction="#handleRemoveImage" prefWidth="150" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" text="Xóa ảnh" />
+                                    <Label fx:id="lblImageStatus" style="-fx-text-fill: #7f8c8d;" text="Chưa chọn ảnh" />
+                                </VBox>
+                            </HBox>
+                        </VBox>
+
                     <VBox fx:id="vboxDynamicFields" managed="false" spacing="0" style="-fx-background-color: #eaf4fb; -fx-border-color: #aed6f1; -fx-border-radius: 6; -fx-background-radius: 6;" visible="false">
                         <padding><Insets bottom="15" left="15" right="15" top="15" /></padding>
 
@@ -157,7 +172,7 @@
 
                     </VBox>
                         <HBox spacing="10">
-                            <Button onAction="#handleCreateAuction" style="-fx-background-color: #27ae60; -fx-text-fill: white;" styleClass="btn-primary" text="Tạo Phiên Đấu Giá" />
+                            <Button fx:id="btnCreateAuction" onAction="#handleCreateAuction" style="-fx-background-color: #27ae60; -fx-text-fill: white;" styleClass="btn-primary" text="Tạo Phiên Đấu Giá" />
                      <Region prefHeight="30.0" prefWidth="22.0" />
                             <Button onAction="#handleClearForm" prefHeight="30.0" prefWidth="92.0" style="-fx-background-color: e74c3c;" styleClass="btn-cancel" text="Xóa Form" />
                         </HBox>
