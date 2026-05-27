@@ -25,6 +25,7 @@ module view.btl {
     exports common.models.entity;
     exports common.models.item;
     exports common.models.auction;
+    exports common.models;
 
     // Export & Open util, factory, and exception packages for tests
     exports common.utils;
@@ -38,6 +39,9 @@ module view.btl {
 
     exports common.userfactory;
     opens common.userfactory;
+
+    // Open package root for test reflection when running on module-path (IDE/JUnit)
+    opens common.models;
 
     exports server.manager;
     opens server.manager;
