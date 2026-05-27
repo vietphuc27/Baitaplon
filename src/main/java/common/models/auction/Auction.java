@@ -12,6 +12,7 @@ public class Auction {
     private int id;
     private Item item;
     private String sellerId;
+    private String sellerUsername;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private double currentHighestBid;
@@ -131,6 +132,14 @@ public class Auction {
 
     public void setSellerId(String sellerId) {
         this.sellerId = sellerId;
+    }
+
+    public String getSellerUsername() {
+        return sellerUsername;
+    }
+
+    public void setSellerUsername(String sellerUsername) {
+        this.sellerUsername = sellerUsername;
     }
 
     public LocalDateTime getStartTime() {

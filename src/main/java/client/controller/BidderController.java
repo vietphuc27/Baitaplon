@@ -28,6 +28,7 @@ import javafx.stage.WindowEvent;
 
 import java.io.IOException;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -93,6 +94,7 @@ public class BidderController {
     private final BidClient bidClient = new BidClient();
     private final AuthClient authClient = new AuthClient();
     private final ExecutorService backgroundExecutor = Executors.newSingleThreadExecutor();
+    private final Map<String, String> sellerNameCache = new HashMap<>();
     private final ObservableList<AuctionRow> auctionRows = FXCollections.observableArrayList();
     private final ObservableList<BidHistoryRow> bidHistoryRows = FXCollections.observableArrayList();
     private Bidder currentBidder;
@@ -383,8 +385,9 @@ public class BidderController {
         return auctions.stream()
                 .filter(a -> a.getItem() != null)
                 .filter(a -> keyword.isEmpty()
-                        || String.valueOf(a.getAuctionId()).contains(keyword)
+                || String.valueOf(a.getAuctionId()).contains(keyword)
                         || a.getItem().getName().toLowerCase(Locale.ROOT).contains(keyword)
+                        || (a.getSellerUsername() != null && a.getSellerUsername().toLowerCase(Locale.ROOT).contains(keyword))
                         || (a.getSellerId() != null && a.getSellerId().toLowerCase(Locale.ROOT).contains(keyword)))
                 .filter(a -> "Tất cả".equals(status)
                         || (a.getStatus() != null && a.getStatus().name().equalsIgnoreCase(status)))
@@ -408,15 +411,47 @@ public class BidderController {
         if (displayPrice == 0 && a.getItem() != null) {
             displayPrice = a.getItem().getStartingPrice();
         }
+        String sellerDisplay = resolveSellerDisplayName(a);
         return new AuctionRow(
                 String.valueOf(a.getAuctionId()),
                 a.getItem() == null ? "-" : a.getItem().getName(),
                 a.getItem() == null ? "-" : a.getItem().getClass_SimpleName(),
                 formatCurrency(displayPrice),
-                a.getSellerId() != null ? a.getSellerId() : "-",
+                sellerDisplay,
                 a.getStatus() == null ? "-" : a.getStatus().name(),
                 FormatUtils.formatDateTime(a.getEndTime()),
                 a);
+    }
+
+    private String resolveSellerDisplayName(Auction auction) {
+        if (auction == null) {
+            return "-";
+        }
+        String sellerUsername = auction.getSellerUsername();
+        String sellerId = auction.getSellerId();
+        if (sellerUsername != null && !sellerUsername.isBlank() && !sellerUsername.equals(sellerId)) {
+            return sellerUsername;
+        }
+        if (sellerId == null || sellerId.isBlank()) {
+            return "-";
+        }
+        String cached = sellerNameCache.get(sellerId);
+        if (cached != null && !cached.isBlank()) {
+            auction.setSellerUsername(cached);
+            return cached;
+        }
+        try {
+            int sellerUserId = Integer.parseInt(sellerId.trim());
+            User sellerUser = authClient.getUserById(sellerUserId).orElse(null);
+            if (sellerUser != null && sellerUser.getUsername() != null && !sellerUser.getUsername().isBlank()) {
+                String username = sellerUser.getUsername();
+                sellerNameCache.put(sellerId, username);
+                auction.setSellerUsername(username);
+                return username;
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return sellerId;
     }
 
     private BidHistoryRow toBidHistoryRow(BidTransaction bid) {

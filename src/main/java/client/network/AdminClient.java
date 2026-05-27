@@ -71,7 +71,7 @@ public class AdminClient {
 
     private User mapToUser(Map<String, Object> m) {
         try {
-            int id = Integer.parseInt(String.valueOf(m.get("userId")));
+            int id = parseIntValue(m.get("userId"));
             String username = (String) m.getOrDefault("username", "");
             String email = (String) m.getOrDefault("email", "");
             String role = (String) m.getOrDefault("role", "");
@@ -85,6 +85,18 @@ public class AdminClient {
             return user;
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private int parseIntValue(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        String text = String.valueOf(value);
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            return (int) Double.parseDouble(text);
         }
     }
 

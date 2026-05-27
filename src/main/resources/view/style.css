@@ -262,3 +262,99 @@
 .toggle-auto-bid:selected:hover {
     -fx-opacity: 0.9;
 }
+
+.auction-header-wrap {
+    -fx-background-color: #f9fafb;
+}
+
+.auction-page-title {
+    -fx-font-size: 28px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #111827;
+}
+
+.status-pill {
+    -fx-padding: 7 14;
+    -fx-background-radius: 8;
+    -fx-font-size: 12px;
+    -fx-font-weight: 700;
+    -fx-letter-spacing: 0.8px;
+}
+
+.countdown-pill {
+    -fx-background-color: #fef2f2;
+    -fx-border-color: #fecaca;
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+    -fx-padding: 7 14;
+    -fx-text-fill: #b91c1c;
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+}
+
+.detail-card {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+
+.detail-card-title {
+    -fx-padding: 0 0 8 0;
+    -fx-border-color: transparent transparent #eef2f7 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.start-price-value {
+    -fx-text-fill: #dc2626;
+    -fx-font-size: 18px;
+}
+
+.image-placeholder-wrap {
+    -fx-background-color: #f9fafb;
+    -fx-border-color: #d1d5db;
+    -fx-border-style: segments(4, 4);
+    -fx-border-radius: 8;
+    -fx-background-radius: 8;
+}
+
+.chart-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #374151;
+    -fx-alignment: center;
+    -fx-max-width: infinity;
+}
+
+.chart-card {
+    -fx-background-color: white;
+    -fx-border-color: #e5e7eb;
+    -fx-border-radius: 10;
+    -fx-background-radius: 10;
+    -fx-padding: 10;
+}
+
+.chart-card .chart-plot-background {
+    -fx-background-color: #ffffff;
+}
+
+.chart-card .chart-horizontal-grid-lines,
+.chart-card .chart-vertical-grid-lines {
+    -fx-stroke: #e5e7eb;
+}
+
+.history-table {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+
+.history-table .column-header-background {
+    -fx-background-color: #f9fafb;
+}
+
+.history-table .column-header .label {
+    -fx-font-size: 13px;
+}
+
+.bid-right-panel {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}

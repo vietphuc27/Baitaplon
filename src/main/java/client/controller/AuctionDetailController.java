@@ -1,12 +1,16 @@
 package client.controller;
 
 import client.application.ClientSession;
+import client.network.AuthClient;
 import client.network.BidClient;
 import client.network.SocketClient;
 import common.models.auction.Auction;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
+import common.models.user.User;
 import common.utils.FormatUtils;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -29,9 +33,12 @@ import javafx.scene.shape.Rectangle;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -90,6 +97,10 @@ public class AuctionDetailController {
     @FXML
     private Label lblStartPrice;
     @FXML
+    private Label lblEndTime;
+    @FXML
+    private Label lblCurrentLeader;
+    @FXML
     private TextArea txtDescription;
     @FXML
     private ImageView imgProduct;
@@ -125,7 +136,9 @@ public class AuctionDetailController {
     private VBox autoBidSection;
 
     private final BidClient bidClient = new BidClient();
+    private final AuthClient authClient = new AuthClient();
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Map<Integer, String> bidderNameCache = new HashMap<>();
     private final ObservableList<BidTransaction> historyRows = FXCollections.observableArrayList();
     private final SocketClient.PushListener auctionPushListener = this::handlePushEvent;
     private Auction auction;
@@ -134,10 +147,12 @@ public class AuctionDetailController {
     private int currentAgentId = -1; // -1 = chưa có agent
     private Stage imagePreviewStage;
     private String currentProductImageUrl;
+    private Timeline countdownTimeline;
+    private boolean auctionEndRefreshRequested = false;
 
     @FXML
     private void initialize() {
-        bidderCol.setCellValueFactory(v -> new SimpleStringProperty(String.valueOf(v.getValue().getBidderId())));
+        bidderCol.setCellValueFactory(v -> new SimpleStringProperty(resolveBidderDisplayName(v.getValue().getBidderId())));
         amountCol.setCellValueFactory(
                 v -> new SimpleStringProperty(FormatUtils.formatCurrency(v.getValue().getBidAmount())));
         timeCol.setCellValueFactory(v -> new SimpleStringProperty(
@@ -156,9 +171,11 @@ public class AuctionDetailController {
     public void setAuction(Auction auction, Bidder bidder) {
         this.auction = auction;
         this.currentBidder = bidder;
+        this.auctionEndRefreshRequested = false;
         historyRows.clear();
         updateBidPanelState();
         updateHeader();
+        startCountdownTimer();
         refreshDataAsync();
         registerAuctionPushListener();
         checkExistingAutoBid();
@@ -391,7 +408,7 @@ public class AuctionDetailController {
         try {
             ClientSession.getSocket().addPushListener(auctionPushListener);
         } catch (RuntimeException e) {
-            showError("Khong the dang ky kenh cap nhat realtime.");
+            showError("Không thể đăng ký kênh cập nhật realtime.");
         }
     }
 
@@ -428,8 +445,12 @@ public class AuctionDetailController {
                 try {
                     bidClient.refreshAuctionsStatus();
                     auction = bidClient.findAuctionById(auction.getAuctionId()).orElse(auction);
-                    return FXCollections.observableArrayList(
-                            bidClient.getAuctionBidHistory(String.valueOf(auction.getAuctionId())));
+                    List<BidTransaction> bids = bidClient.getAuctionBidHistory(String.valueOf(auction.getAuctionId()));
+                    bids.sort(Comparator
+                            .comparingDouble(BidTransaction::getBidAmount)
+                            .reversed()
+                            .thenComparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.reverseOrder())));
+                    return FXCollections.observableArrayList(bids);
                 } catch (RuntimeException e) {
                     return null;
                 }
@@ -479,8 +500,10 @@ public class AuctionDetailController {
     private void renderChart(ObservableList<BidTransaction> rows) {
         XYChart.Series<Number, Number> series = new XYChart.Series<>();
         series.setName("Giá đặt");
+        List<BidTransaction> orderedByTime = new ArrayList<>(rows);
+        orderedByTime.sort(Comparator.comparing(BidTransaction::getBidTime, Comparator.nullsLast(Comparator.naturalOrder())));
         int index = 1;
-        for (BidTransaction row : rows) {
+        for (BidTransaction row : orderedByTime) {
             series.getData().add(new XYChart.Data<>(index++, row.getBidAmount()));
         }
         bidChart.getData().setAll(series);
@@ -495,12 +518,15 @@ public class AuctionDetailController {
         statusLabel.setText(String.valueOf(auction.getStatus()));
         applyStatusStyle();
         currentBidLabel.setText(FormatUtils.formatCurrency(auction.getCurrentHighestBid()));
-        countdownLabel.setText("Thời gian còn lại: " + remainingTimeText());
+        updateCountdownLabel();
         if (auction.getItem() != null) {
             lblProductName.setText(itemName);
             lblProductType.setText(auction.getItem().getClass_SimpleName());
-            lblSellerId.setText(auction.getSellerId());
+            lblSellerId.setText(resolveSellerDisplayName(auction));
             lblStartPrice.setText(FormatUtils.formatCurrency(auction.getItem().getStartingPrice()));
+            lblEndTime.setText(FormatUtils.formatDateTimeWithSeconds(auction.getEndTime()));
+            Integer leaderId = auction.getCurrentLeaderId();
+            lblCurrentLeader.setText(leaderId == null ? "Chưa có" : resolveBidderDisplayName(leaderId));
             txtDescription
                     .setText(auction.getItem().getDescription() == null ? "" : auction.getItem().getDescription());
             currentProductImageUrl = auction.getItem().getImageUrl();
@@ -510,10 +536,42 @@ public class AuctionDetailController {
             lblProductType.setText("-");
             lblSellerId.setText("-");
             lblStartPrice.setText("-");
+            lblEndTime.setText("-");
+            lblCurrentLeader.setText("Chưa có");
             txtDescription.setText("");
             currentProductImageUrl = null;
             imgProduct.setImage(null);
         }
+    }
+
+    private void startCountdownTimer() {
+        stopCountdownTimer();
+        updateCountdownLabel();
+        countdownTimeline = new Timeline(new KeyFrame(Duration.seconds(1), event -> updateCountdownLabel()));
+        countdownTimeline.setCycleCount(Timeline.INDEFINITE);
+        countdownTimeline.play();
+    }
+
+    private void stopCountdownTimer() {
+        if (countdownTimeline != null) {
+            countdownTimeline.stop();
+            countdownTimeline = null;
+        }
+    }
+
+    private void updateCountdownLabel() {
+        if (countdownLabel == null) {
+            return;
+        }
+        countdownLabel.setText("Thời gian còn lại: " + remainingTimeText());
+        if (auction == null || auction.getEndTime() == null || LocalDateTime.now().isBefore(auction.getEndTime())) {
+            return;
+        }
+        if (!auctionEndRefreshRequested) {
+            auctionEndRefreshRequested = true;
+            refreshDataAsync();
+        }
+        updateBidPanelState();
     }
 
     private void loadProductImage(String imageUrl) {
@@ -698,9 +756,9 @@ public class AuctionDetailController {
             hideErrorIfDisplayTimeElapsed();
             return;
         }
-        boolean canBid = currentBidder != null && !isOwnAuction();
-        setBidPanelVisible(canBid);
+        setBidPanelVisible(true);
         if (currentBidder != null && isOwnAuction()) {
+            setBidInputEnabled(false);
             showError("Bạn không thể tự đấu giá sản phẩm của chính mình.");
             return;
         }
@@ -778,7 +836,52 @@ public class AuctionDetailController {
         return auction.getSellerId().trim().equals(String.valueOf(currentBidder.getId()));
     }
 
+    private String resolveSellerDisplayName(Auction auction) {
+        if (auction == null) {
+            return "-";
+        }
+        String sellerUsername = auction.getSellerUsername();
+        String sellerId = auction.getSellerId();
+        if (sellerUsername != null && !sellerUsername.isBlank() && !sellerUsername.equals(sellerId)) {
+            return sellerUsername;
+        }
+        if (sellerId == null || sellerId.isBlank()) {
+            return "-";
+        }
+        try {
+            int sellerUserId = Integer.parseInt(sellerId.trim());
+            User user = authClient.getUserById(sellerUserId).orElse(null);
+            if (user != null && user.getUsername() != null && !user.getUsername().isBlank()) {
+                auction.setSellerUsername(user.getUsername());
+                return user.getUsername();
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return sellerId;
+    }
+
+    private String resolveBidderDisplayName(int bidderId) {
+        if (bidderId <= 0) {
+            return "-";
+        }
+        String cached = bidderNameCache.get(bidderId);
+        if (cached != null && !cached.isBlank()) {
+            return cached;
+        }
+        try {
+            User bidder = authClient.getUserById(bidderId).orElse(null);
+            if (bidder != null && bidder.getUsername() != null && !bidder.getUsername().isBlank()) {
+                String username = bidder.getUsername();
+                bidderNameCache.put(bidderId, username);
+                return username;
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return String.valueOf(bidderId);
+    }
+
     private void shutdown() {
+        stopCountdownTimer();
         if (imagePreviewStage != null) {
             try {
                 imagePreviewStage.close();

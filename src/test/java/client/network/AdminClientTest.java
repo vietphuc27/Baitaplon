@@ -36,6 +36,25 @@ class AdminClientTest {
     }
 
     @Test
+    void getAllUsersParsesJsonNumberIds() {
+        TestSocketClient socket = new TestSocketClient();
+        socket.setResponse("get_all_users", Map.of(
+                "status", "success",
+                "users", List.of(Map.of(
+                        "userId", 100001.0,
+                        "username", "admin",
+                        "email", "admin@example.com",
+                        "role", "ADMIN",
+                        "userStatus", "LOGIN"))));
+
+        AdminClient client = new AdminClient(socket);
+        List<User> users = client.getAllUsers();
+
+        assertEquals(1, users.size());
+        assertEquals(100001, users.getFirst().getId());
+    }
+
+    @Test
     void banUserThrowsWhenServerReturnsError() {
         TestSocketClient socket = new TestSocketClient();
         socket.setResponse("ban_user", Map.of("status", "error", "message", "fail"));

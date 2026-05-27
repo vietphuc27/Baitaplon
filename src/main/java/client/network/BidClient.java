@@ -127,6 +127,7 @@ public class BidClient {
             String itemName = (String) m.getOrDefault("itemName", "-");
             String description = (String) m.getOrDefault("description", "");
             String sellerId = (String) m.getOrDefault("sellerId", "");
+            String sellerUsername = (String) m.getOrDefault("sellerUsername", sellerId);
             String statusStr = String.valueOf(m.getOrDefault("auctionStatus", m.getOrDefault("status", "-")));
             double currentPrice = m.get("currentPrice") instanceof Number n ? n.doubleValue() : 0;
             double startingPrice = m.get("startingPrice") instanceof Number n ? n.doubleValue() : currentPrice;
@@ -157,6 +158,7 @@ public class BidClient {
             }
 
             Auction a = new Auction(id, item, sellerId, startTime, endTime);
+            a.setSellerUsername(sellerUsername == null || sellerUsername.isBlank() ? sellerId : sellerUsername);
             a.setCurrentHighestBid(currentPrice);
             a.setCurrentLeaderId(currentLeaderId);
             if (!statusStr.equals("-")) {

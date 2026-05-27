@@ -605,10 +605,23 @@ public class RequestHandler {
         map.put("currentPrice", auction.getCurrentHighestBid());
         map.put("currentLeaderId", auction.getCurrentLeaderId());
         map.put("sellerId", auction.getSellerId() != null ? auction.getSellerId() : "");
+        map.put("sellerUsername", resolveSellerUsername(auction.getSellerId()));
         map.put("auctionStatus", auction.getStatus() != null ? auction.getStatus().name() : "-");
         map.put("startTime", auction.getStartTime() != null ? auction.getStartTime().toString() : "");
         map.put("endTime", auction.getEndTime() != null ? auction.getEndTime().toString() : "");
         map.put("imageUrl", auction.getItem() != null && auction.getItem().getImageUrl() != null ? auction.getItem().getImageUrl() : "");
         return map;
+    }
+
+    private String resolveSellerUsername(String sellerId) {
+        if (sellerId == null || sellerId.isBlank()) {
+            return "";
+        }
+        try {
+            int sellerUserId = Integer.parseInt(sellerId.trim());
+            return userService.findById(sellerUserId).map(User::getUsername).orElse(sellerId);
+        } catch (NumberFormatException ex) {
+            return sellerId;
+        }
     }
 }
