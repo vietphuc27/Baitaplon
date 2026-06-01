@@ -20,8 +20,10 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -57,6 +59,13 @@ class BidderControllerLogicTest {
                 new Class<?>[] { Auction.class, BidTransaction.class }, auction, bid));
 
         auction.setCurrentLeaderId(9);
+        assertEquals("Đã bị vượt", invoke(controller, "resolveBidResult",
+                new Class<?>[] { Auction.class, BidTransaction.class }, auction, bid));
+
+        assertEquals("Đã bị vượt", invoke(controller, "resolveBidResult",
+                new Class<?>[] { Auction.class, BidTransaction.class }, null, bid));
+
+        auction.setCurrentLeaderId(null);
         assertEquals("Đã bị vượt", invoke(controller, "resolveBidResult",
                 new Class<?>[] { Auction.class, BidTransaction.class }, auction, bid));
     }
@@ -105,6 +114,15 @@ class BidderControllerLogicTest {
         Auction otherAuction = auction(56, "PC", "99", 10);
         assertTrue((boolean) invoke(controller, "isOwnAuction", new Class<?>[] { Auction.class }, ownAuction));
         assertEquals(false, invoke(controller, "isOwnAuction", new Class<?>[] { Auction.class }, otherAuction));
+        assertEquals(false, invoke(controller, "isOwnAuction", new Class<?>[] { Auction.class }, (Object) null));
+        otherAuction.setSellerId(null);
+        assertEquals(false, invoke(controller, "isOwnAuction", new Class<?>[] { Auction.class }, otherAuction));
+
+        Bidder latestBidder = new Bidder(7, "bidderName", "bidder@e", "bidderpass");
+        latestBidder.getWallet().setBalance(888);
+        invoke(controller, "syncBidderState", new Class<?>[] { common.models.user.User.class }, latestBidder);
+        assertEquals("bidderName", local.getUsername());
+        assertEquals(888, local.getWallet().getBalance(), 0.001);
     }
 
     @Test
@@ -179,6 +197,95 @@ class BidderControllerLogicTest {
         assertNull(invoke(controller, "findAuctionSafe", new Class<?>[] { int.class }, 999));
     }
 
+    @Test
+    void sellerDisplayNameAndAuctionFilteringCoverSellerBranches() throws Exception {
+        TestSocketClient socket = (TestSocketClient) ClientSession.getSocket();
+        BidderController controller = new BidderController();
+
+        assertEquals("-", invoke(controller, "resolveSellerDisplayName",
+                new Class<?>[] { Auction.class }, (Object) null));
+
+        Auction namedSeller = auction(1, "Phone", "21", 10);
+        namedSeller.setSellerUsername("seller-name");
+        assertEquals("seller-name", invoke(controller, "resolveSellerDisplayName",
+                new Class<?>[] { Auction.class }, namedSeller));
+
+        Auction blankSeller = auction(2, "Laptop", " ", 20);
+        assertEquals("-", invoke(controller, "resolveSellerDisplayName",
+                new Class<?>[] { Auction.class }, blankSeller));
+
+        socket.setResponse("get_user_by_id", Map.of(
+                "status", "success",
+                "userId", 42,
+                "username", "remote-seller",
+                "email", "remote@e.com",
+                "role", "SELLER"
+        ));
+        Auction remoteSeller = auction(3, "Tablet", "42", 30);
+        assertEquals("remote-seller", invoke(controller, "resolveSellerDisplayName",
+                new Class<?>[] { Auction.class }, remoteSeller));
+        assertEquals("remote-seller", remoteSeller.getSellerUsername());
+
+        Auction cachedSeller = auction(4, "Camera", "42", 40);
+        assertEquals("remote-seller", invoke(controller, "resolveSellerDisplayName",
+                new Class<?>[] { Auction.class }, cachedSeller));
+
+        socket.setResponse("get_user_by_id", Map.of("status", "error", "message", "not found"));
+        Auction fallbackSeller = auction(5, "Speaker", "99", 50);
+        assertEquals("99", invoke(controller, "resolveSellerDisplayName",
+                new Class<?>[] { Auction.class }, fallbackSeller));
+
+        Auction sellerUsernameMatch = auction(6, "Watch", "seller-a", 60);
+        sellerUsernameMatch.setSellerUsername("Alpha Seller");
+        sellerUsernameMatch.setStatus(AuctionStatus.OPEN);
+        Auction sellerIdMatch = auction(7, "Keyboard", "seller-b", 70);
+        sellerIdMatch.setStatus(AuctionStatus.RUNNING);
+        Auction nullItem = new Auction(8, null, "seller-c",
+                LocalDateTime.now().minusMinutes(1), LocalDateTime.now().plusMinutes(10));
+
+        List<?> usernameRows = (List<?>) invoke(controller, "filterAndSortAuctions",
+                new Class<?>[] { List.class, String.class, String.class, String.class },
+                List.of(sellerUsernameMatch, sellerIdMatch, nullItem), "alpha", "Tất cả", "Mới nhất");
+        assertEquals(1, usernameRows.size());
+        assertEquals("6", fieldValue(usernameRows.getFirst(), "id"));
+
+        List<?> sellerIdRows = (List<?>) invoke(controller, "filterAndSortAuctions",
+                new Class<?>[] { List.class, String.class, String.class, String.class },
+                List.of(sellerUsernameMatch, sellerIdMatch, nullItem), "seller-b", "RUNNING", "Mới nhất");
+        assertEquals(1, sellerIdRows.size());
+        assertEquals("7", fieldValue(sellerIdRows.getFirst(), "id"));
+    }
+
+    @Test
+    void bidHistoryRowMappingAndShutdownCoverRemainingPureLogic() throws Exception {
+        BidderController controller = new BidderController();
+
+        Auction wonAuction = auction(20, "Console", "1", 100);
+        wonAuction.setCurrentLeaderId(5);
+        wonAuction.setStatus(AuctionStatus.PAID);
+        setField(controller, "cachedAuctions", List.of(wonAuction));
+
+        BidTransaction winningBid = new BidTransaction(1, 20, 5, 150);
+        winningBid.setBidTime(LocalDateTime.of(2026, 6, 1, 9, 30));
+        Object wonRow = invoke(controller, "toBidHistoryRow", new Class<?>[] { BidTransaction.class }, winningBid);
+        assertEquals("20", fieldValue(wonRow, "auctionId"));
+        assertEquals("Console", fieldValue(wonRow, "itemName"));
+        assertEquals("Đã thắng", fieldValue(wonRow, "result"));
+
+        TestSocketClient socket = (TestSocketClient) ClientSession.getSocket();
+        socket.setResponse("get_auction_by_id", Map.of("status", "error", "message", "not found"));
+        setField(controller, "cachedAuctions", List.of());
+        BidTransaction unknownBid = new BidTransaction(2, 999, 5, 50);
+        Object unknownRow = invoke(controller, "toBidHistoryRow", new Class<?>[] { BidTransaction.class }, unknownBid);
+        assertEquals("-", fieldValue(unknownRow, "itemName"));
+        assertEquals("Đã bị vượt", fieldValue(unknownRow, "result"));
+
+        ExecutorService executor = (ExecutorService) field(controller, "backgroundExecutor");
+        assertFalse(executor.isShutdown());
+        invoke(controller, "shutdown", new Class<?>[0]);
+        assertTrue(executor.isShutdown());
+    }
+
     private Auction auction(int id, String name, String sellerId, double startingPrice) {
         LocalDateTime now = LocalDateTime.now();
         return new Auction(id, item(name, startingPrice, sellerId), sellerId, now.minusMinutes(1), now.plusMinutes(10));
@@ -209,6 +316,12 @@ class BidderControllerLogicTest {
         Field field = target.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         return String.valueOf(field.get(target));
+    }
+
+    private Object field(Object target, String fieldName) throws Exception {
+        Field field = target.getClass().getDeclaredField(fieldName);
+        field.setAccessible(true);
+        return field.get(target);
     }
 
     private Object invoke(Object target, String method, Class<?>[] paramTypes, Object... args) throws Exception {

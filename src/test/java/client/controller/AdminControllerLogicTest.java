@@ -12,8 +12,7 @@ import java.lang.reflect.Method;
 import java.util.Comparator;
 import java.util.concurrent.ExecutorService;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class AdminControllerLogicTest {
 
@@ -96,6 +95,53 @@ class AdminControllerLogicTest {
     }
 
     @Test
+    void parseAmountHandlesEdgeCases() throws Exception {
+        AdminController controller = new AdminController();
+
+        double parsed1 = (double) invoke(controller, "parseAmount", new Class<?>[] { String.class }, "0");
+        assertEquals(0.0, parsed1, 0.0001);
+
+        double parsed2 = (double) invoke(controller, "parseAmount", new Class<?>[] { String.class }, "");
+        assertEquals(0.0, parsed2, 0.0001);
+
+        double parsed3 = (double) invoke(controller, "parseAmount", new Class<?>[] { String.class }, "$ -1,234.56");
+        assertTrue(parsed3 < 0);
+    }
+
+    @Test
+    void resolveUserComparatorFallsBackToDefaultForUnknownSort() throws Exception {
+        AdminController controller = new AdminController();
+
+        Comparator<AdminController.UserRow> unknown = (Comparator<AdminController.UserRow>) invoke(controller,
+                "resolveUserComparator", new Class<?>[] { String.class }, "NonExistentSort");
+        AdminController.UserRow a = new AdminController.UserRow("1", "alice", "a@e", "BIDDER", "LOGIN");
+        AdminController.UserRow b = new AdminController.UserRow("2", "bob", "b@e", "SELLER", "LOGIN");
+        assertTrue(unknown.compare(a, b) < 0);
+    }
+
+    @Test
+    void resolveAuctionComparatorFallsBackToIdParsingForUnknown() throws Exception {
+        AdminController controller = new AdminController();
+
+        Comparator<AdminController.AuctionRow> unknown = (Comparator<AdminController.AuctionRow>) invoke(controller,
+                "resolveAuctionComparator", new Class<?>[] { String.class }, "UnknownSort");
+        AdminController.AuctionRow r1 = new AdminController.AuctionRow("10", "A", "$0", "OPEN");
+        AdminController.AuctionRow r2 = new AdminController.AuctionRow("2", "B", "$0", "OPEN");
+        assertTrue(unknown.compare(r1, r2) > 0);
+    }
+
+    @Test
+    void resolveAuctionComparatorCurrentBidHandlesInvalidCurrencyFormat() throws Exception {
+        AdminController controller = new AdminController();
+
+        Comparator<AdminController.AuctionRow> comp = (Comparator<AdminController.AuctionRow>) invoke(controller,
+                "resolveAuctionComparator", new Class<?>[] { String.class }, "Current bid");
+        AdminController.AuctionRow r1 = new AdminController.AuctionRow("1", "A", "abc", "OPEN");
+        AdminController.AuctionRow r2 = new AdminController.AuctionRow("2", "B", "xyz", "OPEN");
+        assertTrue(comp.compare(r1, r2) == 0);
+    }
+
+    @Test
     void shutdownStopsBackgroundExecutor() throws Exception {
         AdminController controller = new AdminController();
         ExecutorService executor = (ExecutorService) field(controller, "backgroundExecutor");
@@ -121,5 +167,4 @@ class AdminControllerLogicTest {
         field.setAccessible(true);
         return field.get(target);
     }
-
 }
