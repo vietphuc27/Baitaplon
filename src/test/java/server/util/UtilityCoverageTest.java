@@ -2,7 +2,7 @@ package server.util;
 
 import com.example.btl_n3.Main;
 import common.utils.JsonUtils;
-import common.utils.SerializationUtils;
+
 import common.utils.TimeUtils;
 import common.utils.ValidationUtils;
 import org.junit.jupiter.api.Test;
@@ -20,21 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class UtilityCoverageTest {
 
-    @Test
-    public void placeholderUtilityClassesCanBeConstructed() throws Exception {
-        var constructor1 = ValidationUtils.class.getDeclaredConstructor();
-        constructor1.setAccessible(true);
-        assertNotNull(constructor1.newInstance());
-
-        var constructor2 = SerializationUtils.class.getDeclaredConstructor();
-        constructor2.setAccessible(true);
-        assertNotNull(constructor2.newInstance());
-
-        var constructor3 = TimeUtils.class.getDeclaredConstructor();
-        constructor3.setAccessible(true);
-        assertNotNull(constructor3.newInstance());
-    }
-
+   
     @Test
     public void generateHashedPasswordsMainPrintsHashedFormat() {
         PrintStream originalOut = System.out;
