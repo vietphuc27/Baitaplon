@@ -35,6 +35,10 @@ public class SocketClient implements Closeable {
     private final int port;
     private final Object ioLock = new Object();
     private final Object listenerLock = new Object();
+    // requestLock đảm bảo chỉ 1 cặp request-response đang chạy tại 1 thời điểm.
+    // Tránh trường hợp AuctionDetailController và BidderController cùng gửi request,
+    // response bị lấy nhầm → timeout → closeQuietly() → listener thread chết.
+    private final Object requestLock = new Object();
     private final BlockingQueue<Map<String, Object>> responseQueue = new LinkedBlockingQueue<>();
     private final CopyOnWriteArrayList<PushListener> pushListeners = new CopyOnWriteArrayList<>();
 
@@ -137,33 +141,38 @@ public class SocketClient implements Closeable {
     }
 
     public Map<String, Object> sendRawRequest(Map<String, Object> request) {
-        // Gửi request
-        synchronized (ioLock) {
-            try {
-                ensureConnected();
-                writer.println(JsonUtils.toJson(request));
-                writer.flush();
-            } catch (RuntimeException e) {
-                closeQuietly();
-                connected = false;
-                throw new RuntimeException("Không thể gửi request tới server: " + e.getMessage(), e);
+        // requestLock đảm bảo chỉ 1 request-response pair đang chạy tại 1 thời điểm.
+        // Điều này tránh tình huống 2 thread (VD: BidderController + AuctionDetailController)
+        // cùng gửi request → response bị lấy nhầm → timeout → đóng socket → mất push.
+        synchronized (requestLock) {
+            // Gửi request
+            synchronized (ioLock) {
+                try {
+                    ensureConnected();
+                    writer.println(JsonUtils.toJson(request));
+                    writer.flush();
+                } catch (RuntimeException e) {
+                    closeQuietly();
+                    connected = false;
+                    throw new RuntimeException("Không thể gửi request tới server: " + e.getMessage(), e);
+                }
             }
-        }
 
-        // Chờ response từ thread nền
-        try {
-            Map<String, Object> response = responseQueue.poll(RESPONSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            if (response == null) {
+            // Chờ response từ thread nền (listener thread đọc và đẩy vào queue)
+            try {
+                Map<String, Object> response = responseQueue.poll(RESPONSE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                if (response == null) {
+                    closeQuietly();
+                    connected = false;
+                    throw new RuntimeException("Server không phản hồi trong thời gian chờ");
+                }
+                return response;
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 closeQuietly();
                 connected = false;
-                throw new RuntimeException("Server không phản hồi trong thời gian chờ");
+                throw new RuntimeException("Bị gián đoạn khi chờ phản hồi từ server", e);
             }
-            return response;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            closeQuietly();
-            connected = false;
-            throw new RuntimeException("Bị gián đoạn khi chờ phản hồi từ server", e);
         }
     }
 
@@ -259,7 +268,9 @@ public class SocketClient implements Closeable {
         try {
             socket = new Socket();
             socket.connect(new InetSocketAddress(host, port), 3000);
-            socket.setSoTimeout(5000);
+            // Không đặt SO_TIMEOUT để listenLoop không bị ngắt khi idle.
+            // Vòng lặp được kiểm soát bằng cờ running.
+            socket.setSoTimeout(0);
             reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
             writer = new PrintWriter(socket.getOutputStream(), true, StandardCharsets.UTF_8);
 
@@ -305,7 +316,13 @@ public class SocketClient implements Closeable {
                     // Response thường → đưa vào queue cho sendRequest
                     responseQueue.offer(message);
                 }
+            } catch (java.net.SocketTimeoutException e) {
+                // Timeout đọc tạm thời — KHÔNG thoát vòng lặp, tiếp tục chờ.
+                // Trước đây SocketTimeoutException bị bắt bởi catch(IOException)
+                // khiến listener thread chết và push event bị mất.
+                continue;
             } catch (IOException e) {
+                // Mất kết nối thật sự → thoát
                 break;
             } catch (RuntimeException e) {
                 // Lỗi parse JSON, bỏ qua
