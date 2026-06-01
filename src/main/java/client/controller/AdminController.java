@@ -252,6 +252,9 @@ public class AdminController {
     }
 
     private Comparator<UserRow> resolveUserComparator(String sortBy) {
+        if (sortBy == null) {
+            sortBy = "Username";
+        }
         return switch (sortBy) {
             case "Role" -> Comparator.comparing(r -> r.role);
             case "Status" -> Comparator.comparing(r -> r.status);
@@ -260,6 +263,9 @@ public class AdminController {
     }
 
     private Comparator<AuctionRow> resolveAuctionComparator(String sortBy) {
+        if (sortBy == null) {
+            sortBy = "ID";
+        }
         return switch (sortBy) {
             case "Item name" -> Comparator.comparing(r -> r.itemName);
             case "Current bid" -> Comparator.comparingDouble(r -> parseAmount(r.currentBid));

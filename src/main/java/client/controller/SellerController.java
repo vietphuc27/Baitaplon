@@ -723,6 +723,9 @@ public class SellerController implements Initializable {
     }
 
     private Comparator<Auction> resolveAuctionComparator(String sortBy) {
+        if (sortBy == null) {
+            sortBy = "Mới nhất";
+        }
         return switch (sortBy) {
             case "Cũ nhất" ->
                 Comparator.comparing(Auction::getStartTime, Comparator.nullsLast(Comparator.naturalOrder()));

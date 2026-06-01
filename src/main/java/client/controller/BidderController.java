@@ -283,9 +283,16 @@ public class BidderController {
     }
 
     private void updateWalletLabels() {
+        if (currentBidder == null || currentBidder.getWallet() == null) {
+            return;
+        }
         String text = formatCurrency(currentBidder.getWallet().getBalance());
-        lblWalletBalance.setText("Ví: " + text);
-        lblBalance.setText(text);
+        if (lblWalletBalance != null) {
+            lblWalletBalance.setText("Ví: " + text);
+        }
+        if (lblBalance != null) {
+            lblBalance.setText(text);
+        }
     }
 
     private void setupFilters() {
@@ -348,10 +355,12 @@ public class BidderController {
         runInBackground(() -> {
             bidClient.refreshAuctionsStatus();
             List<Auction> auctions = bidClient.getAllAuctions();
+            syncBidderState();
             cachedAuctions = auctions;
             return filterAndSortAuctions(auctions, keyword, status, sort);
         }, rows -> {
             auctionRows.setAll(rows);
+            updateWalletLabels();
             if (!rows.isEmpty()) {
                 tblAuctions.getSelectionModel().selectFirst();
                 updateChart(rows.get(0));
@@ -585,6 +594,7 @@ public class BidderController {
                 return redirectToLogin("Tài khoản của bạn đã bị khóa bởi admin.");
             }
             syncBidderState(latestUser);
+            updateWalletLabels();
             return true;
         } catch (RuntimeException e) {
             showAlert(Alert.AlertType.ERROR, "Lỗi", e.getMessage());

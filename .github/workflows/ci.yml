@@ -30,8 +30,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
 
-      - name: Build and test
-        run: ./mvnw clean test
+      - name: Build and test (JavaFX headless via Xvfb)
+        run: |
+          if ! command -v xvfb-run >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y xvfb
+          fi
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" ./mvnw -B clean test
 
       - name: Upload test reports
         if: always()
