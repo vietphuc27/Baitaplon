@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+    <property name="charset" value="UTF-8"/>
+
+    <!-- File-level checks -->
+    <module name="FileTabCharacter"/>
+
+    <!-- Bỏ qua file module-info.java (không parse được) -->
+    <module name="BeforeExecutionExclusionFileFilter">
+        <property name="fileNamePattern" value="module\-info\.java$"/>
+    </module>
+
+    <!-- Bỏ qua test code -->
+    <module name="SuppressionSingleFilter">
+        <property name="files" value="[\\/]src[\\/]test[\\/]"/>
+        <property name="checks" value="MagicNumber|VisibilityModifier|AvoidStarImport|MethodName|LocalVariableName|UnusedImports|ConstantName"/>
+    </module>
+
+    <!-- Bỏ qua một số rule trong main code để giảm noise -->
+    <module name="SuppressionSingleFilter">
+        <property name="files" value="[\\/]src[\\/]main[\\/]"/>
+        <property name="checks" value="UnusedImports|AvoidStarImport|ConstantName|MethodName|MultipleVariableDeclarations|NeedBraces|VisibilityModifier|LeftCurly|RightCurly"/>
+    </module>
+
+    <module name="TreeWalker">
+
+        <!--  IMPORTS  -->
+        <module name="AvoidStarImport"/>
+        <module name="UnusedImports"/>
+        <module name="RedundantImport"/>
+
+        <!--  NAMING  -->
+        <module name="PackageName"/>
+        <module name="TypeName"/>
+        <module name="MethodName"/>
+        <module name="ConstantName"/>
+        <module name="MemberName"/>
+        <module name="ParameterName"/>
+        <module name="LocalVariableName"/>
+
+        <!--  BRACES & FORMATTING  -->
+        <module name="NeedBraces">
+            <property name="allowSingleLineStatement" value="true"/>
+        </module>
+        <module name="LeftCurly"/>
+        <module name="RightCurly"/>
+        <module name="OneStatementPerLine"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="ArrayTypeStyle"/>
+
+        <!--  CODE QUALITY  -->
+        <module name="ModifierOrder"/>
+        <module name="EmptyBlock"/>
+        <module name="EmptyCatchBlock">
+            <property name="exceptionVariableName" value="ignored|expected"/>
+        </module>
+        <module name="FallThrough"/>
+        <module name="InnerAssignment"/>
+        <module name="NoClone"/>
+        <module name="NoFinalizer"/>
+        <module name="OneTopLevelClass"/>
+
+        <!--  VISIBILITY  -->
+        <module name="VisibilityModifier">
+            <property name="packageAllowed" value="true"/>
+        </module>
+
+    </module>
+</module>
