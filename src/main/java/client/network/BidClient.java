@@ -4,7 +4,10 @@ import client.application.ClientSession;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.auction.BidTransaction;
+import common.models.item.Art;
+import common.models.item.Electronics;
 import common.models.item.Item;
+import common.models.item.Vehicle;
 import common.models.user.Bidder;
 
 import java.time.LocalDateTime;
@@ -141,18 +144,7 @@ public class BidClient {
             LocalDateTime startTime = startTimeStr.isEmpty() ? null : LocalDateTime.parse(startTimeStr);
             LocalDateTime endTime = endTimeStr.isEmpty() ? null : LocalDateTime.parse(endTimeStr);
 
-            // Tao item wrapper giu lai itemType tu server
-            Item item = new Item(0, itemName, description, startingPrice, sellerId) {
-                @Override
-                public String getInfo() {
-                    return itemName;
-                }
-
-                @Override
-                public String getClass_SimpleName() {
-                    return itemTypeRaw;
-                }
-            };
+            Item item = buildTypedItem(m, itemName, description, startingPrice, sellerId, itemTypeRaw);
             if (imageUrl != null && !imageUrl.isEmpty()) {
                 item.setImageUrl(imageUrl);
             }
@@ -171,6 +163,35 @@ public class BidClient {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    private Item buildTypedItem(Map<String, Object> m, String itemName, String description, double startingPrice,
+            String sellerId, String itemTypeRaw) {
+        String normalized = itemTypeRaw == null ? "" : itemTypeRaw.toLowerCase(Locale.ROOT);
+        if (normalized.contains("phương") || normalized.contains("phuong") || normalized.contains("vehicle")) {
+            int mileage = m.get("mileage") instanceof Number n ? n.intValue() : 0;
+            return new Vehicle(0, itemName, description, startingPrice, sellerId, mileage);
+        }
+        if (normalized.contains("nghệ") || normalized.contains("nghe") || normalized.contains("art")) {
+            String artist = String.valueOf(m.getOrDefault("artist", ""));
+            return new Art(0, itemName, description, startingPrice, sellerId, artist);
+        }
+        if (normalized.contains("điện") || normalized.contains("dien") || normalized.contains("electronic")) {
+            int warrantyPeriod = m.get("warrantyPeriod") instanceof Number n ? n.intValue() : 0;
+            return new Electronics(0, itemName, description, startingPrice, sellerId, warrantyPeriod);
+        }
+        // Fallback cho dữ liệu cũ/không rõ loại
+        return new Item(0, itemName, description, startingPrice, sellerId) {
+            @Override
+            public String getInfo() {
+                return itemName;
+            }
+
+            @Override
+            public String getClass_SimpleName() {
+                return itemTypeRaw;
+            }
+        };
     }
 
     private Integer parseNullableInteger(Object value) {

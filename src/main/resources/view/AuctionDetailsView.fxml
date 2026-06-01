@@ -63,6 +63,10 @@
                                 <Label styleClass="field-label" text="Mô tả:" />
                                 <TextArea fx:id="txtDescription" editable="false" focusTraversable="false" prefHeight="95.0" prefRowCount="4" styleClass="description-display" text="Xe đã qua sử dụng, tình trạng tốt, giấy tờ đầy đủ" wrapText="true" />
                             </VBox>
+                            <VBox spacing="8.0">
+                                <Label styleClass="field-label" text="Chi tiết theo loại:" />
+                                <TextArea fx:id="txtTypeDetails" editable="false" focusTraversable="false" prefHeight="78.0" prefRowCount="3" styleClass="description-display" wrapText="true" />
+                            </VBox>
                         </VBox>
 
                         <VBox prefWidth="330.0" spacing="8.0">

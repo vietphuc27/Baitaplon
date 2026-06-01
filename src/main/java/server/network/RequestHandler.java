@@ -228,22 +228,45 @@ public class RequestHandler {
     private Item buildItem(int itemId, String sellerId, String itemName, String description, double startPrice,
             String itemType, Map<String, Object> request) {
         String type = normalizeItemType(itemType);
+        String mergedDescription = mergeTypeSpecificDescription(type, description, request);
         return switch (type) {
             case "art" -> {
                 String artist = getOptionalText(request, "artist");
                 if (artist == null)
                     throw new IllegalArgumentException("Thieu truong artist");
-                yield new Art(itemId, itemName, description, startPrice, sellerId, artist);
+                yield new Art(itemId, itemName, mergedDescription, startPrice, sellerId, artist);
             }
             case "electronics" ->
-                new Electronics(itemId, itemName, description, startPrice, sellerId, 0);
+                new Electronics(itemId, itemName, mergedDescription, startPrice, sellerId, 0);
             case "vehicle" -> {
                 String mileageStr = getOptionalText(request, "mileage");
                 int mileage = mileageStr == null ? 0 : Integer.parseInt(mileageStr);
-                yield new Vehicle(itemId, itemName, description, startPrice, sellerId, mileage);
+                yield new Vehicle(itemId, itemName, mergedDescription, startPrice, sellerId, mileage);
             }
             default -> throw new IllegalArgumentException("Loai san pham khong duoc ho tro: " + itemType);
         };
+    }
+
+    private String mergeTypeSpecificDescription(String normalizedType, String baseDescription, Map<String, Object> request) {
+        StringBuilder sb = new StringBuilder(baseDescription == null ? "" : baseDescription.trim());
+        appendLine(sb, "Hãng xe", getOptionalText(request, "vehicleBrand"), normalizedType.equals("vehicle"));
+        appendLine(sb, "Năm sản xuất", getOptionalText(request, "vehicleYear"), normalizedType.equals("vehicle"));
+        appendLine(sb, "Tình trạng", getOptionalText(request, "condition"), normalizedType.equals("vehicle") || normalizedType.equals("electronics"));
+        appendLine(sb, "Thương hiệu", getOptionalText(request, "brand"), normalizedType.equals("electronics"));
+        appendLine(sb, "Model", getOptionalText(request, "model"), normalizedType.equals("electronics"));
+        appendLine(sb, "Năm sáng tác", getOptionalText(request, "artYear"), normalizedType.equals("art"));
+        appendLine(sb, "Chất liệu", getOptionalText(request, "material"), normalizedType.equals("art"));
+        return sb.toString().trim();
+    }
+
+    private void appendLine(StringBuilder sb, String key, String value, boolean enabled) {
+        if (!enabled || value == null || value.isBlank()) {
+            return;
+        }
+        if (sb.length() > 0) {
+            sb.append('\n');
+        }
+        sb.append(key).append(": ").append(value.trim());
     }
 
     private String normalizeItemType(String rawType) {
@@ -610,6 +633,15 @@ public class RequestHandler {
         map.put("startTime", auction.getStartTime() != null ? auction.getStartTime().toString() : "");
         map.put("endTime", auction.getEndTime() != null ? auction.getEndTime().toString() : "");
         map.put("imageUrl", auction.getItem() != null && auction.getItem().getImageUrl() != null ? auction.getItem().getImageUrl() : "");
+        if (auction.getItem() instanceof Vehicle vehicle) {
+            map.put("mileage", vehicle.getMileage());
+        }
+        if (auction.getItem() instanceof Art art) {
+            map.put("artist", art.getArtist());
+        }
+        if (auction.getItem() instanceof Electronics electronics) {
+            map.put("warrantyPeriod", electronics.getWarrantyPeriod());
+        }
         return map;
     }
 

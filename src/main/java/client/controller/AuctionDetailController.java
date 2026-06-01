@@ -6,6 +6,10 @@ import client.network.BidClient;
 import client.network.SocketClient;
 import common.models.auction.Auction;
 import common.models.auction.BidTransaction;
+import common.models.item.Art;
+import common.models.item.Electronics;
+import common.models.item.Item;
+import common.models.item.Vehicle;
 import common.models.user.Bidder;
 import common.models.user.User;
 import common.utils.FormatUtils;
@@ -102,6 +106,8 @@ public class AuctionDetailController {
     private Label lblCurrentLeader;
     @FXML
     private TextArea txtDescription;
+    @FXML
+    private TextArea txtTypeDetails;
     @FXML
     private ImageView imgProduct;
     @FXML
@@ -539,9 +545,55 @@ public class AuctionDetailController {
             lblEndTime.setText("-");
             lblCurrentLeader.setText("Chưa có");
             txtDescription.setText("");
+            txtTypeDetails.setText("");
             currentProductImageUrl = null;
             imgProduct.setImage(null);
         }
+    }
+
+    private String buildTypeDetailsText(Item item) {
+        if (item == null) {
+            return "";
+        }
+        if (item instanceof Vehicle vehicle) {
+            return "Hang xe: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Hãng xe"))
+                    + "\nSo km da di: " + vehicle.getMileage()
+                    + "\nNam san xuat: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Năm sản xuất"))
+                    + "\nTinh trang: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Tình trạng"));
+        }
+        if (item instanceof Electronics electronics) {
+            return "Thuong hieu: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Thương hiệu"))
+                    + "\nModel: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Model"))
+                    + "\nTinh trang: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Tình trạng"))
+                    + "\nBao hanh (thang): " + electronics.getWarrantyPeriod();
+        }
+        if (item instanceof Art art) {
+            return "Nghe si: " + nonEmptyOrDash(art.getArtist())
+                    + "\nNam sang tac: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Năm sáng tác"))
+                    + "\nChat lieu: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Chất liệu"));
+        }
+        return "";
+    }
+
+    private String extractLineValue(String content, String key) {
+        if (content == null || content.isBlank()) {
+            return "";
+        }
+        String[] lines = content.split("\\R");
+        for (String line : lines) {
+            if (line == null) {
+                continue;
+            }
+            String normalized = line.trim();
+            if (normalized.toLowerCase().startsWith((key + ":").toLowerCase())) {
+                return normalized.substring(key.length() + 1).trim();
+            }
+        }
+        return "";
+    }
+
+    private String nonEmptyOrDash(String value) {
+        return value == null || value.isBlank() ? "-" : value;
     }
 
     private void startCountdownTimer() {
@@ -916,3 +968,5 @@ public class AuctionDetailController {
     }
 
 }
+
+

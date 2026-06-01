@@ -32,7 +32,7 @@ public class Bidder extends User implements AuctionObserver {
         if (lock.tryLock()){
             try {
                 if (auction.getStatus() == null){
-                    throw new AuthenticationException("lỗi dữ liễu");
+                    throw new AuthenticationException("lỗi dữ liệu");
                 }
                 if (auction.isClosed()){
                     throw new AuctionClosedException("Phiên đấu giá đã đóng");
