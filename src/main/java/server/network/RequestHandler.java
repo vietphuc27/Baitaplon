@@ -400,8 +400,16 @@ public class RequestHandler {
 
     private String handleBanUser(Map<String, Object> request) {
         int userId = getRequiredInt(request, "userId");
-        int adminId = getRequiredInt(request, "adminId");
-        if (userId == adminId) {
+        Object rawAdminId = request.get("adminId");
+        int adminId = 0;
+        if (rawAdminId != null) {
+            try {
+                adminId = rawAdminId instanceof Number n ? n.intValue()
+                        : Integer.parseInt(String.valueOf(rawAdminId).trim());
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        if (adminId != 0 && userId == adminId) {
             throw new IllegalArgumentException("Admin không thể tự ban chính mình.");
         }
         userService.banUser(userId);

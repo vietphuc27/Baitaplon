@@ -45,7 +45,8 @@ public class AdminClient {
     public void banUser(int userId) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("userId", String.valueOf(userId));
-        payload.put("adminId", String.valueOf(ClientSession.getCurrentUser().getId()));
+        int adminId = ClientSession.getCurrentUser() != null ? ClientSession.getCurrentUser().getId() : 0;
+        payload.put("adminId", String.valueOf(adminId));
         Map<String, Object> response = socketClient.sendRequest("ban_user", payload);
         ensureSuccess(response);
     }

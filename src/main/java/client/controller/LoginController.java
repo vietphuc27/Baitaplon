@@ -63,12 +63,12 @@ public class LoginController {
 
         usernameField.setOnAction(this::handleLogin);
         passwordField.setOnAction(this::handleLogin);
-        passwordVisible.setOnAction(this::handleLogin);
+        if (passwordVisible != null) passwordVisible.setOnAction(this::handleLogin);
         signUpUsernameField.setOnAction(this::handleRegister);
         emailField.setOnAction(this::handleRegister);
         roleComboBox.setOnAction(event -> registerBtn.setDefaultButton(true));
         signUpPasswordField.setOnAction(this::handleRegister);
-        signUpPasswordVisible.setOnAction(this::handleRegister);
+        if (signUpPasswordVisible != null) signUpPasswordVisible.setOnAction(this::handleRegister);
 
         clearError(errorLabel);
         clearError(signUpErrorLabel);
