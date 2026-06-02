@@ -8,6 +8,10 @@ import client.network.SellerClient;
 import client.network.SellerClient.CreateAuctionRequest;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
+import common.models.item.Art;
+import common.models.item.Electronics;
+import common.models.item.Item;
+import common.models.item.Vehicle;
 import common.models.user.User;
 import common.models.user.UserStatus;
 import common.utils.FormatUtils;
@@ -55,6 +59,12 @@ public class SellerController implements Initializable {
 
     @FXML
     private Label lblSellerName;
+    @FXML
+    private TabPane sellerTabPane;
+    @FXML
+    private Tab tabCreateAuction;
+    @FXML
+    private Label lblAuctionFormTitle;
     @FXML
     private TextField txtItemName;
     @FXML
@@ -139,6 +149,10 @@ public class SellerController implements Initializable {
 
     private String selectedImageBase64;
     private File selectedImageFile;
+    private boolean editMode;
+    private int editingAuctionId = -1;
+    private String editingImageUrl;
+    private boolean removeImageOnSave;
 
     private String currentSellerId;
     private String currentSellerName;
@@ -196,9 +210,15 @@ public class SellerController implements Initializable {
             return;
         }
         CreateAuctionRequest request = buildCreateAuctionRequest();
+        boolean updating = editMode;
+        int auctionIdToUpdate = editingAuctionId;
+        boolean removeImage = removeImageOnSave;
         Task<Auction> task = new Task<>() {
             @Override
             protected Auction call() {
+                if (updating) {
+                    return sellerClient.updateAuction(auctionIdToUpdate, request, removeImage);
+                }
                 return sellerClient.createAuction(request);
             }
         };
@@ -207,7 +227,8 @@ public class SellerController implements Initializable {
         task.setOnSucceeded(event -> {
             setCreateAuctionInProgress(false);
             Auction auction = task.getValue();
-            showAlert(Alert.AlertType.INFORMATION, "Thành công", "Đã tạo phiên: " + auction.getAuctionId());
+            String message = updating ? "Đã cập nhật phiên: " : "Đã tạo phiên: ";
+            showAlert(Alert.AlertType.INFORMATION, "Thành công", message + auction.getAuctionId());
             clearAuctionForm();
             loadSellerDashboardData();
         });
@@ -271,6 +292,41 @@ public class SellerController implements Initializable {
         } catch (RuntimeException e) {
             showAlert(Alert.AlertType.ERROR, "Lỗi", e.getMessage());
         }
+    }
+
+    @FXML
+    private void handleEditAuction() {
+        if (!ensureSellerCanContinue()) {
+            return;
+        }
+        AuctionRow row = tblMyAuctions.getSelectionModel().getSelectedItem();
+        if (row == null) {
+            showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Vui lòng chọn phiên.");
+            return;
+        }
+        if (!AuctionStatus.OPEN.name().equals(row.status)) {
+            showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Chỉ sửa được phiên đang ở trạng thái OPEN.");
+            return;
+        }
+
+        Task<Auction> task = new Task<>() {
+            @Override
+            protected Auction call() {
+                return bidClient.findAuctionById(Integer.parseInt(row.id))
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiên: " + row.id));
+            }
+        };
+        task.setOnSucceeded(event -> {
+            Auction auction = task.getValue();
+            if (auction.getStatus() != AuctionStatus.OPEN) {
+                showAlert(Alert.AlertType.WARNING, "Cảnh báo", "Phiên này không còn ở trạng thái OPEN.");
+                loadSellerDashboardData();
+                return;
+            }
+            enterEditMode(auction);
+        });
+        task.setOnFailed(event -> showAlert(Alert.AlertType.ERROR, "Lỗi", getTaskErrorMessage(task)));
+        backgroundExecutor.submit(task);
     }
 
     @FXML
@@ -460,6 +516,12 @@ public class SellerController implements Initializable {
     }
 
     private void clearAuctionForm() {
+        clearAuctionFormFields();
+        hideTypeSpecificFields();
+        resetAuctionFormMode();
+    }
+
+    private void clearAuctionFormFields() {
         txtItemName.clear();
         cbItemType.setValue(null);
         txtStartPrice.clear();
@@ -478,14 +540,30 @@ public class SellerController implements Initializable {
         clearImageSelection();
     }
 
+    private void resetAuctionFormMode() {
+        editMode = false;
+        editingAuctionId = -1;
+        editingImageUrl = null;
+        removeImageOnSave = false;
+        cbItemType.setDisable(false);
+        if (lblAuctionFormTitle != null) {
+            lblAuctionFormTitle.setText("Tạo Phiên Đấu Giá Mới");
+        }
+        if (tabCreateAuction != null) {
+            tabCreateAuction.setText("Tạo Phiên Đấu Giá");
+        }
+        if (btnCreateAuction != null) {
+            btnCreateAuction.setText("Tạo Phiên Đấu Giá");
+        }
+    }
+
     @FXML
     private void handleUploadImage() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Chọn ảnh sản phẩm");
         fileChooser.getExtensionFilters().addAll(
                 new FileChooser.ExtensionFilter("Hình ảnh", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.bmp", "*.webp"),
-                new FileChooser.ExtensionFilter("Tất cả file", "*.*")
-        );
+                new FileChooser.ExtensionFilter("Tất cả file", "*.*"));
 
         File selectedFile = fileChooser.showOpenDialog(btnUploadImage.getScene().getWindow());
         if (selectedFile != null) {
@@ -510,8 +588,11 @@ public class SellerController implements Initializable {
 
                 selectedImageBase64 = buildImageDataUri(fileBytes, mimeType);
                 selectedImageFile = selectedFile;
+                editingImageUrl = null;
+                removeImageOnSave = false;
                 imgPreview.setImage(previewImage);
-                lblImageStatus.setText("Đã chọn: " + selectedFile.getName() + " (" + formatFileSize(fileBytes.length) + ")");
+                lblImageStatus
+                        .setText("Đã chọn: " + selectedFile.getName() + " (" + formatFileSize(fileBytes.length) + ")");
                 lblImageStatus.setStyle("-fx-text-fill: #27ae60;");
             } catch (IOException e) {
                 showAlert(Alert.AlertType.ERROR, "Lỗi", "Không thể đọc file ảnh: " + e.getMessage());
@@ -521,7 +602,14 @@ public class SellerController implements Initializable {
 
     @FXML
     private void handleRemoveImage() {
+        boolean shouldRemoveExistingImage = editMode && (hasText(editingImageUrl) || selectedImageBase64 != null);
         clearImageSelection();
+        if (shouldRemoveExistingImage) {
+            editingImageUrl = null;
+            removeImageOnSave = true;
+            lblImageStatus.setText("Sẽ xóa ảnh hiện tại khi lưu");
+            lblImageStatus.setStyle("-fx-text-fill: #e74c3c;");
+        }
     }
 
     private void clearImageSelection() {
@@ -530,6 +618,148 @@ public class SellerController implements Initializable {
         imgPreview.setImage(null);
         lblImageStatus.setText("Chưa chọn ảnh");
         lblImageStatus.setStyle("-fx-text-fill: #7f8c8d;");
+    }
+
+    private void enterEditMode(Auction auction) {
+        if (auction == null || auction.getItem() == null) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Phiên đấu giá không có dữ liệu sản phẩm hợp lệ.");
+            return;
+        }
+        if (!currentSellerId.equals(auction.getSellerId())) {
+            showAlert(Alert.AlertType.ERROR, "Lỗi", "Bạn không có quyền sửa phiên này.");
+            return;
+        }
+
+        clearAuctionFormFields();
+        editMode = true;
+        editingAuctionId = auction.getAuctionId();
+        removeImageOnSave = false;
+
+        Item item = auction.getItem();
+        txtItemName.setText(item.getName());
+        txtStartPrice.setText(formatEditablePrice(item.getStartingPrice()));
+        txtDescription.setText(stripTypeSpecificDescriptionLines(item.getDescription()));
+        cbItemType.setValue(toItemTypeDisplay(item));
+        handleItemTypeChanged();
+        cbItemType.setDisable(true);
+        populateTypeSpecificFields(item);
+        setDateTimeFields(auction.getStartTime(), auction.getEndTime());
+        showExistingImage(item.getImageUrl());
+
+        if (lblAuctionFormTitle != null) {
+            lblAuctionFormTitle.setText("Sửa Phiên Đấu Giá #" + auction.getAuctionId());
+        }
+        if (tabCreateAuction != null) {
+            tabCreateAuction.setText("Sửa Phiên Đấu Giá");
+        }
+        if (btnCreateAuction != null) {
+            btnCreateAuction.setText("Lưu thay đổi");
+        }
+        if (sellerTabPane != null && tabCreateAuction != null) {
+            sellerTabPane.getSelectionModel().select(tabCreateAuction);
+        }
+    }
+
+    private void populateTypeSpecificFields(Item item) {
+        String description = item.getDescription();
+        if (item instanceof Art art) {
+            txtArtist.setText(nullToEmpty(art.getArtist()));
+            txtArtYear.setText(extractLineValue(description, "Năm sáng tác"));
+            txtMaterial.setText(extractLineValue(description, "Chất liệu"));
+        } else if (item instanceof Electronics) {
+            txtBrand.setText(extractLineValue(description, "Thương hiệu"));
+            txtModel.setText(extractLineValue(description, "Model"));
+            txtCondition.setText(extractLineValue(description, "Tình trạng"));
+        } else if (item instanceof Vehicle vehicle) {
+            txtVehicleBrand.setText(extractLineValue(description, "Hãng xe"));
+            txtMileage.setText(String.valueOf(vehicle.getMileage()));
+            txtVehicleYear.setText(extractLineValue(description, "Năm sản xuất"));
+        }
+    }
+
+    private void setDateTimeFields(LocalDateTime startTime, LocalDateTime endTime) {
+        if (startTime != null) {
+            dpStartDate.setValue(startTime.toLocalDate());
+            cbStartHour.setValue(String.format("%02d", startTime.getHour()));
+            cbStartMinute.setValue(String.format("%02d", startTime.getMinute()));
+        }
+        if (endTime != null) {
+            dpEndDate.setValue(endTime.toLocalDate());
+            cbEndHour.setValue(String.format("%02d", endTime.getHour()));
+            cbEndMinute.setValue(String.format("%02d", endTime.getMinute()));
+        }
+    }
+
+    private void showExistingImage(String imageUrl) {
+        editingImageUrl = hasText(imageUrl) ? imageUrl.trim() : null;
+        selectedImageBase64 = null;
+        selectedImageFile = null;
+        removeImageOnSave = false;
+        if (editingImageUrl == null) {
+            clearImageSelection();
+            return;
+        }
+        imgPreview.setImage(new Image(editingImageUrl, 120, 120, true, true, true));
+        lblImageStatus.setText("Đang dùng ảnh hiện tại");
+        lblImageStatus.setStyle("-fx-text-fill: #27ae60;");
+    }
+
+    private String toItemTypeDisplay(Item item) {
+        if (item instanceof Art) {
+            return "Tác phẩm nghệ thuật";
+        }
+        if (item instanceof Electronics) {
+            return "Điện tử";
+        }
+        if (item instanceof Vehicle) {
+            return "Phương tiện";
+        }
+        return item.getClass_SimpleName();
+    }
+
+    private String stripTypeSpecificDescriptionLines(String description) {
+        if (!hasText(description)) {
+            return "";
+        }
+        return description.lines()
+                .filter(line -> !isTypeSpecificLine(line))
+                .collect(Collectors.joining("\n"))
+                .trim();
+    }
+
+    private boolean isTypeSpecificLine(String line) {
+        String text = line == null ? "" : line.trim();
+        return text.startsWith("Hãng xe:")
+                || text.startsWith("Năm sản xuất:")
+                || text.startsWith("Tình trạng:")
+                || text.startsWith("Thương hiệu:")
+                || text.startsWith("Model:")
+                || text.startsWith("Năm sáng tác:")
+                || text.startsWith("Chất liệu:");
+    }
+
+    private String extractLineValue(String description, String key) {
+        if (!hasText(description)) {
+            return "";
+        }
+        String prefix = key + ":";
+        return description.lines()
+                .map(String::trim)
+                .filter(line -> line.startsWith(prefix))
+                .map(line -> line.substring(prefix.length()).trim())
+                .findFirst()
+                .orElse("");
+    }
+
+    private String formatEditablePrice(double price) {
+        if (price == Math.rint(price)) {
+            return String.valueOf((long) price);
+        }
+        return String.format(Locale.ROOT, "%.0f", price);
+    }
+
+    private String nullToEmpty(String value) {
+        return value == null ? "" : value;
     }
 
     private byte[] readFileToByteArray(File file) throws IOException {
@@ -560,7 +790,11 @@ public class SellerController implements Initializable {
     private void setCreateAuctionInProgress(boolean inProgress) {
         if (btnCreateAuction != null) {
             btnCreateAuction.setDisable(inProgress);
-            btnCreateAuction.setText(inProgress ? "Đang tạo..." : "Tạo Phiên Đấu Giá");
+            if (editMode) {
+                btnCreateAuction.setText(inProgress ? "Đang lưu..." : "Lưu thay đổi");
+            } else {
+                btnCreateAuction.setText(inProgress ? "Đang tạo..." : "Tạo Phiên Đấu Giá");
+            }
         }
         if (btnUploadImage != null) {
             btnUploadImage.setDisable(inProgress);
@@ -570,7 +804,8 @@ public class SellerController implements Initializable {
             lblImageStatus.setStyle("-fx-text-fill: #1f6feb;");
         } else if (!inProgress && selectedImageFile != null) {
             lblImageStatus.setText(
-                    "Đã chọn: " + selectedImageFile.getName() + " (" + formatFileSize(selectedImageFile.length()) + ")");
+                    "Đã chọn: " + selectedImageFile.getName() + " (" + formatFileSize(selectedImageFile.length())
+                            + ")");
             lblImageStatus.setStyle("-fx-text-fill: #27ae60;");
         }
     }

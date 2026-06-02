@@ -97,6 +97,57 @@ public class AuctionService {
         return auction;
     }
 
+    public Auction updateOpenAuctionBySeller(
+            String sellerId,
+            int auctionId,
+            Item updatedItem,
+            LocalDateTime startTime,
+            LocalDateTime endTime) {
+        String normalizedSellerId = requireText(sellerId, "sellerId");
+        int normalizedAuctionId = requirePositiveId(auctionId, "auctionId");
+        LocalDateTime normalizedStartTime = requireTime(startTime, "startTime");
+        LocalDateTime normalizedEndTime = requireTime(endTime, "endTime");
+
+        if (updatedItem == null) {
+            throw new IllegalArgumentException("San pham khong duoc de trong");
+        }
+        if (!normalizedStartTime.isBefore(normalizedEndTime)) {
+            throw new IllegalArgumentException("Thoi gian bat dau phai truoc thoi gian ket thuc");
+        }
+        if (!LocalDateTime.now().isBefore(normalizedStartTime)) {
+            throw new IllegalArgumentException("Thoi gian bat dau phai sau hien tai");
+        }
+
+        refreshAuctionsStatus();
+        Auction auction = auctionDAO.findById(normalizedAuctionId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phien dau gia"));
+        auctionManager.addAuction(auction);
+
+        if (!normalizedSellerId.equals(auction.getSellerId())) {
+            throw new IllegalArgumentException("Nguoi ban khong co quyen sua phien dau gia nay");
+        }
+        if (auction.getStatus() != AuctionStatus.OPEN) {
+            throw new IllegalArgumentException("Chi duoc sua phien dau gia dang o trang thai OPEN");
+        }
+        if (auction.getItem() == null) {
+            throw new IllegalArgumentException("Phien dau gia khong co san pham hop le");
+        }
+        if (auction.getItem().getId() != updatedItem.getId()) {
+            throw new IllegalArgumentException("San pham cap nhat khong khop voi phien dau gia");
+        }
+        if (!auction.getItem().getClass().equals(updatedItem.getClass())) {
+            throw new IllegalArgumentException("Khong duoc doi loai san pham cua phien dau gia");
+        }
+
+        itemService.updateItem(updatedItem);
+        auction.setItem(updatedItem);
+        auction.setStartTime(normalizedStartTime);
+        auction.setEndTime(normalizedEndTime);
+        auctionDAO.update(auction);
+        auctionManager.addAuction(auction);
+        return auction;
+    }
+
     // ==================== CAP NHAT TRANG THAI THEO THOI GIAN ====================
     // Chay dinh ky: OPEN -> RUNNING, RUNNING -> FINISHED va xu ly winner
     public void refreshAuctionsStatus() {

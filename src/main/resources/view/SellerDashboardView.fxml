@@ -40,13 +40,13 @@
     </top>
 
     <center>
-        <TabPane>
+        <TabPane fx:id="sellerTabPane">
 
-            <Tab closable="false" text="Tạo Phiên Đấu Giá">
+            <Tab fx:id="tabCreateAuction" closable="false" text="Tạo Phiên Đấu Giá">
                 <ScrollPane fitToWidth="true">
                     <VBox spacing="15">
                         <padding><Insets bottom="20" left="25" right="25" top="20" /></padding>
-                        <Label style="-fx-font-size: 16; -fx-font-weight: bold;" text="Tạo Phiên Đấu Giá Mới" />
+                        <Label fx:id="lblAuctionFormTitle" style="-fx-font-size: 16; -fx-font-weight: bold;" text="Tạo Phiên Đấu Giá Mới" />
                         <GridPane hgap="15" vgap="12">
                             <Label text="Tên sản phẩm:" GridPane.columnIndex="0" GridPane.rowIndex="0" />
                             <TextField fx:id="txtItemName" prefWidth="300" promptText="Nhập tên sản phẩm..." GridPane.columnIndex="1" GridPane.rowIndex="0" />
@@ -210,6 +210,8 @@
                     </TableView>
                     <HBox spacing="10">
                         <Button onAction="#handleEndAuction" style="-fx-background-color: #e74c3c; -fx-text-fill: white;" styleClass="btn-cancel" text="Kết thúc phiên" />
+                  <Region prefHeight="30.0" prefWidth="23.0" />
+                        <Button onAction="#handleEditAuction" prefHeight="30.0" prefWidth="92.0" style="-fx-background-color: #f39c12; -fx-text-fill: white;" text="Sửa phiên" />
                   <Region prefHeight="30.0" prefWidth="23.0" />
                         <Button onAction="#handleViewAuctionDetails" prefHeight="30.0" prefWidth="114.0" style="-fx-background-color: #1f6feb; -fx-text-fill: white;" styleClass="btn-primary" text="Xem chi tiết" />
                     </HBox>

@@ -14,11 +14,10 @@ import java.util.Optional;
 public class AuctionDAO implements AuctionRepository {
 
     // ─── TÁCH CÂU SQL GỐC CHO GỌN CHỖ JOIN VỚI BẢNG ITEMS ───────────
-    private static final String SELECT_BASE_QUERY =
-            "SELECT a.*, "
-                    + "i.name as item_name, i.description, i.starting_price, "
-                    + "i.seller_id as item_seller_id, i.item_type, i.warranty_period, i.mileage, i.artist, i.image_url "
-                    + "FROM auctions a JOIN items i ON a.item_id = i.id ";
+    private static final String SELECT_BASE_QUERY = "SELECT a.*, "
+            + "i.name as item_name, i.description, i.starting_price, "
+            + "i.seller_id as item_seller_id, i.item_type, i.warranty_period, i.mileage, i.artist, i.image_url "
+            + "FROM auctions a JOIN items i ON a.item_id = i.id ";
 
     // ─── SAVE ─────────────────────────────────────────────────────
     @Override
@@ -29,12 +28,12 @@ public class AuctionDAO implements AuctionRepository {
                 + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, auction.getAuctionId());
             stmt.setInt(2, auction.getItem().getId());
             stmt.setString(3, auction.getSellerId());
-            //  Dùng Timestamp để lưu LocalDateTime xuống SQL
+            // Dùng Timestamp để lưu LocalDateTime xuống SQL
             stmt.setTimestamp(4, Timestamp.valueOf(auction.getStartTime()));
             stmt.setTimestamp(5, Timestamp.valueOf(auction.getEndTime()));
             stmt.setDouble(6, auction.getCurrentHighestBid());
@@ -58,12 +57,13 @@ public class AuctionDAO implements AuctionRepository {
         String sql = SELECT_BASE_QUERY + "WHERE a.id = ?";
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
             ResultSet rs = stmt.executeQuery();
 
-            if (rs.next()) return Optional.of(mapToAuction(rs));
+            if (rs.next())
+                return Optional.of(mapToAuction(rs));
             return Optional.empty();
 
         } catch (SQLException e) {
@@ -76,10 +76,11 @@ public class AuctionDAO implements AuctionRepository {
     public List<Auction> findAll() {
         List<Auction> list = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(SELECT_BASE_QUERY);
-             ResultSet rs = stmt.executeQuery()) {
+                PreparedStatement stmt = conn.prepareStatement(SELECT_BASE_QUERY);
+                ResultSet rs = stmt.executeQuery()) {
 
-            while (rs.next()) list.add(mapToAuction(rs));
+            while (rs.next())
+                list.add(mapToAuction(rs));
             return list;
         } catch (SQLException e) {
             throw new RuntimeException("Lỗi lấy danh sách auction: " + e.getMessage());
@@ -93,12 +94,13 @@ public class AuctionDAO implements AuctionRepository {
         List<Auction> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, status.name());
             ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) list.add(mapToAuction(rs));
+            while (rs.next())
+                list.add(mapToAuction(rs));
             return list;
 
         } catch (SQLException e) {
@@ -113,12 +115,13 @@ public class AuctionDAO implements AuctionRepository {
         List<Auction> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, sellerId);
             ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) list.add(mapToAuction(rs));
+            while (rs.next())
+                list.add(mapToAuction(rs));
             return list;
 
         } catch (SQLException e) {
@@ -133,13 +136,14 @@ public class AuctionDAO implements AuctionRepository {
         List<Auction> list = new ArrayList<>();
 
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            //So sánh LocalDateTime thay vì dùng long System.currentTimeMillis()
+            // So sánh LocalDateTime thay vì dùng long System.currentTimeMillis()
             stmt.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
             ResultSet rs = stmt.executeQuery();
 
-            while (rs.next()) list.add(mapToAuction(rs));
+            while (rs.next())
+                list.add(mapToAuction(rs));
             return list;
 
         } catch (SQLException e) {
@@ -160,7 +164,7 @@ public class AuctionDAO implements AuctionRepository {
     public void update(Connection conn, Auction auction) {
         String sql = "UPDATE auctions "
                 + "SET current_highest_bid = ?, current_leader_id = ?, "
-                + "status = ?, end_time = ? "
+                + "status = ?, start_time = ?, end_time = ? "
                 + "WHERE id = ?";
 
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -172,8 +176,9 @@ public class AuctionDAO implements AuctionRepository {
                 stmt.setInt(2, auction.getCurrentLeaderId());
             }
             stmt.setString(3, auction.getStatus().name());
-            stmt.setTimestamp(4, Timestamp.valueOf(auction.getEndTime())); // Fix Timestamp
-            stmt.setInt(5, auction.getAuctionId());
+            stmt.setTimestamp(4, Timestamp.valueOf(auction.getStartTime()));
+            stmt.setTimestamp(5, Timestamp.valueOf(auction.getEndTime()));
+            stmt.setInt(6, auction.getAuctionId());
             stmt.executeUpdate();
 
         } catch (SQLException e) {
@@ -186,7 +191,7 @@ public class AuctionDAO implements AuctionRepository {
     public void delete(int id) {
         String sql = "DELETE FROM auctions WHERE id = ?";
         try (Connection conn = DatabaseConnection.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setInt(1, id);
             stmt.executeUpdate();
         } catch (SQLException e) {
@@ -196,8 +201,8 @@ public class AuctionDAO implements AuctionRepository {
 
     // ─── HELPER: ResultSet → Auction ──────────────────────────────
     private Auction mapToAuction(ResultSet rs) throws SQLException {
-        int id                 = rs.getInt("id");
-        String sellerId        = rs.getString("seller_id");
+        int id = rs.getInt("id");
+        String sellerId = rs.getString("seller_id");
 
         // Đã fix: Dùng getTimestamp().toLocalDateTime() để lấy đúng format
         Timestamp startTimestamp = rs.getTimestamp("start_time");
@@ -205,9 +210,9 @@ public class AuctionDAO implements AuctionRepository {
         LocalDateTime startTime = startTimestamp != null ? startTimestamp.toLocalDateTime() : null;
         LocalDateTime endTime = endTimestamp != null ? endTimestamp.toLocalDateTime() : null;
 
-        double currentBid      = rs.getDouble("current_highest_bid");
+        double currentBid = rs.getDouble("current_highest_bid");
         Integer currentLeaderId = readNullableInteger(rs, "current_leader_id");
-        String status          = rs.getString("status");
+        String status = rs.getString("status");
 
         // Map item từ JOIN
         Item item = mapToItem(rs);
@@ -236,27 +241,24 @@ public class AuctionDAO implements AuctionRepository {
 
     // Map phần item trong JOIN
     private Item mapToItem(ResultSet rs) throws SQLException {
-        int itemId           = rs.getInt("item_id");
-        String name          = rs.getString("item_name");
-        String description   = rs.getString("description");
+        int itemId = rs.getInt("item_id");
+        String name = rs.getString("item_name");
+        String description = rs.getString("description");
         double startingPrice = rs.getDouble("starting_price");
-        String sellerId      = rs.getString("item_seller_id"); // Lấy từ alias đã tạo
-        String type          = rs.getString("item_type");
-        String imageUrl      = rs.getString("image_url");
+        String sellerId = rs.getString("item_seller_id"); // Lấy từ alias đã tạo
+        String type = rs.getString("item_type");
+        String imageUrl = rs.getString("image_url");
 
         Item item = switch (type) {
             case "ELECTRONICS" -> new Electronics(
                     itemId, name, description, startingPrice,
-                    sellerId, rs.getInt("warranty_period")
-            );
+                    sellerId, rs.getInt("warranty_period"));
             case "VEHICLE" -> new Vehicle(
                     itemId, name, description, startingPrice,
-                    sellerId, rs.getInt("mileage")
-            );
+                    sellerId, rs.getInt("mileage"));
             case "ART" -> new Art(
                     // Lấy thêm trường artist từ ResultSet cho tranh (Đã sửa câu SQL bên trên)
-                    itemId, name, description, startingPrice, sellerId, rs.getString("artist")
-            );
+                    itemId, name, description, startingPrice, sellerId, rs.getString("artist"));
             default -> throw new SQLException("Item type không hợp lệ: " + type);
         };
         if (imageUrl != null && !imageUrl.isEmpty()) {

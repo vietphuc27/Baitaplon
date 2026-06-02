@@ -35,7 +35,8 @@ import java.util.Optional;
 
 public class RequestHandler {
     // Router trung tam cho toan bo request JSON tu client.
-    // Moi action se duoc map vao 1 nhom chuc nang: auth, auction, bid, admin, wallet, auto-bid.
+    // Moi action se duoc map vao 1 nhom chuc nang: auth, auction, bid, admin,
+    // wallet, auto-bid.
     private final AuthService authService;
     private final UserService userService;
     private final ItemService itemService;
@@ -66,6 +67,7 @@ public class RequestHandler {
                 case "logout" -> handleLogout(clientHandler);
                 case "refresh_token" -> handleRefreshToken(request);
                 case "create_auction" -> handleCreateAuction(request);
+                case "update_open_auction" -> handleUpdateOpenAuction(request);
                 case "end_auction" -> handleEndAuction(request);
                 case "get_seller_auctions" -> handleGetSellerAuctions(request);
                 case "get_all_users" -> handleGetAllUsers(request);
@@ -214,10 +216,64 @@ public class RequestHandler {
     private void cleanupUploadedImage(String imageUrl) {
         try {
             if (!cloudinaryService.deleteImage(imageUrl)) {
-                System.err.println("Khong the xoa anh Cloudinary sau khi tao auction that bai: " + imageUrl);
+                System.err.println("Khong the xoa anh Cloudinary: " + imageUrl);
             }
         } catch (RuntimeException cleanupError) {
-            System.err.println("Khong the xoa anh Cloudinary sau khi tao auction that bai: " + cleanupError.getMessage());
+            System.err.println("Khong the xoa anh Cloudinary: " + cleanupError.getMessage());
+        }
+    }
+
+    private String handleUpdateOpenAuction(Map<String, Object> request) {
+        int auctionId = getRequiredInt(request, "auctionId");
+        String sellerId = getRequiredText(request, "sellerId");
+        String itemName = getRequiredText(request, "itemName");
+        String itemType = getRequiredText(request, "itemType");
+        double startPrice = getRequiredDouble(request, "startPrice");
+        String description = getRequiredText(request, "description");
+        LocalDateTime startTime = LocalDateTime.parse(getRequiredText(request, "startTime"));
+        LocalDateTime endTime = LocalDateTime.parse(getRequiredText(request, "endTime"));
+
+        Auction existing = new AuctionDAO().findById(auctionId)
+                .orElseThrow(() -> new IllegalArgumentException("Khong tim thay phien dau gia: " + auctionId));
+        if (existing.getItem() == null) {
+            throw new IllegalArgumentException("Phien dau gia khong co san pham hop le");
+        }
+
+        String previousImageUrl = existing.getItem().getImageUrl();
+        Item item = buildItem(existing.getItem().getId(), sellerId, itemName, description, startPrice, itemType,
+                request);
+
+        String uploadedImageUrl = null;
+        try {
+            String imageBase64 = getOptionalText(request, "imageBase64");
+            boolean removeImage = getOptionalBoolean(request, "removeImage");
+            if (imageBase64 != null) {
+                uploadedImageUrl = cloudinaryService.uploadImage(imageBase64, "item_" + existing.getItem().getId());
+                item.setImageUrl(uploadedImageUrl);
+            } else if (!removeImage && previousImageUrl != null && !previousImageUrl.isBlank()) {
+                item.setImageUrl(previousImageUrl);
+            }
+
+            Auction auction = auctionService.updateOpenAuctionBySeller(sellerId, auctionId, item, startTime, endTime);
+            if (removeImage
+                    && previousImageUrl != null
+                    && !previousImageUrl.isBlank()) {
+                cleanupUploadedImage(previousImageUrl);
+            }
+            String response = JsonUtils.toJson(Map.of(
+                    "status", "success",
+                    "auctionId", auction.getAuctionId(),
+                    "auctionStatus", String.valueOf(auction.getStatus())));
+            broadcastPush("AUCTION_UPDATED", auction);
+            return response;
+        } catch (RuntimeException e) {
+            if (uploadedImageUrl != null) {
+                cleanupUploadedImage(uploadedImageUrl);
+            }
+            if (e instanceof IllegalArgumentException illegalArgumentException) {
+                throw illegalArgumentException;
+            }
+            throw new IllegalArgumentException(e.getMessage(), e);
         }
     }
 
@@ -251,11 +307,13 @@ public class RequestHandler {
         };
     }
 
-    private String mergeTypeSpecificDescription(String normalizedType, String baseDescription, Map<String, Object> request) {
+    private String mergeTypeSpecificDescription(String normalizedType, String baseDescription,
+            Map<String, Object> request) {
         StringBuilder sb = new StringBuilder(baseDescription == null ? "" : baseDescription.trim());
         appendLine(sb, "Hãng xe", getOptionalText(request, "vehicleBrand"), normalizedType.equals("vehicle"));
         appendLine(sb, "Năm sản xuất", getOptionalText(request, "vehicleYear"), normalizedType.equals("vehicle"));
-        appendLine(sb, "Tình trạng", getOptionalText(request, "condition"), normalizedType.equals("vehicle") || normalizedType.equals("electronics"));
+        appendLine(sb, "Tình trạng", getOptionalText(request, "condition"),
+                normalizedType.equals("vehicle") || normalizedType.equals("electronics"));
         appendLine(sb, "Thương hiệu", getOptionalText(request, "brand"), normalizedType.equals("electronics"));
         appendLine(sb, "Model", getOptionalText(request, "model"), normalizedType.equals("electronics"));
         appendLine(sb, "Năm sáng tác", getOptionalText(request, "artYear"), normalizedType.equals("art"));
@@ -290,6 +348,17 @@ public class RequestHandler {
             return null;
         String text = String.valueOf(value).trim();
         return text.isEmpty() ? null : text;
+    }
+
+    private boolean getOptionalBoolean(Map<String, Object> request, String key) {
+        Object value = request.get(key);
+        if (value == null) {
+            return false;
+        }
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        return Boolean.parseBoolean(String.valueOf(value));
     }
 
     private String handleEndAuction(Map<String, Object> request) {
@@ -636,7 +705,9 @@ public class RequestHandler {
         map.put("auctionStatus", auction.getStatus() != null ? auction.getStatus().name() : "-");
         map.put("startTime", auction.getStartTime() != null ? auction.getStartTime().toString() : "");
         map.put("endTime", auction.getEndTime() != null ? auction.getEndTime().toString() : "");
-        map.put("imageUrl", auction.getItem() != null && auction.getItem().getImageUrl() != null ? auction.getItem().getImageUrl() : "");
+        map.put("imageUrl",
+                auction.getItem() != null && auction.getItem().getImageUrl() != null ? auction.getItem().getImageUrl()
+                        : "");
         if (auction.getItem() instanceof Vehicle vehicle) {
             map.put("mileage", vehicle.getMileage());
         }

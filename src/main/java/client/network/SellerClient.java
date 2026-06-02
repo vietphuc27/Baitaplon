@@ -22,7 +22,8 @@ public class SellerClient {
     }
 
     public SellerClient(SocketClient socketClient) {
-        if (socketClient == null) throw new IllegalArgumentException("socketClient khong duoc null");
+        if (socketClient == null)
+            throw new IllegalArgumentException("socketClient khong duoc null");
         this.socketClient = socketClient;
     }
 
@@ -33,17 +34,38 @@ public class SellerClient {
         Map<String, Object> response = socketClient.sendRequest("get_seller_auctions", payload);
         ensureSuccess(response);
         List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("auctions");
-        if (items == null) return List.of();
+        if (items == null)
+            return List.of();
         List<Auction> result = new ArrayList<>();
         for (Map<String, Object> m : items) {
             Auction a = mapToAuction(m);
-            if (a != null) result.add(a);
+            if (a != null)
+                result.add(a);
         }
         return result;
     }
 
     public Auction createAuction(CreateAuctionRequest request) {
         validateRequest(request);
+        LinkedHashMap<String, Object> payload = buildAuctionPayload(request);
+        Map<String, Object> response = socketClient.sendRequest("create_auction", payload);
+        ensureSuccess(response);
+        return mapSavedAuction(response, request);
+    }
+
+    public Auction updateAuction(int auctionId, CreateAuctionRequest request, boolean removeImage) {
+        validateRequest(request);
+        if (auctionId <= 0)
+            throw new IllegalArgumentException("auctionId khong hop le");
+        LinkedHashMap<String, Object> payload = buildAuctionPayload(request);
+        payload.put("auctionId", String.valueOf(auctionId));
+        payload.put("removeImage", removeImage);
+        Map<String, Object> response = socketClient.sendRequest("update_open_auction", payload);
+        ensureSuccess(response);
+        return mapSavedAuction(response, request);
+    }
+
+    private LinkedHashMap<String, Object> buildAuctionPayload(CreateAuctionRequest request) {
         LinkedHashMap<String, Object> payload = new LinkedHashMap<>();
         payload.put("sellerId", request.sellerId());
         payload.put("itemName", request.itemName().trim());
@@ -62,16 +84,20 @@ public class SellerClient {
         putIfPresent(payload, "mileage", request.mileage());
         putIfPresent(payload, "vehicleYear", request.vehicleYear());
         putIfPresent(payload, "imageBase64", request.imageBase64());
+        return payload;
+    }
 
-        Map<String, Object> response = socketClient.sendRequest("create_auction", payload);
-        ensureSuccess(response);
-        // Tra ve auction info tu response
+    private Auction mapSavedAuction(Map<String, Object> response, CreateAuctionRequest request) {
         Object auctionIdObj = response.get("auctionId");
-        if (auctionIdObj == null) throw new RuntimeException("Server khong tra ve auctionId");
-        int auctionId = auctionIdObj instanceof Number n ? n.intValue() : Integer.parseInt(String.valueOf(auctionIdObj));
-        // Tao auction minimal de tra ve
+        if (auctionIdObj == null)
+            throw new RuntimeException("Server khong tra ve auctionId");
+        int auctionId = auctionIdObj instanceof Number n ? n.intValue()
+                : Integer.parseInt(String.valueOf(auctionIdObj));
         Item item = new Item(0, request.itemName(), request.description(), request.startPrice(), request.sellerId()) {
-            @Override public String getInfo() { return request.itemName(); }
+            @Override
+            public String getInfo() {
+                return request.itemName();
+            }
         };
         Auction auction = new Auction(auctionId, item, request.sellerId(), request.startTime(), request.endTime());
         return auction;
@@ -109,7 +135,10 @@ public class SellerClient {
             LocalDateTime endTime = endTimeStr.isEmpty() ? null : LocalDateTime.parse(endTimeStr);
 
             Item item = new Item(0, itemName, "", startingPrice, sellerId) {
-                @Override public String getInfo() { return itemName; }
+                @Override
+                public String getInfo() {
+                    return itemName;
+                }
             };
             if (imageUrl != null && !imageUrl.isEmpty()) {
                 item.setImageUrl(imageUrl);
@@ -118,7 +147,10 @@ public class SellerClient {
             Auction a = new Auction(id, item, sellerId, startTime, endTime);
             a.setCurrentHighestBid(currentPrice);
             if (!statusStr.equals("-")) {
-                try { a.setStatus(AuctionStatus.valueOf(statusStr)); } catch (Exception ignored) {}
+                try {
+                    a.setStatus(AuctionStatus.valueOf(statusStr));
+                } catch (Exception ignored) {
+                }
             }
             return a;
         } catch (Exception e) {
@@ -127,14 +159,18 @@ public class SellerClient {
     }
 
     private void validateRequest(CreateAuctionRequest request) {
-        if (request == null) throw new IllegalArgumentException("Thong tin tao auction khong duoc de trong");
+        if (request == null)
+            throw new IllegalArgumentException("Thong tin tao auction khong duoc de trong");
         requireText(request.sellerId(), "sellerId");
         requireText(request.itemName(), "itemName");
         requireText(request.itemType(), "itemType");
         requireText(request.description(), "description");
-        if (request.startPrice() <= 0) throw new IllegalArgumentException("Gia khoi diem phai lon hon 0");
-        if (request.startTime() == null) throw new IllegalArgumentException("Thoi gian bat dau khong duoc de trong");
-        if (request.endTime() == null) throw new IllegalArgumentException("Thoi gian ket thuc khong duoc de trong");
+        if (request.startPrice() <= 0)
+            throw new IllegalArgumentException("Gia khoi diem phai lon hon 0");
+        if (request.startTime() == null)
+            throw new IllegalArgumentException("Thoi gian bat dau khong duoc de trong");
+        if (request.endTime() == null)
+            throw new IllegalArgumentException("Thoi gian ket thuc khong duoc de trong");
         if (!LocalDateTime.now().isBefore(request.startTime()))
             throw new IllegalArgumentException("Thoi gian bat dau phai sau hien tai");
         if (!request.startTime().isBefore(request.endTime()))
@@ -142,7 +178,8 @@ public class SellerClient {
     }
 
     private void ensureSuccess(Map<String, Object> response) {
-        if (response == null || response.isEmpty()) throw new RuntimeException("Server khong tra ve du lieu");
+        if (response == null || response.isEmpty())
+            throw new RuntimeException("Server khong tra ve du lieu");
         Object status = response.get("status");
         if (status == null || !"success".equalsIgnoreCase(String.valueOf(status))) {
             Object msg = response.get("message");
@@ -173,6 +210,6 @@ public class SellerClient {
             String vehicleBrand,
             String mileage,
             String vehicleYear,
-            String imageBase64
-    ) {}
+            String imageBase64) {
+    }
 }
