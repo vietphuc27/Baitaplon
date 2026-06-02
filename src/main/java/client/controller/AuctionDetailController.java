@@ -158,8 +158,10 @@ public class AuctionDetailController {
     private int currentAgentId = -1; // -1 = chưa có agent
     private Stage imagePreviewStage;
     private String currentProductImageUrl;
+    private String loadedProductImageUrl;
+    private String loadingProductImageUrl;
+    private String failedProductImageUrl;
     private Timeline countdownTimeline;
-    private Timeline detailRefreshTimeline;
     private boolean auctionStartRefreshRequested = false;
     private boolean auctionEndRefreshRequested = false;
     private boolean initialScrollTopResetPending = false;
@@ -194,7 +196,6 @@ public class AuctionDetailController {
         scheduleInitialScrollToTop();
         startCountdownTimer();
         refreshDataAsync();
-        startDetailRefreshTimer();
         registerAuctionPushListener();
         checkExistingAutoBid();
     }
@@ -450,7 +451,10 @@ public class AuctionDetailController {
             return;
         }
 
-        if (!"BID_PLACED".equals(event) && !"AUCTION_ENDED".equals(event) && !"AUCTION_CANCELED".equals(event)) {
+        if (!"BID_PLACED".equals(event)
+                && !"AUCTION_ENDED".equals(event)
+                && !"AUCTION_CANCELED".equals(event)
+                && !"AUCTION_UPDATED".equals(event)) {
             return;
         }
 
@@ -559,8 +563,7 @@ public class AuctionDetailController {
             lblCurrentLeader.setText(leaderId == null ? "Chưa có" : resolveBidderDisplayName(leaderId));
             txtDescription.setText(buildBaseDescriptionText(auction.getItem().getDescription()));
             txtTypeDetails.setText(buildTypeDetailsText(auction.getItem()));
-            currentProductImageUrl = auction.getItem().getImageUrl();
-            loadProductImage(currentProductImageUrl);
+            updateProductImage(auction.getItem().getImageUrl());
         } else {
             lblProductName.setText("-");
             lblProductType.setText("-");
@@ -571,8 +574,7 @@ public class AuctionDetailController {
             lblCurrentLeader.setText("Chưa có");
             txtDescription.setText("");
             txtTypeDetails.setText("");
-            currentProductImageUrl = null;
-            imgProduct.setImage(null);
+            updateProductImage(null);
         }
     }
 
@@ -699,20 +701,6 @@ public class AuctionDetailController {
         }
     }
 
-    private void startDetailRefreshTimer() {
-        stopDetailRefreshTimer();
-        detailRefreshTimeline = new Timeline(new KeyFrame(Duration.millis(300), event -> refreshDataAsync()));
-        detailRefreshTimeline.setCycleCount(Timeline.INDEFINITE);
-        detailRefreshTimeline.play();
-    }
-
-    private void stopDetailRefreshTimer() {
-        if (detailRefreshTimeline != null) {
-            detailRefreshTimeline.stop();
-            detailRefreshTimeline = null;
-        }
-    }
-
     private void updateCountdownLabel() {
         if (countdownLabel == null) {
             return;
@@ -738,13 +726,32 @@ public class AuctionDetailController {
         updateBidPanelState();
     }
 
-    private void loadProductImage(String imageUrl) {
-        if (imageUrl == null || imageUrl.isEmpty()) {
+    private void updateProductImage(String imageUrl) {
+        String normalizedUrl = imageUrl == null || imageUrl.isBlank() ? null : imageUrl.trim();
+        currentProductImageUrl = normalizedUrl;
+
+        if (normalizedUrl == null) {
+            loadedProductImageUrl = null;
+            loadingProductImageUrl = null;
+            failedProductImageUrl = null;
             imgProduct.setImage(null);
             updateImageInteractionState(false);
             return;
         }
-        // Load image in background task to avoid blocking the UI
+
+        if (normalizedUrl.equals(loadedProductImageUrl) && imgProduct.getImage() != null) {
+            updateImageInteractionState(true);
+            return;
+        }
+        if (normalizedUrl.equals(loadingProductImageUrl) || normalizedUrl.equals(failedProductImageUrl)) {
+            return;
+        }
+
+        loadProductImage(normalizedUrl);
+    }
+
+    private void loadProductImage(String imageUrl) {
+        loadingProductImageUrl = imageUrl;
         Task<Image> loadImageTask = new Task<>() {
             @Override
             protected Image call() {
@@ -757,15 +764,27 @@ public class AuctionDetailController {
         };
         loadImageTask.setOnSucceeded(event -> {
             Image result = loadImageTask.getValue();
+            if (!imageUrl.equals(currentProductImageUrl)) {
+                return;
+            }
+            loadingProductImageUrl = null;
             if (result != null && !result.isError()) {
+                loadedProductImageUrl = imageUrl;
+                failedProductImageUrl = null;
                 imgProduct.setImage(result);
                 updateImageInteractionState(true);
             } else {
+                failedProductImageUrl = imageUrl;
                 imgProduct.setImage(null);
                 updateImageInteractionState(false);
             }
         });
         loadImageTask.setOnFailed(event -> {
+            if (!imageUrl.equals(currentProductImageUrl)) {
+                return;
+            }
+            loadingProductImageUrl = null;
+            failedProductImageUrl = imageUrl;
             imgProduct.setImage(null);
             updateImageInteractionState(false);
         });
@@ -1051,7 +1070,6 @@ public class AuctionDetailController {
 
     private void shutdown() {
         stopCountdownTimer();
-        stopDetailRefreshTimer();
         if (imagePreviewStage != null) {
             try {
                 imagePreviewStage.close();

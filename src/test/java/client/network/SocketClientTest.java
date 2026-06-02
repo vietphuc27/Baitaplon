@@ -2,6 +2,8 @@ package client.network;
 
 import org.junit.jupiter.api.Test;
 
+import java.net.ServerSocket;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -31,8 +33,12 @@ public class SocketClientTest {
     }
 
     @Test
-    void sendRawRequestAndSetPushListenerEdgeCases() {
-        SocketClient client = new SocketClient("127.0.0.1", 2026);
+    void sendRawRequestAndSetPushListenerEdgeCases() throws Exception {
+        int unusedPort;
+        try (ServerSocket temp = new ServerSocket(0)) {
+            unusedPort = temp.getLocalPort();
+        }
+        SocketClient client = new SocketClient("127.0.0.1", unusedPort);
         assertThrows(RuntimeException.class, () -> client.sendRawRequest(java.util.Map.of("action", "test")));
         assertDoesNotThrow(() -> client.setPushListener(null));
         assertDoesNotThrow(() -> client.close());
