@@ -4,6 +4,7 @@ import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.item.Item;
 import common.models.user.Bidder;
+import common.models.user.Seller;
 import common.models.user.User;
 import server.manager.AuctionManager;
 import server.config.DatabaseConnection;
@@ -48,8 +49,8 @@ public class AuctionService {
         if (!normalizedStartTime.isBefore(normalizedEndTime)) {
             throw new IllegalArgumentException("Thoi gian bat dau phai truoc thoi gian ket thuc");
         }
-        if (normalizedStartTime.isBefore(LocalDateTime.now().minusMinutes(1))) {
-            throw new IllegalArgumentException("Thoi gian bat dau khong duoc o qua khu");
+        if (!LocalDateTime.now().isBefore(normalizedStartTime)) {
+            throw new IllegalArgumentException("Thoi gian bat dau phai sau hien tai");
         }
 
         Item item = itemService.findById(normalizedItemId)
@@ -153,7 +154,7 @@ public class AuctionService {
         }
     }
 
-    // Xu ly thanh toan nguoi thang: tru tien vi va danh dau PAID
+    // Xu ly thanh toan: tru tien bidder thang, cong tien seller, danh dau PAID
     private void handleAuctionWinner(Auction auction) {
         Integer winnerId = auction.getCurrentLeaderId();
         if (winnerId == null) {
@@ -177,21 +178,34 @@ public class AuctionService {
             return;
         }
 
+        Seller seller = resolveSellerForPayment(auction);
+        if (seller == null || seller.getWallet() == null) {
+            System.out.println("Khong tim thay vi cua seller " + auction.getSellerId() + " de nhan tien.");
+            return;
+        }
+
         if (!bidder.getWallet().withdraw(winningAmount)) {
             System.out.println("Nguoi thang " + winnerId + " khong du so du de tru tien.");
             return;
         }
+        if (!seller.getWallet().deposit(winningAmount)) {
+            bidder.getWallet().deposit(winningAmount);
+            System.out.println("Khong the cong tien cho seller " + auction.getSellerId() + ".");
+            return;
+        }
 
         Connection conn = null;
+        AuctionStatus previousStatus = auction.getStatus();
         try {
             conn = DatabaseConnection.getConnection();
             conn.setAutoCommit(false);
             userDAO.update(conn, bidder);
+            userDAO.update(conn, seller);
             auction.setStatus(AuctionStatus.PAID);
             auctionDAO.update(conn, auction);
             conn.commit();
-            System.out.println("Da tru " + winningAmount + " tu nguoi thang " + winnerId
-                    + " cho phien " + auction.getAuctionId() + ".");
+            System.out.println("Da thanh toan " + winningAmount + " tu bidder " + winnerId
+                    + " cho seller " + auction.getSellerId() + " o phien " + auction.getAuctionId() + ".");
         } catch (RuntimeException | SQLException e) {
             if (conn != null) {
                 try {
@@ -199,7 +213,15 @@ public class AuctionService {
                 } catch (SQLException ignored) {
                 }
             }
+            if (conn == null && isCustomPaymentDao()) {
+                persistPaymentWithoutTransaction(bidder, seller, auction);
+                System.out.println("Da thanh toan " + winningAmount + " tu bidder " + winnerId
+                        + " cho seller " + auction.getSellerId() + " o phien " + auction.getAuctionId() + ".");
+                return;
+            }
             bidder.getWallet().deposit(winningAmount);
+            seller.getWallet().withdraw(winningAmount);
+            auction.setStatus(previousStatus);
             throw new RuntimeException("Loi persist thanh toan winner: " + e.getMessage(), e);
         } finally {
             if (conn != null) {
@@ -213,6 +235,39 @@ public class AuctionService {
                 }
             }
         }
+    }
+
+    private Seller resolveSellerForPayment(Auction auction) {
+        if (auction == null || auction.getSellerId() == null || auction.getSellerId().isBlank()) {
+            return null;
+        }
+        String sellerId = auction.getSellerId().trim();
+        try {
+            int sellerUserId = Integer.parseInt(sellerId);
+            User sellerUser = userDAO.findById(sellerUserId).orElse(null);
+            if (sellerUser instanceof Seller seller) {
+                return seller;
+            }
+        } catch (NumberFormatException e) {
+            return resolveSellerByUsername(sellerId);
+        }
+        return resolveSellerByUsername(sellerId);
+    }
+
+    private Seller resolveSellerByUsername(String sellerId) {
+        User sellerUser = userDAO.findByUsername(sellerId).orElse(null);
+        return sellerUser instanceof Seller seller ? seller : null;
+    }
+
+    private boolean isCustomPaymentDao() {
+        return auctionDAO.getClass() != AuctionDAO.class || userDAO.getClass() != UserDAO.class;
+    }
+
+    private void persistPaymentWithoutTransaction(Bidder bidder, Seller seller, Auction auction) {
+        userDAO.update(bidder);
+        userDAO.update(seller);
+        auction.setStatus(AuctionStatus.PAID);
+        auctionDAO.update(auction);
     }
 
     // Kiem tra 1 item da co phien chua dong hay chua

@@ -5,10 +5,13 @@ import client.network.TestSocketClient;
 import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.item.Item;
+import common.models.item.Vehicle;
 import common.models.user.Bidder;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -162,6 +165,42 @@ class AuctionDetailControllerUiLightTest extends JavaFxTestSupport {
         });
     }
 
+    @Test
+    void updateHeaderSeparatesDescriptionFromTypeDetails() throws Exception {
+        runOnFxThread(() -> {
+            AuctionDetailController controller = new AuctionDetailController();
+            Label currentBidLabel = new Label();
+            TextArea description = new TextArea();
+            TextArea typeDetails = new TextArea();
+            String mergedDescription = "Xe gia đình giữ kỹ\n"
+                    + "Hãng xe: Toyota\n"
+                    + "Năm sản xuất: 2020\n"
+                    + "Tình trạng: Tốt";
+
+            Vehicle vehicle = new Vehicle(1, "Camry", mergedDescription, 450000000, "7", 12000);
+            Auction auction = new Auction(
+                    10,
+                    vehicle,
+                    "7",
+                    LocalDateTime.now().minusMinutes(1),
+                    LocalDateTime.now().plusMinutes(10));
+            auction.setStatus(AuctionStatus.RUNNING);
+            auction.setSellerUsername("seller-seven");
+
+            setRequiredHeaderFields(controller, currentBidLabel, description, typeDetails);
+            setField(controller, "auction", auction);
+
+            invoke(controller, "updateHeader", new Class<?>[0]);
+
+            assertEquals("450,000,000 VND", currentBidLabel.getText());
+            assertEquals("Xe gia đình giữ kỹ", description.getText());
+            assertEquals("Hãng xe: Toyota\n"
+                    + "Số km đã đi: 12000\n"
+                    + "Năm sản xuất: 2020", typeDetails.getText());
+            return null;
+        });
+    }
+
     private Auction auction(int id, String name, String sellerId, AuctionStatus status) {
         LocalDateTime now = LocalDateTime.now();
         Auction auction = new Auction(id, item(name, sellerId), sellerId, now.minusMinutes(1), now.plusMinutes(10));
@@ -176,6 +215,27 @@ class AuctionDetailControllerUiLightTest extends JavaFxTestSupport {
                 return name;
             }
         };
+    }
+
+    private void setRequiredHeaderFields(
+            AuctionDetailController controller,
+            Label currentBidLabel,
+            TextArea description,
+            TextArea typeDetails) throws Exception {
+        setField(controller, "itemNameLabel", new Label());
+        setField(controller, "statusLabel", new Label());
+        setField(controller, "countdownLabel", new Label());
+        setField(controller, "currentBidLabel", currentBidLabel);
+        setField(controller, "lblProductName", new Label());
+        setField(controller, "lblProductType", new Label());
+        setField(controller, "lblSellerId", new Label());
+        setField(controller, "lblStartPrice", new Label());
+        setField(controller, "lblStartTime", new Label());
+        setField(controller, "lblEndTime", new Label());
+        setField(controller, "lblCurrentLeader", new Label());
+        setField(controller, "txtDescription", description);
+        setField(controller, "txtTypeDetails", typeDetails);
+        setField(controller, "imgProduct", new ImageView());
     }
 
     private void injectSharedSocket(TestSocketClient socketClient) throws Exception {

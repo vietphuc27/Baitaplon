@@ -4,11 +4,15 @@ import common.models.auction.Auction;
 import common.models.auction.AuctionStatus;
 import common.models.item.Electronics;
 import common.models.item.Item;
+import common.models.user.Bidder;
+import common.models.user.Seller;
+import common.models.user.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import server.manager.AuctionManager;
 import server.repository.AuctionDAO;
+import server.repository.UserDAO;
 
 import java.lang.reflect.Field;
 import java.sql.Connection;
@@ -24,6 +28,7 @@ class AuctionServiceTest {
     private AuctionService auctionService;
     private StubItemService itemService;
     private InMemoryAuctionDAO auctionDAO;
+    private InMemoryUserDAO userDAO;
     private AuctionManager auctionManager;
 
     @BeforeEach
@@ -32,7 +37,9 @@ class AuctionServiceTest {
         itemService = new StubItemService();
         auctionService = new AuctionService(itemService);
         auctionDAO = new InMemoryAuctionDAO();
+        userDAO = new InMemoryUserDAO();
         injectField(auctionService, "auctionDAO", auctionDAO);
+        injectField(auctionService, "userDAO", userDAO);
         auctionManager = getPrivateAuctionManager(auctionService);
         clearActiveAuctions(auctionManager);
     }
@@ -144,6 +151,65 @@ class AuctionServiceTest {
 
         assertEquals(AuctionStatus.FINISHED, running.getStatus());
         assertTrue(auctionDAO.updatedAuctionIds.contains(302));
+    }
+
+    @Test
+    void refreshAuctionsStatusPaysWinnerAndCreditsSeller() {
+        Seller seller = new Seller(7, "seller", "seller@example.com", "secret");
+        seller.getWallet().setBalance(25.0);
+        Bidder bidder = new Bidder(9, "bidder", "bidder@example.com", "secret");
+        bidder.getWallet().setBalance(500.0);
+        userDAO.put(seller);
+        userDAO.put(bidder);
+
+        Item item = new Electronics(700, "Phone", "Desc", 100, "7", 12);
+        Auction running = new Auction(
+                701,
+                item,
+                "7",
+                LocalDateTime.now().minusMinutes(5),
+                LocalDateTime.now().minusSeconds(1));
+        running.setStatus(AuctionStatus.RUNNING);
+        running.setCurrentLeaderId(9);
+        running.setCurrentHighestBid(150.0);
+        auctionDAO.save(running);
+        auctionManager.addAuction(running);
+
+        auctionService.refreshAuctionsStatus();
+
+        assertEquals(AuctionStatus.PAID, running.getStatus());
+        assertEquals(350.0, bidder.getWallet().getBalance(), 0.0001);
+        assertEquals(175.0, seller.getWallet().getBalance(), 0.0001);
+        assertTrue(auctionDAO.updatedAuctionIds.contains(701));
+    }
+
+    @Test
+    void refreshAuctionsStatusPaysSellerWhenSellerIdIsUsername() {
+        Seller seller = new Seller(8, "seller-legacy", "seller-legacy@example.com", "secret");
+        seller.getWallet().setBalance(10.0);
+        Bidder bidder = new Bidder(10, "bidder-legacy", "bidder-legacy@example.com", "secret");
+        bidder.getWallet().setBalance(250.0);
+        userDAO.put(seller);
+        userDAO.put(bidder);
+
+        Item item = new Electronics(710, "Camera", "Desc", 100, "seller-legacy", 12);
+        Auction running = new Auction(
+                711,
+                item,
+                "seller-legacy",
+                LocalDateTime.now().minusMinutes(5),
+                LocalDateTime.now().minusSeconds(1));
+        running.setStatus(AuctionStatus.RUNNING);
+        running.setCurrentLeaderId(10);
+        running.setCurrentHighestBid(120.0);
+        auctionDAO.save(running);
+        auctionManager.addAuction(running);
+
+        auctionService.refreshAuctionsStatus();
+
+        assertEquals(AuctionStatus.PAID, running.getStatus());
+        assertEquals(130.0, bidder.getWallet().getBalance(), 0.0001);
+        assertEquals(130.0, seller.getWallet().getBalance(), 0.0001);
     }
 
     @Test
@@ -350,6 +416,36 @@ class AuctionServiceTest {
         public void update(Connection conn, Auction auction) {
             auctions.put(auction.getAuctionId(), auction);
             updatedAuctionIds.add(auction.getAuctionId());
+        }
+    }
+
+    private static final class InMemoryUserDAO extends UserDAO {
+        private final Map<Integer, User> users = new HashMap<>();
+
+        void put(User user) {
+            users.put(user.getId(), user);
+        }
+
+        @Override
+        public Optional<User> findById(int id) {
+            return Optional.ofNullable(users.get(id));
+        }
+
+        @Override
+        public Optional<User> findByUsername(String username) {
+            return users.values().stream()
+                    .filter(user -> user.getUsername().equals(username))
+                    .findFirst();
+        }
+
+        @Override
+        public void update(User user) {
+            users.put(user.getId(), user);
+        }
+
+        @Override
+        public void update(Connection conn, User user) {
+            users.put(user.getId(), user);
         }
     }
 }

@@ -267,6 +267,11 @@
     -fx-background-color: #f9fafb;
 }
 
+.auction-detail-scroll,
+.auction-detail-scroll > .viewport {
+    -fx-background-color: #f9fafb;
+}
+
 .auction-page-title {
     -fx-font-size: 28px;
     -fx-font-weight: 800;

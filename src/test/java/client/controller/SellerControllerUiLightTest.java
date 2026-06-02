@@ -63,12 +63,23 @@ class SellerControllerUiLightTest extends JavaFxTestSupport {
             assertEquals("Giá khởi điểm phải lớn hơn 0.", invokeValidation(controller));
 
             form.txtStartPrice.setText("100");
+            assertEquals("Vui lòng chọn đầy đủ ngày, giờ và phút bắt đầu.", invokeValidation(controller));
+
+            form.dpStartDate.setValue(LocalDate.now().minusDays(1));
+            form.cbStartHour.setValue("23");
+            form.cbStartMinute.setValue("59");
+            assertEquals("Thời gian bắt đầu phải sau hiện tại.", invokeValidation(controller));
+
+            LocalDateTime start = LocalDateTime.now().plusMinutes(5);
+            form.dpStartDate.setValue(start.toLocalDate());
+            form.cbStartHour.setValue(String.format("%02d", start.getHour()));
+            form.cbStartMinute.setValue(String.format("%02d", start.getMinute()));
             assertEquals("Vui lòng chọn đầy đủ ngày, giờ và phút kết thúc.", invokeValidation(controller));
 
             form.dpEndDate.setValue(LocalDate.now().minusDays(1));
             form.cbEndHour.setValue("23");
             form.cbEndMinute.setValue("59");
-            assertEquals("Thời gian kết thúc phải sau hiện tại.", invokeValidation(controller));
+            assertEquals("Thời gian kết thúc phải sau thời gian bắt đầu.", invokeValidation(controller));
 
             form.dpEndDate.setValue(LocalDate.now().plusDays(1));
             form.cbItemType.setValue("Tác phẩm nghệ thuật");
@@ -90,24 +101,32 @@ class SellerControllerUiLightTest extends JavaFxTestSupport {
         runOnFxThread(() -> {
             SellerController controller = new SellerController();
             TextField txtStartPrice = new TextField();
-            TextField txtBuyNowPrice = new TextField();
+            DatePicker dpStartDate = new DatePicker();
+            ComboBox<String> cbStartHour = new ComboBox<>();
+            ComboBox<String> cbStartMinute = new ComboBox<>();
             DatePicker dpEndDate = new DatePicker();
             ComboBox<String> cbEndHour = new ComboBox<>();
             ComboBox<String> cbEndMinute = new ComboBox<>();
 
             setField(controller, "txtStartPrice", txtStartPrice);
-            setField(controller, "txtBuyNowPrice", txtBuyNowPrice);
+            setField(controller, "dpStartDate", dpStartDate);
+            setField(controller, "cbStartHour", cbStartHour);
+            setField(controller, "cbStartMinute", cbStartMinute);
             setField(controller, "dpEndDate", dpEndDate);
             setField(controller, "cbEndHour", cbEndHour);
             setField(controller, "cbEndMinute", cbEndMinute);
 
             invoke(controller, "configurePriceFields", new Class<?>[0]);
             assertNotNull(txtStartPrice.getTextFormatter());
-            assertNotNull(txtBuyNowPrice.getTextFormatter());
 
             invoke(controller, "configureEndTimeFields", new Class<?>[0]);
+            assertEquals(24, cbStartHour.getItems().size());
+            assertEquals(60, cbStartMinute.getItems().size());
             assertEquals(24, cbEndHour.getItems().size());
             assertEquals(60, cbEndMinute.getItems().size());
+            assertNotNull(dpStartDate.getValue());
+            assertNotNull(cbStartHour.getValue());
+            assertNotNull(cbStartMinute.getValue());
             assertEquals("23", cbEndHour.getValue());
             assertEquals("59", cbEndMinute.getValue());
 
@@ -133,7 +152,6 @@ class SellerControllerUiLightTest extends JavaFxTestSupport {
             runOnFxThread(() -> {
                 SellerController controller = new SellerController();
                 FormFields form = injectFormFields(controller);
-                TextField txtBuyNowPrice = new TextField("999");
                 TextField txtArtYear = new TextField("2024");
                 TextField txtMaterial = new TextField("Oil");
                 TextField txtBrand = new TextField("Brand");
@@ -146,7 +164,6 @@ class SellerControllerUiLightTest extends JavaFxTestSupport {
                 Button btnCreateAuction = new Button();
                 Button btnUploadImage = new Button();
 
-                setField(controller, "txtBuyNowPrice", txtBuyNowPrice);
                 setField(controller, "txtArtYear", txtArtYear);
                 setField(controller, "txtMaterial", txtMaterial);
                 setField(controller, "txtBrand", txtBrand);
@@ -169,6 +186,7 @@ class SellerControllerUiLightTest extends JavaFxTestSupport {
                 invoke(controller, "clearAuctionForm", new Class<?>[0]);
                 assertEquals("", form.txtItemName.getText());
                 assertNull(form.cbItemType.getValue());
+                assertNotNull(form.dpStartDate.getValue());
                 assertEquals(LocalDate.now().plusDays(1), form.dpEndDate.getValue());
                 assertEquals("Chưa chọn ảnh", lblImageStatus.getText());
 
@@ -199,12 +217,18 @@ class SellerControllerUiLightTest extends JavaFxTestSupport {
                 new DatePicker(),
                 new ComboBox<>(),
                 new ComboBox<>(),
+                new DatePicker(),
+                new ComboBox<>(),
+                new ComboBox<>(),
                 new TextArea(),
                 new TextField(),
                 new TextField());
         setField(controller, "txtItemName", fields.txtItemName);
         setField(controller, "cbItemType", fields.cbItemType);
         setField(controller, "txtStartPrice", fields.txtStartPrice);
+        setField(controller, "dpStartDate", fields.dpStartDate);
+        setField(controller, "cbStartHour", fields.cbStartHour);
+        setField(controller, "cbStartMinute", fields.cbStartMinute);
         setField(controller, "dpEndDate", fields.dpEndDate);
         setField(controller, "cbEndHour", fields.cbEndHour);
         setField(controller, "cbEndMinute", fields.cbEndMinute);
@@ -240,6 +264,9 @@ class SellerControllerUiLightTest extends JavaFxTestSupport {
             TextField txtItemName,
             ComboBox<String> cbItemType,
             TextField txtStartPrice,
+            DatePicker dpStartDate,
+            ComboBox<String> cbStartHour,
+            ComboBox<String> cbStartMinute,
             DatePicker dpEndDate,
             ComboBox<String> cbEndHour,
             ComboBox<String> cbEndMinute,

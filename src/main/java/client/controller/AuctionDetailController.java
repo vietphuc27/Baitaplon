@@ -45,6 +45,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -101,9 +102,13 @@ public class AuctionDetailController {
     @FXML
     private Label lblStartPrice;
     @FXML
+    private Label lblStartTime;
+    @FXML
     private Label lblEndTime;
     @FXML
     private Label lblCurrentLeader;
+    @FXML
+    private ScrollPane detailScrollPane;
     @FXML
     private TextArea txtDescription;
     @FXML
@@ -154,7 +159,9 @@ public class AuctionDetailController {
     private Stage imagePreviewStage;
     private String currentProductImageUrl;
     private Timeline countdownTimeline;
+    private boolean auctionStartRefreshRequested = false;
     private boolean auctionEndRefreshRequested = false;
+    private boolean initialScrollTopResetPending = false;
 
     @FXML
     private void initialize() {
@@ -177,10 +184,13 @@ public class AuctionDetailController {
     public void setAuction(Auction auction, Bidder bidder) {
         this.auction = auction;
         this.currentBidder = bidder;
+        this.auctionStartRefreshRequested = false;
         this.auctionEndRefreshRequested = false;
+        this.initialScrollTopResetPending = true;
         historyRows.clear();
         updateBidPanelState();
         updateHeader();
+        scheduleInitialScrollToTop();
         startCountdownTimer();
         refreshDataAsync();
         registerAuctionPushListener();
@@ -201,6 +211,10 @@ public class AuctionDetailController {
 
         if (isOwnAuction()) {
             showError("Bạn không thể tự đấu giá sản phẩm của chính mình.");
+            return;
+        }
+        if (!isAuctionRunning()) {
+            showError("Phiên đấu giá chưa bắt đầu.");
             return;
         }
 
@@ -238,6 +252,11 @@ public class AuctionDetailController {
             showError("Không thể bật auto-bid lúc này.");
             return;
         }
+        if (!isAuctionRunning()) {
+            autoBidToggle.setSelected(false);
+            showError("Phiên đấu giá chưa bắt đầu.");
+            return;
+        }
 
         if (autoBidToggle.isSelected()) {
             enableAutoBid();
@@ -272,9 +291,10 @@ public class AuctionDetailController {
             return;
         }
 
-        if (maxBid <= auction.getCurrentHighestBid()) {
+        double displayedCurrentBid = getDisplayedCurrentBid();
+        if (maxBid <= displayedCurrentBid) {
             showError("Giá trần phải lớn hơn giá hiện tại ("
-                    + FormatUtils.formatCurrency(auction.getCurrentHighestBid()) + ").");
+                    + FormatUtils.formatCurrency(displayedCurrentBid) + ").");
             autoBidToggle.setSelected(false);
             return;
         }
@@ -477,6 +497,7 @@ public class AuctionDetailController {
             }
             updateHeader();
             updateBidPanelState();
+            scheduleInitialScrollToTop();
             completeRefreshCycle();
         });
         task.setOnFailed(event -> showError(
@@ -523,18 +544,19 @@ public class AuctionDetailController {
         itemNameLabel.setText(itemName);
         statusLabel.setText(String.valueOf(auction.getStatus()));
         applyStatusStyle();
-        currentBidLabel.setText(FormatUtils.formatCurrency(auction.getCurrentHighestBid()));
+        currentBidLabel.setText(FormatUtils.formatCurrency(getDisplayedCurrentBid()));
         updateCountdownLabel();
         if (auction.getItem() != null) {
             lblProductName.setText(itemName);
             lblProductType.setText(auction.getItem().getClass_SimpleName());
             lblSellerId.setText(resolveSellerDisplayName(auction));
             lblStartPrice.setText(FormatUtils.formatCurrency(auction.getItem().getStartingPrice()));
+            lblStartTime.setText(FormatUtils.formatDateTimeWithSeconds(auction.getStartTime()));
             lblEndTime.setText(FormatUtils.formatDateTimeWithSeconds(auction.getEndTime()));
             Integer leaderId = auction.getCurrentLeaderId();
             lblCurrentLeader.setText(leaderId == null ? "Chưa có" : resolveBidderDisplayName(leaderId));
-            txtDescription
-                    .setText(auction.getItem().getDescription() == null ? "" : auction.getItem().getDescription());
+            txtDescription.setText(buildBaseDescriptionText(auction.getItem().getDescription()));
+            txtTypeDetails.setText(buildTypeDetailsText(auction.getItem()));
             currentProductImageUrl = auction.getItem().getImageUrl();
             loadProductImage(currentProductImageUrl);
         } else {
@@ -542,6 +564,7 @@ public class AuctionDetailController {
             lblProductType.setText("-");
             lblSellerId.setText("-");
             lblStartPrice.setText("-");
+            lblStartTime.setText("-");
             lblEndTime.setText("-");
             lblCurrentLeader.setText("Chưa có");
             txtDescription.setText("");
@@ -551,26 +574,89 @@ public class AuctionDetailController {
         }
     }
 
+    private void scheduleInitialScrollToTop() {
+        if (!initialScrollTopResetPending || detailScrollPane == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            scrollDetailPaneToTop();
+            Platform.runLater(() -> {
+                scrollDetailPaneToTop();
+                initialScrollTopResetPending = false;
+            });
+        });
+    }
+
+    private void scrollDetailPaneToTop() {
+        if (detailScrollPane == null) {
+            return;
+        }
+        detailScrollPane.setVvalue(0.0);
+        detailScrollPane.setHvalue(0.0);
+    }
+
+    private double getDisplayedCurrentBid() {
+        if (auction == null) {
+            return 0.0;
+        }
+        double currentHighestBid = auction.getCurrentHighestBid();
+        double startingPrice = auction.getItem() == null ? 0.0 : auction.getItem().getStartingPrice();
+        return Math.max(currentHighestBid, startingPrice);
+    }
+
+    private String buildBaseDescriptionText(String description) {
+        if (description == null || description.isBlank()) {
+            return "";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String line : description.split("\\R")) {
+            String trimmed = line == null ? "" : line.trim();
+            if (trimmed.isEmpty() || isTypeSpecificDescriptionLine(trimmed)) {
+                continue;
+            }
+            if (sb.length() > 0) {
+                sb.append('\n');
+            }
+            sb.append(trimmed);
+        }
+        return sb.toString();
+    }
+
+    private boolean isTypeSpecificDescriptionLine(String line) {
+        if (line == null || line.isBlank()) {
+            return false;
+        }
+        return startsWithDetailKey(line, "Hãng xe")
+                || startsWithDetailKey(line, "Năm sản xuất")
+                || startsWithDetailKey(line, "Tình trạng")
+                || startsWithDetailKey(line, "Thương hiệu")
+                || startsWithDetailKey(line, "Model")
+                || startsWithDetailKey(line, "Năm sáng tác")
+                || startsWithDetailKey(line, "Chất liệu");
+    }
+
+    private boolean startsWithDetailKey(String line, String key) {
+        return line.trim().toLowerCase(Locale.ROOT).startsWith((key + ":").toLowerCase(Locale.ROOT));
+    }
+
     private String buildTypeDetailsText(Item item) {
         if (item == null) {
             return "";
         }
         if (item instanceof Vehicle vehicle) {
-            return "Hang xe: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Hãng xe"))
-                    + "\nSo km da di: " + vehicle.getMileage()
-                    + "\nNam san xuat: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Năm sản xuất"))
-                    + "\nTinh trang: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Tình trạng"));
+            return "Hãng xe: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Hãng xe"))
+                    + "\nSố km đã đi: " + vehicle.getMileage()
+                    + "\nNăm sản xuất: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Năm sản xuất"));
         }
-        if (item instanceof Electronics electronics) {
-            return "Thuong hieu: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Thương hiệu"))
+        if (item instanceof Electronics) {
+            return "Thương hiệu: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Thương hiệu"))
                     + "\nModel: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Model"))
-                    + "\nTinh trang: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Tình trạng"))
-                    + "\nBao hanh (thang): " + electronics.getWarrantyPeriod();
+                    + "\nTình trạng: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Tình trạng"));
         }
         if (item instanceof Art art) {
-            return "Nghe si: " + nonEmptyOrDash(art.getArtist())
-                    + "\nNam sang tac: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Năm sáng tác"))
-                    + "\nChat lieu: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Chất liệu"));
+            return "Nghệ sĩ: " + nonEmptyOrDash(art.getArtist())
+                    + "\nNăm sáng tác: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Năm sáng tác"))
+                    + "\nChất liệu: " + nonEmptyOrDash(extractLineValue(item.getDescription(), "Chất liệu"));
         }
         return "";
     }
@@ -585,7 +671,7 @@ public class AuctionDetailController {
                 continue;
             }
             String normalized = line.trim();
-            if (normalized.toLowerCase().startsWith((key + ":").toLowerCase())) {
+            if (startsWithDetailKey(normalized, key)) {
                 return normalized.substring(key.length() + 1).trim();
             }
         }
@@ -616,6 +702,16 @@ public class AuctionDetailController {
             return;
         }
         countdownLabel.setText("Thời gian còn lại: " + remainingTimeText());
+        if (auction == null) {
+            return;
+        }
+        if (!auctionStartRefreshRequested
+                && auction.getStatus() == common.models.auction.AuctionStatus.OPEN
+                && auction.getStartTime() != null
+                && !LocalDateTime.now().isBefore(auction.getStartTime())) {
+            auctionStartRefreshRequested = true;
+            refreshDataAsync();
+        }
         if (auction == null || auction.getEndTime() == null || LocalDateTime.now().isBefore(auction.getEndTime())) {
             return;
         }
@@ -819,6 +915,11 @@ public class AuctionDetailController {
             showError("Phiên đấu giá đã đóng.");
             return;
         }
+        if (!isAuctionRunning()) {
+            setBidInputEnabled(false);
+            showError("Phiên đấu giá chưa bắt đầu.");
+            return;
+        }
         setBidInputEnabled(true);
         hideErrorIfDisplayTimeElapsed();
     }
@@ -960,13 +1061,21 @@ public class AuctionDetailController {
                 || auction.getStatus() == common.models.auction.AuctionStatus.CANCELED;
     }
 
+    private boolean isAuctionRunning() {
+        return auction != null && auction.getStatus() == common.models.auction.AuctionStatus.RUNNING;
+    }
+
     private void setBidInputEnabled(boolean enabled) {
         if (bidAmountField != null)
             bidAmountField.setDisable(!enabled);
         if (placeBidBtn != null)
             placeBidBtn.setDisable(!enabled);
+        if (maxBidField != null)
+            maxBidField.setDisable(!enabled);
+        if (incrementField != null)
+            incrementField.setDisable(!enabled);
+        if (autoBidToggle != null)
+            autoBidToggle.setDisable(!enabled);
     }
 
 }
-
-

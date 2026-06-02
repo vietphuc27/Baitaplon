@@ -199,6 +199,11 @@ public class BidderController {
             showAlert(Alert.AlertType.WARNING, "Không hợp lệ", "Bạn không thể tự đấu giá sản phẩm của chính mình.");
             return;
         }
+        if (selectedRow.auction == null
+                || selectedRow.auction.getStatus() != common.models.auction.AuctionStatus.RUNNING) {
+            showAlert(Alert.AlertType.WARNING, "Chưa bắt đầu", "Phiên đấu giá chưa bắt đầu.");
+            return;
+        }
 
         double amount;
         try {
@@ -357,13 +362,16 @@ public class BidderController {
             List<Auction> auctions = bidClient.getAllAuctions();
             syncBidderState();
             cachedAuctions = auctions;
-            return filterAndSortAuctions(auctions, keyword, status, sort);
-        }, rows -> {
-            auctionRows.setAll(rows);
+            List<AuctionRow> rows = filterAndSortAuctions(auctions, keyword, status, sort);
+            long leadingCount = countRunningAuctionsLedByBidder(auctions, currentBidder.getId());
+            return new AuctionLoadResult(rows, leadingCount);
+        }, result -> {
+            auctionRows.setAll(result.rows());
+            updateLeadingAuctionCount(result.leadingCount());
             updateWalletLabels();
-            if (!rows.isEmpty()) {
+            if (!result.rows().isEmpty()) {
                 tblAuctions.getSelectionModel().selectFirst();
-                updateChart(rows.get(0));
+                updateChart(result.rows().get(0));
             } else {
                 clearChart();
             }
@@ -384,10 +392,25 @@ public class BidderController {
                     .toList();
         }, rows -> {
             bidHistoryRows.setAll(rows);
-            long wonCount = rows.stream().filter(r -> "Đang dẫn đầu".equals(r.result) || "Đã thắng".equals(r.result))
-                    .count();
-            lblTotalWon.setText(wonCount + " phiên");
         });
+    }
+
+    private long countRunningAuctionsLedByBidder(List<Auction> auctions, int bidderId) {
+        if (auctions == null) {
+            return 0;
+        }
+        return auctions.stream()
+                .filter(a -> a != null && a.getStatus() == common.models.auction.AuctionStatus.RUNNING)
+                .filter(a -> a.getCurrentLeaderId() != null && a.getCurrentLeaderId() == bidderId)
+                .map(Auction::getAuctionId)
+                .distinct()
+                .count();
+    }
+
+    private void updateLeadingAuctionCount(long leadingCount) {
+        if (lblTotalWon != null) {
+            lblTotalWon.setText(leadingCount + " phiên");
+        }
     }
 
     private List<AuctionRow> filterAndSortAuctions(List<Auction> auctions, String keyword, String status, String sort) {
@@ -658,6 +681,9 @@ public class BidderController {
         if (auction == null || currentBidder == null || auction.getSellerId() == null)
             return false;
         return auction.getSellerId().trim().equals(String.valueOf(currentBidder.getId()));
+    }
+
+    private record AuctionLoadResult(List<AuctionRow> rows, long leadingCount) {
     }
 
     @FunctionalInterface

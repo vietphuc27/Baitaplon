@@ -164,8 +164,8 @@ public class RequestHandler {
         String itemType = getRequiredText(request, "itemType");
         double startPrice = getRequiredDouble(request, "startPrice");
         String description = getRequiredText(request, "description");
+        LocalDateTime startTime = LocalDateTime.parse(getRequiredText(request, "startTime"));
         LocalDateTime endTime = LocalDateTime.parse(getRequiredText(request, "endTime"));
-        LocalDateTime startTime = LocalDateTime.now();
 
         // Tao item truoc
         int itemId = generateItemId();

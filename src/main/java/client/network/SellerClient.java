@@ -50,6 +50,7 @@ public class SellerClient {
         payload.put("itemType", request.itemType().trim());
         payload.put("startPrice", request.startPrice());
         payload.put("description", request.description().trim());
+        payload.put("startTime", request.startTime().toString());
         payload.put("endTime", request.endTime().toString());
         putIfPresent(payload, "artist", request.artist());
         putIfPresent(payload, "artYear", request.artYear());
@@ -72,7 +73,7 @@ public class SellerClient {
         Item item = new Item(0, request.itemName(), request.description(), request.startPrice(), request.sellerId()) {
             @Override public String getInfo() { return request.itemName(); }
         };
-        Auction auction = new Auction(auctionId, item, request.sellerId(), LocalDateTime.now(), request.endTime());
+        Auction auction = new Auction(auctionId, item, request.sellerId(), request.startTime(), request.endTime());
         return auction;
     }
 
@@ -131,9 +132,12 @@ public class SellerClient {
         requireText(request.itemType(), "itemType");
         requireText(request.description(), "description");
         if (request.startPrice() <= 0) throw new IllegalArgumentException("Gia khoi diem phai lon hon 0");
+        if (request.startTime() == null) throw new IllegalArgumentException("Thoi gian bat dau khong duoc de trong");
         if (request.endTime() == null) throw new IllegalArgumentException("Thoi gian ket thuc khong duoc de trong");
-        if (!LocalDateTime.now().isBefore(request.endTime()))
-            throw new IllegalArgumentException("Thoi gian ket thuc phai sau hien tai");
+        if (!LocalDateTime.now().isBefore(request.startTime()))
+            throw new IllegalArgumentException("Thoi gian bat dau phai sau hien tai");
+        if (!request.startTime().isBefore(request.endTime()))
+            throw new IllegalArgumentException("Thoi gian ket thuc phai sau thoi gian bat dau");
     }
 
     private void ensureSuccess(Map<String, Object> response) {
@@ -157,6 +161,7 @@ public class SellerClient {
             String itemType,
             double startPrice,
             String description,
+            LocalDateTime startTime,
             LocalDateTime endTime,
             String artist,
             String artYear,

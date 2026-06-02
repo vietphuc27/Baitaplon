@@ -60,10 +60,14 @@
                                 <Label style="-fx-font-size: 11; -fx-text-fill: #6b7280;" text="Chỉ nhập số, không nhập dấu chấm hoặc VNĐ" />
                             </VBox>
 
-                            <Label text="Giá mua ngay (VNĐ):" GridPane.columnIndex="0" GridPane.rowIndex="3" />
+                            <Label text="Thời gian bắt đầu:" GridPane.columnIndex="0" GridPane.rowIndex="3" />
                             <VBox spacing="3" GridPane.columnIndex="1" GridPane.rowIndex="3">
-                                <TextField fx:id="txtBuyNowPrice" promptText="Không bắt buộc, VD: 1500000" />
-                                <Label style="-fx-font-size: 11; -fx-text-fill: #6b7280;" text="Để trống nếu không có giá mua ngay" />
+                                <HBox spacing="8">
+                                    <DatePicker fx:id="dpStartDate" prefWidth="145" promptText="dd/MM/yyyy" />
+                                    <ComboBox fx:id="cbStartHour" prefWidth="70" promptText="Giờ" />
+                                    <ComboBox fx:id="cbStartMinute" prefWidth="70" promptText="Phút" />
+                                </HBox>
+                                <Label style="-fx-font-size: 11; -fx-text-fill: #6b7280;" text="Phải sau thời điểm hiện tại" />
                             </VBox>
 
                             <Label text="Thời gian kết thúc:" GridPane.columnIndex="0" GridPane.rowIndex="4" />

@@ -324,6 +324,7 @@ public class RequestHandlerUtilityTest {
                 + "\"startPrice\":1000,"
                 + "\"description\":\"desc\","
                 + "\"artist\":\"Artist A\","
+                + "\"startTime\":\"" + LocalDateTime.now().plusMinutes(5) + "\","
                 + "\"endTime\":\"" + LocalDateTime.now().plusHours(2) + "\""
                 + "}";
         Map<?, ?> success = asMap(handler.handle(successRequest, null));
@@ -339,6 +340,7 @@ public class RequestHandlerUtilityTest {
                 + "\"itemType\":\"art\","
                 + "\"startPrice\":1000,"
                 + "\"description\":\"desc\","
+                + "\"startTime\":\"" + LocalDateTime.now().plusMinutes(5) + "\","
                 + "\"endTime\":\"" + LocalDateTime.now().plusHours(2) + "\""
                 + "}";
         Map<?, ?> missingArtist = asMap(handler.handle(missingArtistRequest, null));
@@ -351,6 +353,7 @@ public class RequestHandlerUtilityTest {
                 + "\"itemType\":\"unknown\","
                 + "\"startPrice\":1000,"
                 + "\"description\":\"desc\","
+                + "\"startTime\":\"" + LocalDateTime.now().plusMinutes(5) + "\","
                 + "\"endTime\":\"" + LocalDateTime.now().plusHours(2) + "\""
                 + "}";
         Map<?, ?> invalidType = asMap(handler.handle(invalidTypeRequest, null));

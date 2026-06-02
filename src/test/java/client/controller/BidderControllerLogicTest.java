@@ -95,6 +95,37 @@ class BidderControllerLogicTest {
     }
 
     @Test
+    void countRunningAuctionsLedByBidderOnlyCountsActiveLeaderAuctions() throws Exception {
+        BidderController controller = new BidderController();
+
+        Auction runningLed = auction(1, "Phone", "10", 20);
+        runningLed.setStatus(AuctionStatus.RUNNING);
+        runningLed.setCurrentLeaderId(7);
+
+        Auction duplicateRunningLed = auction(1, "Phone Duplicate", "10", 20);
+        duplicateRunningLed.setStatus(AuctionStatus.RUNNING);
+        duplicateRunningLed.setCurrentLeaderId(7);
+
+        Auction openLed = auction(2, "Future", "10", 20);
+        openLed.setStatus(AuctionStatus.OPEN);
+        openLed.setCurrentLeaderId(7);
+
+        Auction paidWon = auction(3, "Paid", "10", 20);
+        paidWon.setStatus(AuctionStatus.PAID);
+        paidWon.setCurrentLeaderId(7);
+
+        Auction runningOtherLeader = auction(4, "Laptop", "10", 20);
+        runningOtherLeader.setStatus(AuctionStatus.RUNNING);
+        runningOtherLeader.setCurrentLeaderId(8);
+
+        long count = (long) invoke(controller, "countRunningAuctionsLedByBidder",
+                new Class<?>[] { List.class, int.class },
+                List.of(runningLed, duplicateRunningLed, openLed, paidWon, runningOtherLeader), 7);
+
+        assertEquals(1, count);
+    }
+
+    @Test
     void syncBidderStateAndOwnAuctionWork() throws Exception {
         BidderController controller = new BidderController();
         Bidder local = new Bidder(7, "old", "old@e", "oldpass");

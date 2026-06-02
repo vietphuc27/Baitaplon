@@ -62,7 +62,11 @@ public class SellerController implements Initializable {
     @FXML
     private TextField txtStartPrice;
     @FXML
-    private TextField txtBuyNowPrice;
+    private DatePicker dpStartDate;
+    @FXML
+    private ComboBox<String> cbStartHour;
+    @FXML
+    private ComboBox<String> cbStartMinute;
     @FXML
     private DatePicker dpEndDate;
     @FXML
@@ -418,9 +422,13 @@ public class SellerController implements Initializable {
             return "Giá khởi điểm phải là số hợp lệ.";
         }
         try {
+            LocalDateTime start = getSelectedStartTime();
+            if (!LocalDateTime.now().isBefore(start)) {
+                return "Thời gian bắt đầu phải sau hiện tại.";
+            }
             LocalDateTime end = getSelectedEndTime();
-            if (!LocalDateTime.now().isBefore(end)) {
-                return "Thời gian kết thúc phải sau hiện tại.";
+            if (!start.isBefore(end)) {
+                return "Thời gian kết thúc phải sau thời gian bắt đầu.";
             }
         } catch (Exception e) {
             return e.getMessage();
@@ -455,10 +463,8 @@ public class SellerController implements Initializable {
         txtItemName.clear();
         cbItemType.setValue(null);
         txtStartPrice.clear();
-        txtBuyNowPrice.clear();
-        dpEndDate.setValue(LocalDate.now().plusDays(1));
-        cbEndHour.setValue("23");
-        cbEndMinute.setValue("59");
+        setDefaultStartTime();
+        setDefaultEndTime();
         txtDescription.clear();
         txtArtist.clear();
         txtArtYear.clear();
@@ -537,6 +543,7 @@ public class SellerController implements Initializable {
                 cbItemType.getValue(),
                 Double.parseDouble(txtStartPrice.getText().trim()),
                 txtDescription.getText().trim(),
+                getSelectedStartTime(),
                 getSelectedEndTime(),
                 txtArtist.getText(),
                 txtArtYear.getText(),
@@ -614,12 +621,22 @@ public class SellerController implements Initializable {
     private void configurePriceFields() {
         txtStartPrice.setTextFormatter(
                 new TextFormatter<>(change -> change.getControlNewText().matches("\\d*") ? change : null));
-        txtBuyNowPrice.setTextFormatter(
-                new TextFormatter<>(change -> change.getControlNewText().matches("\\d*") ? change : null));
     }
 
     private void configureEndTimeFields() {
-        dpEndDate.setConverter(new StringConverter<>() {
+        dpStartDate.setConverter(buildDateConverter("bắt đầu"));
+        dpEndDate.setConverter(buildDateConverter("kết thúc"));
+
+        populateTimeOptions(cbStartHour, 24);
+        populateTimeOptions(cbStartMinute, 60);
+        populateTimeOptions(cbEndHour, 24);
+        populateTimeOptions(cbEndMinute, 60);
+        setDefaultStartTime();
+        setDefaultEndTime();
+    }
+
+    private StringConverter<LocalDate> buildDateConverter(String fieldName) {
+        return new StringConverter<>() {
             @Override
             public String toString(LocalDate date) {
                 return date == null ? "" : dateFormatter.format(date);
@@ -633,20 +650,42 @@ public class SellerController implements Initializable {
                 try {
                     return LocalDate.parse(value.trim(), dateFormatter);
                 } catch (DateTimeParseException e) {
-                    throw new IllegalArgumentException("Ngày kết thúc phải có dạng dd/MM/yyyy.");
+                    throw new IllegalArgumentException("Ngày " + fieldName + " phải có dạng dd/MM/yyyy.");
                 }
             }
-        });
+        };
+    }
 
-        for (int hour = 0; hour < 24; hour++) {
-            cbEndHour.getItems().add(String.format("%02d", hour));
+    private void populateTimeOptions(ComboBox<String> comboBox, int maxExclusive) {
+        if (!comboBox.getItems().isEmpty()) {
+            return;
         }
-        for (int minute = 0; minute < 60; minute++) {
-            cbEndMinute.getItems().add(String.format("%02d", minute));
+        for (int value = 0; value < maxExclusive; value++) {
+            comboBox.getItems().add(String.format("%02d", value));
         }
+    }
+
+    private void setDefaultStartTime() {
+        LocalDateTime defaultStart = LocalDateTime.now().plusMinutes(5);
+        dpStartDate.setValue(defaultStart.toLocalDate());
+        cbStartHour.setValue(String.format("%02d", defaultStart.getHour()));
+        cbStartMinute.setValue(String.format("%02d", defaultStart.getMinute()));
+    }
+
+    private void setDefaultEndTime() {
         dpEndDate.setValue(LocalDate.now().plusDays(1));
         cbEndHour.setValue("23");
         cbEndMinute.setValue("59");
+    }
+
+    private LocalDateTime getSelectedStartTime() {
+        LocalDate date = dpStartDate.getValue();
+        String hour = cbStartHour.getValue();
+        String minute = cbStartMinute.getValue();
+        if (date == null || hour == null || minute == null) {
+            throw new IllegalArgumentException("Vui lòng chọn đầy đủ ngày, giờ và phút bắt đầu.");
+        }
+        return date.atTime(Integer.parseInt(hour), Integer.parseInt(minute));
     }
 
     private LocalDateTime getSelectedEndTime() {

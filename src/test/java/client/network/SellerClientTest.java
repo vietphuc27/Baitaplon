@@ -22,7 +22,8 @@ class SellerClientTest {
     void createAuctionRejectsInvalidRequest() {
         SellerClient client = new SellerClient(new TestSocketClient());
         SellerClient.CreateAuctionRequest invalid = new SellerClient.CreateAuctionRequest(
-                "seller-1", "Item", "art", 10.0, "desc", LocalDateTime.now().minusMinutes(1),
+                "seller-1", "Item", "art", 10.0, "desc",
+                LocalDateTime.now().plusMinutes(5), LocalDateTime.now().minusMinutes(1),
                 "artist", "", "", "", "", "", "", "", "", null);
         assertThrows(IllegalArgumentException.class, () -> client.createAuction(invalid));
     }
@@ -33,7 +34,8 @@ class SellerClientTest {
         socket.setResponse("create_auction", Map.of("status", "success", "auctionId", 777));
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
-                "seller-1", "Painting", "art", 100.0, "desc", LocalDateTime.now().plusHours(1),
+                "seller-1", "Painting", "art", 100.0, "desc",
+                LocalDateTime.now().plusMinutes(5), LocalDateTime.now().plusHours(1),
                 "Artist", "2020", "Oil", "", "", "", "", "", "", null);
 
         Auction auction = client.createAuction(request);
@@ -49,7 +51,8 @@ class SellerClientTest {
         socket.setResponse("create_auction", Map.of("status", "success", "auctionId", 778));
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
-                "seller-1", "Car", "vehicle", 300.0, "desc", LocalDateTime.now().plusHours(2),
+                "seller-1", "Car", "vehicle", 300.0, "desc",
+                LocalDateTime.now().plusMinutes(5), LocalDateTime.now().plusHours(2),
                 "", "", "", "", "", "", "  Toyota  ", " 120000 ", "", null);
 
         client.createAuction(request);
@@ -66,7 +69,8 @@ class SellerClientTest {
         socket.setResponse("create_auction", Map.of("status", "success", "auctionId", 779));
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
-                "seller-1", "Camera", "electronics", 500.0, "desc", LocalDateTime.now().plusHours(2),
+                "seller-1", "Camera", "electronics", 500.0, "desc",
+                LocalDateTime.now().plusMinutes(5), LocalDateTime.now().plusHours(2),
                 "", "", "", "Canon", "", "", "", "", "",
                 "data:image/png;base64,abc123");
 
@@ -82,7 +86,8 @@ class SellerClientTest {
         socket.setResponse("create_auction", Map.of("status", "success"));
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
-                "seller-1", "Painting", "art", 100.0, "desc", LocalDateTime.now().plusHours(1),
+                "seller-1", "Painting", "art", 100.0, "desc",
+                LocalDateTime.now().plusMinutes(5), LocalDateTime.now().plusHours(1),
                 "Artist", "", "", "", "", "", "", "", "", null);
         assertThrows(RuntimeException.class, () -> client.createAuction(request));
     }
@@ -139,7 +144,8 @@ class SellerClientTest {
 
         SellerClient client = new SellerClient(socket);
         SellerClient.CreateAuctionRequest request = new SellerClient.CreateAuctionRequest(
-                "s1", "Item", "art", 100.0, "desc", LocalDateTime.now().plusHours(1),
+                "s1", "Item", "art", 100.0, "desc",
+                LocalDateTime.now().plusMinutes(5), LocalDateTime.now().plusHours(1),
                 "A", "", "", "", "", "", "", "", "", null);
         assertThrows(RuntimeException.class, () -> client.createAuction(request));
         assertThrows(RuntimeException.class, () -> client.getSellerAuctions("s1"));
