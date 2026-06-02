@@ -217,10 +217,15 @@ public class RequestHandlerUtilityTest {
         assertEquals("refresh-fixed", login.get("refreshToken"));
         assertTrue(clientHandler.isAuthenticated());
 
+        AutoBidManager.getInstance().resetForTesting();
+        AutoBidManager.getInstance().registerAgent(loginUser.getId(), 10, 200, 10);
+        assertTrue(AutoBidManager.getInstance().hasActiveAgent(loginUser.getId(), 10));
+
         Map<?, ?> logout = asMap(handler.handle("{\"action\":\"logout\"}", clientHandler));
         assertEquals("success", logout.get("status"));
         assertEquals("token-fixed", authService.lastLogoutToken);
         assertFalse(clientHandler.isAuthenticated());
+        assertFalse(AutoBidManager.getInstance().hasActiveAgent(loginUser.getId(), 10));
 
         Map<?, ?> register = asMap(handler.handle(
                 "{\"action\":\"register\",\"username\":\"new\",\"email\":\"n@e\",\"password\":\"pw\",\"role\":\"bidder\"}",

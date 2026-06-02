@@ -159,6 +159,7 @@ public class AuctionDetailController {
     private Stage imagePreviewStage;
     private String currentProductImageUrl;
     private Timeline countdownTimeline;
+    private Timeline detailRefreshTimeline;
     private boolean auctionStartRefreshRequested = false;
     private boolean auctionEndRefreshRequested = false;
     private boolean initialScrollTopResetPending = false;
@@ -193,6 +194,7 @@ public class AuctionDetailController {
         scheduleInitialScrollToTop();
         startCountdownTimer();
         refreshDataAsync();
+        startDetailRefreshTimer();
         registerAuctionPushListener();
         checkExistingAutoBid();
     }
@@ -697,6 +699,20 @@ public class AuctionDetailController {
         }
     }
 
+    private void startDetailRefreshTimer() {
+        stopDetailRefreshTimer();
+        detailRefreshTimeline = new Timeline(new KeyFrame(Duration.millis(300), event -> refreshDataAsync()));
+        detailRefreshTimeline.setCycleCount(Timeline.INDEFINITE);
+        detailRefreshTimeline.play();
+    }
+
+    private void stopDetailRefreshTimer() {
+        if (detailRefreshTimeline != null) {
+            detailRefreshTimeline.stop();
+            detailRefreshTimeline = null;
+        }
+    }
+
     private void updateCountdownLabel() {
         if (countdownLabel == null) {
             return;
@@ -1035,6 +1051,7 @@ public class AuctionDetailController {
 
     private void shutdown() {
         stopCountdownTimer();
+        stopDetailRefreshTimer();
         if (imagePreviewStage != null) {
             try {
                 imagePreviewStage.close();

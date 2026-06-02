@@ -8,9 +8,11 @@ import common.models.auction.AutoBidAgent;
 import common.models.auction.BidTransaction;
 import common.models.user.Bidder;
 import common.models.user.User;
+import common.utils.JsonUtils;
 import server.manager.AuctionManager;
 import server.manager.AuctionLockManager;
 import server.manager.AutoBidManager;
+import server.manager.ConnectionManager;
 import server.config.DatabaseConnection;
 import server.repository.AuctionDAO;
 import server.repository.BidTransactionDAO;
@@ -19,7 +21,9 @@ import server.repository.UserDAO;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -249,11 +253,28 @@ public class BidService {
                         triggeredBid,
                         new BidTransactionDAO(),
                         new UserDAO(),
-                        new AuctionDAO());
+                        new AuctionDAO(),
+                        autoBid -> broadcastAutoBidPush(auction, autoBid));
             } catch (Exception e) {
                 System.err.println("AutoBid (async): " + e.getMessage());
             }
         });
+    }
+
+    private void broadcastAutoBidPush(Auction auction, BidTransaction autoBid) {
+        if (auction == null || autoBid == null) {
+            return;
+        }
+
+        Map<String, Object> push = new LinkedHashMap<>();
+        push.put("push", "BID_PLACED");
+        push.put("auctionId", String.valueOf(autoBid.getAuctionId()));
+        push.put("currentPrice", auction.getCurrentHighestBid());
+        push.put("bidderId", String.valueOf(autoBid.getBidderId()));
+        push.put("auctionStatus", auction.getStatus() != null ? auction.getStatus().name() : "-");
+        push.put("source", "AUTO_BID");
+
+        ConnectionManager.getInstance().broadcast(JsonUtils.toJson(push));
     }
 
     // ==================== TRUY VAN LICH SU BID ====================

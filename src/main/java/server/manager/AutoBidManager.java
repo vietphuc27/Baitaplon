@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 public class AutoBidManager {
     private static AutoBidManager instance;
@@ -34,7 +35,7 @@ public class AutoBidManager {
         this.agentToAuction = new ConcurrentHashMap<>();
         this.allAgents = new ConcurrentHashMap<>();
         this.nextAgentId = 1;
-        this.autoBidDelayMillis = 1000L;
+        this.autoBidDelayMillis = 2000L;
     }
 
     public static AutoBidManager getInstance() {
@@ -86,6 +87,25 @@ public class AutoBidManager {
         return true;
     }
 
+    public int cancelAgentsForBidder(int bidderId) {
+        if (bidderId <= 0) {
+            return 0;
+        }
+
+        List<Integer> agentIds = allAgents.values().stream()
+                .filter(agent -> agent.getBidderId() == bidderId && agent.isActive())
+                .map(AutoBidAgent::getAgentId)
+                .toList();
+
+        int cancelledCount = 0;
+        for (int agentId : agentIds) {
+            if (cancelAgent(agentId)) {
+                cancelledCount++;
+            }
+        }
+        return cancelledCount;
+    }
+
     public List<BidTransaction> processAutoBids(Auction auction, BidTransaction triggeredBid) {
         return processAutoBids(auction, triggeredBid, new BidTransactionDAO(), new UserDAO(), new AuctionDAO());
     }
@@ -96,6 +116,16 @@ public class AutoBidManager {
             BidTransactionDAO bidDAO,
             UserDAO userDAO,
             AuctionDAO auctionDAO) {
+        return processAutoBids(auction, triggeredBid, bidDAO, userDAO, auctionDAO, null);
+    }
+
+    public List<BidTransaction> processAutoBids(
+            Auction auction,
+            BidTransaction triggeredBid,
+            BidTransactionDAO bidDAO,
+            UserDAO userDAO,
+            AuctionDAO auctionDAO,
+            Consumer<BidTransaction> afterAutoBid) {
         List<BidTransaction> allAutoBids = new ArrayList<>();
         int auctionId = auction.getAuctionId();
 
@@ -112,6 +142,7 @@ public class AutoBidManager {
                 hasMoreBids = false;
             } else {
                 allAutoBids.addAll(roundAutoBids);
+                notifyAutoBids(roundAutoBids, afterAutoBid);
                 currentTrigger = roundAutoBids.get(roundAutoBids.size() - 1);
             }
 
@@ -130,6 +161,19 @@ public class AutoBidManager {
         }
 
         return allAutoBids;
+    }
+
+    private void notifyAutoBids(List<BidTransaction> bids, Consumer<BidTransaction> afterAutoBid) {
+        if (afterAutoBid == null || bids == null) {
+            return;
+        }
+        for (BidTransaction bid : bids) {
+            try {
+                afterAutoBid.accept(bid);
+            } catch (RuntimeException e) {
+                System.err.println("AutoBid notify error: " + e.getMessage());
+            }
+        }
     }
 
     private List<BidTransaction> processAutoBidsOneRound(

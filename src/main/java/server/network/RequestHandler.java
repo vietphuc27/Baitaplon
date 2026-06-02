@@ -145,11 +145,15 @@ public class RequestHandler {
 
     private String handleLogout(ClientHandler clientHandler) {
         String token = clientHandler == null ? null : clientHandler.getAuthToken();
+        Integer userId = clientHandler == null ? null : clientHandler.getUserId();
         if (clientHandler != null) {
             clientHandler.clearAuthentication();
         }
         if (token != null && !token.isBlank()) {
             authService.logout(token);
+        }
+        if (userId != null) {
+            AutoBidManager.getInstance().cancelAgentsForBidder(userId);
         }
         return JsonUtils.toJson(Map.of("status", "success"));
     }
