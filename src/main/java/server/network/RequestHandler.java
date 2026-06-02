@@ -400,6 +400,10 @@ public class RequestHandler {
 
     private String handleBanUser(Map<String, Object> request) {
         int userId = getRequiredInt(request, "userId");
+        int adminId = getRequiredInt(request, "adminId");
+        if (userId == adminId) {
+            throw new IllegalArgumentException("Admin không thể tự ban chính mình.");
+        }
         userService.banUser(userId);
         return JsonUtils.toJson(Map.of("status", "success"));
     }

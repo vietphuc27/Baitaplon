@@ -15,7 +15,11 @@
                             <children>
                                 <Text styleClass="header-text" text="AUCTION SYSTEM" />
                                 <TextField fx:id="usernameField" maxWidth="280.0" promptText="Username" styleClass="input-field" />
-                                <PasswordField fx:id="passwordField" maxWidth="280.0" promptText="Password" styleClass="input-field" />
+                                <StackPane maxWidth="280.0">
+                                    <PasswordField fx:id="passwordField" promptText="Password" styleClass="input-field" />
+                                    <TextField fx:id="passwordVisible" managed="false" promptText="Password" styleClass="input-field" visible="false" />
+                                    <Button fx:id="togglePasswordBtn" focusTraversable="false" mnemonicParsing="false" onAction="#togglePassword" styleClass="toggle-password-btn" text="👁" StackPane.alignment="CENTER_RIGHT" />
+                                </StackPane>
                                 <Button fx:id="loginBtn" prefWidth="280.0" styleClass="primary-button" text="LOG IN" />
                                 <Hyperlink onAction="#goToSignUp" text="Chưa có tài khoản? Đăng ký" />
                                 <Label fx:id="errorLabel" styleClass="error-text" visible="false" />
@@ -35,7 +39,11 @@
 
                                 <ComboBox fx:id="roleComboBox" prefWidth="280.0" promptText="Select Role" styleClass="combo-box-field" />
 
-                                <PasswordField fx:id="signUpPasswordField" maxWidth="280.0" promptText="Password" styleClass="input-field" />
+                                <StackPane maxWidth="280.0">
+                                    <PasswordField fx:id="signUpPasswordField" promptText="Password" styleClass="input-field" />
+                                    <TextField fx:id="signUpPasswordVisible" managed="false" promptText="Password" styleClass="input-field" visible="false" />
+                                    <Button fx:id="toggleSignUpPasswordBtn" focusTraversable="false" mnemonicParsing="false" onAction="#toggleSignUpPassword" styleClass="toggle-password-btn" text="👁" StackPane.alignment="CENTER_RIGHT" />
+                                </StackPane>
                                 <Button fx:id="registerBtn" prefWidth="280.0" styleClass="secondary-button" text="SIGN UP" />
                                 <Hyperlink onAction="#goToSignIn" text="Đã có tài khoản? Đăng nhập" />
                                 <Label fx:id="signUpErrorLabel" styleClass="error-text" visible="false" />

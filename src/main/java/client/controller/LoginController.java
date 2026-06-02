@@ -19,6 +19,10 @@ public class LoginController {
     @FXML
     private PasswordField passwordField;
     @FXML
+    private TextField passwordVisible;
+    @FXML
+    private Button togglePasswordBtn;
+    @FXML
     private Button loginBtn;
     @FXML
     private Label errorLabel;
@@ -32,6 +36,10 @@ public class LoginController {
     @FXML
     private PasswordField signUpPasswordField;
     @FXML
+    private TextField signUpPasswordVisible;
+    @FXML
+    private Button toggleSignUpPasswordBtn;
+    @FXML
     private Button registerBtn;
     @FXML
     private Label signUpErrorLabel;
@@ -41,6 +49,9 @@ public class LoginController {
     private Tab signInTab;
     @FXML
     private Tab signUpTab;
+
+    private boolean passwordShown = false;
+    private boolean signUpPasswordShown = false;
 
     @FXML
     private void initialize() {
@@ -52,13 +63,59 @@ public class LoginController {
 
         usernameField.setOnAction(this::handleLogin);
         passwordField.setOnAction(this::handleLogin);
+        passwordVisible.setOnAction(this::handleLogin);
         signUpUsernameField.setOnAction(this::handleRegister);
         emailField.setOnAction(this::handleRegister);
         roleComboBox.setOnAction(event -> registerBtn.setDefaultButton(true));
         signUpPasswordField.setOnAction(this::handleRegister);
+        signUpPasswordVisible.setOnAction(this::handleRegister);
 
         clearError(errorLabel);
         clearError(signUpErrorLabel);
+    }
+
+    @FXML
+    private void togglePassword() {
+        passwordShown = !passwordShown;
+        if (passwordShown) {
+            passwordVisible.setText(passwordField.getText());
+            passwordVisible.setVisible(true);
+            passwordVisible.setManaged(true);
+            passwordField.setVisible(false);
+            passwordField.setManaged(false);
+            togglePasswordBtn.setText("🙈");
+            passwordVisible.requestFocus();
+        } else {
+            passwordField.setText(passwordVisible.getText());
+            passwordField.setVisible(true);
+            passwordField.setManaged(true);
+            passwordVisible.setVisible(false);
+            passwordVisible.setManaged(false);
+            togglePasswordBtn.setText("👁");
+            passwordField.requestFocus();
+        }
+    }
+
+    @FXML
+    private void toggleSignUpPassword() {
+        signUpPasswordShown = !signUpPasswordShown;
+        if (signUpPasswordShown) {
+            signUpPasswordVisible.setText(signUpPasswordField.getText());
+            signUpPasswordVisible.setVisible(true);
+            signUpPasswordVisible.setManaged(true);
+            signUpPasswordField.setVisible(false);
+            signUpPasswordField.setManaged(false);
+            toggleSignUpPasswordBtn.setText("🙈");
+            signUpPasswordVisible.requestFocus();
+        } else {
+            signUpPasswordField.setText(signUpPasswordVisible.getText());
+            signUpPasswordField.setVisible(true);
+            signUpPasswordField.setManaged(true);
+            signUpPasswordVisible.setVisible(false);
+            signUpPasswordVisible.setManaged(false);
+            toggleSignUpPasswordBtn.setText("👁");
+            signUpPasswordField.requestFocus();
+        }
     }
 
     @FXML
@@ -81,7 +138,9 @@ public class LoginController {
 
     private void handleLogin(ActionEvent event) {
         String username = usernameField.getText() == null ? "" : usernameField.getText().trim();
-        String password = passwordField.getText() == null ? "" : passwordField.getText().trim();
+        String password = passwordShown
+                ? (passwordVisible.getText() == null ? "" : passwordVisible.getText().trim())
+                : (passwordField.getText() == null ? "" : passwordField.getText().trim());
 
         if (username.isEmpty() || password.isEmpty()) {
             showError(errorLabel, "Nhập username và password.");
@@ -103,7 +162,9 @@ public class LoginController {
     private void handleRegister(ActionEvent event) {
         String username = signUpUsernameField.getText() == null ? "" : signUpUsernameField.getText().trim();
         String email = emailField.getText() == null ? "" : emailField.getText().trim();
-        String password = signUpPasswordField.getText() == null ? "" : signUpPasswordField.getText().trim();
+        String password = signUpPasswordShown
+                ? (signUpPasswordVisible.getText() == null ? "" : signUpPasswordVisible.getText().trim())
+                : (signUpPasswordField.getText() == null ? "" : signUpPasswordField.getText().trim());
         String role = roleComboBox.getValue();
 
         if (username.isEmpty() || email.isEmpty() || password.isEmpty() || role == null) {

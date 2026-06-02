@@ -100,8 +100,12 @@ public class AdminController {
         UserRow selectedUser = userTable.getSelectionModel().getSelectedItem();
         if (selectedUser == null)
             return;
-        adminClient.banUser(Integer.parseInt(selectedUser.id));
-        refreshData();
+        try {
+            adminClient.banUser(Integer.parseInt(selectedUser.id));
+            refreshData();
+        } catch (RuntimeException e) {
+            showAlert(Alert.AlertType.ERROR, "Không thể ban", e.getMessage());
+        }
     }
 
     @FXML

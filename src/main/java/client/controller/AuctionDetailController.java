@@ -756,7 +756,7 @@ public class AuctionDetailController {
             @Override
             protected Image call() {
                 try {
-                    return new Image(imageUrl, 200, 150, true, true, true);
+                    return new Image(imageUrl, 600, 450, true, true, true);
                 } catch (Exception e) {
                     return null;
                 }

@@ -76,8 +76,8 @@
 
                                 <VBox prefWidth="330.0" spacing="8.0">
                                     <Label styleClass="field-label" text="Ảnh sản phẩm:" />
-                                    <VBox alignment="CENTER" prefHeight="240.0" styleClass="image-placeholder-wrap" VBox.vgrow="ALWAYS">
-                                        <ImageView fx:id="imgProduct" fitHeight="220.0" fitWidth="300.0" pickOnBounds="true" preserveRatio="true" />
+                                    <VBox alignment="CENTER" prefHeight="260.0" prefWidth="310.0" styleClass="image-placeholder-wrap" VBox.vgrow="ALWAYS">
+                                        <ImageView fx:id="imgProduct" fitHeight="240.0" fitWidth="310.0" pickOnBounds="true" preserveRatio="true" smooth="true" />
                                     </VBox>
                                 </VBox>
                             </HBox>

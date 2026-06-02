@@ -449,14 +449,22 @@ public class SellerController implements Initializable {
     }
 
     private void hideTypeSpecificFields() {
-        vboxDynamicFields.setVisible(false);
-        lblDynamicTitle.setVisible(false);
-        gridArt.setVisible(false);
-        gridArt.setManaged(false);
-        gridElectronics.setVisible(false);
-        gridElectronics.setManaged(false);
-        gridVehicle.setVisible(false);
-        gridVehicle.setManaged(false);
+        if (vboxDynamicFields != null)
+            vboxDynamicFields.setVisible(false);
+        if (lblDynamicTitle != null)
+            lblDynamicTitle.setVisible(false);
+        if (gridArt != null) {
+            gridArt.setVisible(false);
+            gridArt.setManaged(false);
+        }
+        if (gridElectronics != null) {
+            gridElectronics.setVisible(false);
+            gridElectronics.setManaged(false);
+        }
+        if (gridVehicle != null) {
+            gridVehicle.setVisible(false);
+            gridVehicle.setManaged(false);
+        }
     }
 
     private String getAuctionFormValidationError() {
