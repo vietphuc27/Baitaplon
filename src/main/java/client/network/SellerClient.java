@@ -100,6 +100,7 @@ public class SellerClient {
             String sellerId = (String) m.getOrDefault("sellerId", "");
             String statusStr = String.valueOf(m.getOrDefault("auctionStatus", m.getOrDefault("status", "-")));
             double currentPrice = m.get("currentPrice") instanceof Number n ? n.doubleValue() : 0;
+            double startingPrice = m.get("startingPrice") instanceof Number n ? n.doubleValue() : currentPrice;
             String startTimeStr = (String) m.getOrDefault("startTime", "");
             String endTimeStr = (String) m.getOrDefault("endTime", "");
             String imageUrl = (String) m.getOrDefault("imageUrl", "");
@@ -107,7 +108,7 @@ public class SellerClient {
             LocalDateTime startTime = startTimeStr.isEmpty() ? null : LocalDateTime.parse(startTimeStr);
             LocalDateTime endTime = endTimeStr.isEmpty() ? null : LocalDateTime.parse(endTimeStr);
 
-            Item item = new Item(0, itemName, "", currentPrice, sellerId) {
+            Item item = new Item(0, itemName, "", startingPrice, sellerId) {
                 @Override public String getInfo() { return itemName; }
             };
             if (imageUrl != null && !imageUrl.isEmpty()) {

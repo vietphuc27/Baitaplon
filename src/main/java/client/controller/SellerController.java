@@ -748,11 +748,14 @@ public class SellerController implements Initializable {
     }
 
     private AuctionRow toAuctionRow(Auction auction) {
+        double currentBid = auction.getCurrentHighestBid();
+        double startingPrice = auction.getItem() != null ? auction.getItem().getStartingPrice() : 0;
+        double displayCurrentPrice = currentBid > 0 ? currentBid : startingPrice;
         return new AuctionRow(
                 String.valueOf(auction.getAuctionId()),
                 auction.getItem() == null ? "-" : auction.getItem().getName(),
-                auction.getItem() == null ? "-" : formatCurrency(auction.getItem().getStartingPrice()),
-                formatCurrency(auction.getCurrentHighestBid()),
+                auction.getItem() == null ? "-" : formatCurrency(startingPrice),
+                formatCurrency(displayCurrentPrice),
                 auction.getStatus().name(),
                 FormatUtils.formatDateTime(auction.getEndTime()));
     }
