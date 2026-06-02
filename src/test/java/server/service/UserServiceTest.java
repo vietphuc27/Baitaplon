@@ -149,6 +149,30 @@ class UserServiceTest {
         assertEquals(2, users.size());
     }
 
+
+    @Test
+    void findByIdReturnsEmptyWhenUserNotFound() {
+        Optional<User> result = userService.findById(999);
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void findByIdReturnsUserWhenFound() {
+        userDAO.save(new Bidder(100, "jack", "jack@example.com", PasswordUtil.hash("x")));
+
+        Optional<User> result = userService.findById(100);
+
+        assertTrue(result.isPresent());
+        assertEquals("jack", result.get().getUsername());
+    }
+
+    @Test
+    void getAllUsersReturnsEmptyListWhenNoUsers() {
+        List<User> users = userService.getAllUsers();
+        assertTrue(users.isEmpty());
+    }
+
+
     private static final class InMemoryUserDAO extends UserDAO {
         private final Map<Integer, User> usersById = new HashMap<>();
         private final Map<String, Integer> idByUsername = new HashMap<>();

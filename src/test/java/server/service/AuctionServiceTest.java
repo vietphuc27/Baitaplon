@@ -169,6 +169,96 @@ class AuctionServiceTest {
         assertTrue(auctionDAO.updatedAuctionIds.contains(402));
     }
 
+
+    @Test
+    void createAuctionRejectsNullStartTime() {
+        Item item = new Electronics(500, "NullStart", "Desc", 100, "seller-1", 12);
+        itemService.put(item);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> auctionService.createAuction("seller-1", 500, null, LocalDateTime.now().plusHours(1)));
+    }
+
+    @Test
+    void createAuctionRejectsNullEndTime() {
+        Item item = new Electronics(501, "NullEnd", "Desc", 100, "seller-1", 12);
+        itemService.put(item);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> auctionService.createAuction("seller-1", 501, LocalDateTime.now().plusMinutes(5), null));
+    }
+
+    @Test
+    void createAuctionRejectsBlankSellerId() {
+        Item item = new Electronics(502, "BlankSeller", "Desc", 100, "seller-1", 12);
+        itemService.put(item);
+
+        LocalDateTime start = LocalDateTime.now().plusMinutes(5);
+        LocalDateTime end = LocalDateTime.now().plusHours(1);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> auctionService.createAuction("   ", 502, start, end));
+    }
+
+    @Test
+    void createAuctionRejectsZeroItemId() {
+        LocalDateTime start = LocalDateTime.now().plusMinutes(5);
+        LocalDateTime end = LocalDateTime.now().plusHours(1);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> auctionService.createAuction("seller-1", 0, start, end));
+    }
+
+    @Test
+    void createAuctionRejectsHasActiveAuction() {
+        Item item = new Electronics(504, "DupAuction", "Desc", 100, "seller-1", 12);
+        itemService.put(item);
+
+        LocalDateTime start1 = LocalDateTime.now().plusMinutes(5);
+        LocalDateTime end1 = LocalDateTime.now().plusHours(1);
+
+        Auction firstAuction = auctionService.createAuction("seller-1", 504, start1, end1);
+        assertNotNull(firstAuction);
+
+        LocalDateTime start2 = LocalDateTime.now().plusHours(2);
+        LocalDateTime end2 = LocalDateTime.now().plusHours(5);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> auctionService.createAuction("seller-1", 504, start2, end2));
+    }
+
+    @Test
+    void endAuctionBySellerRejectsClosedAuction() {
+        Auction auction = testAuction(403, AuctionStatus.FINISHED, LocalDateTime.now().minusMinutes(5), LocalDateTime.now().minusMinutes(1));
+        auction.setSellerId("seller-1");
+        auctionDAO.save(auction);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> auctionService.endAuctionBySeller("seller-1", 403));
+    }
+
+    @Test
+    void refreshAuctionsStatusHandlesEmptyListGracefully() {
+        assertDoesNotThrow(() -> auctionService.refreshAuctionsStatus());
+    }
+
+    @Test
+    void refreshAuctionsStatusDoesNotChangeFinishedAuction() {
+        Auction finished = testAuction(303, AuctionStatus.FINISHED, LocalDateTime.now().minusMinutes(10), LocalDateTime.now().minusMinutes(5));
+        auctionManager.addAuction(finished);
+
+        auctionService.refreshAuctionsStatus();
+
+        assertEquals(AuctionStatus.FINISHED, finished.getStatus());
+    }
+
+
     private Auction testAuction(int id, AuctionStatus status, LocalDateTime start, LocalDateTime end) {
         Item item = new Electronics(1000 + id, "Item " + id, "Desc", 100, "seller-1", 12);
         Auction auction = new Auction(id, item, "seller-1", start, end);

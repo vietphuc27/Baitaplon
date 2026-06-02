@@ -278,6 +278,68 @@ class BidServiceTest {
         assertSame(auction, auctionManager.getAuctionById(10));
     }
 
+
+    @Test
+    void getCurrentHighestBidReturnsNullWhenNoBids() {
+        BidTransaction result = bidService.getCurrentHighestBid("999");
+        assertNull(result);
+    }
+
+    @Test
+    void getCurrentHighestBidRejectsInvalidAuctionId() {
+        assertThrows(IllegalArgumentException.class, () -> bidService.getCurrentHighestBid("abc"));
+    }
+
+    @Test
+    void placeBidRejectsSellerBiddingOwnAuction() {
+        Bidder sellerBidder = new Bidder(111, "seller-bidder", "sb@example.com", "secret");
+        sellerBidder.getWallet().setBalance(1000.0);
+        userDAO.put(sellerBidder);
+
+        Item sellerItem = new Art(1101, "OwnItem", "Desc", 100.0, "111", "Artist");
+        Auction ownAuction = new Auction(
+                101,
+                sellerItem,
+                "111",
+                LocalDateTime.now().minusHours(1),
+                LocalDateTime.now().plusHours(1));
+        ownAuction.setStatus(AuctionStatus.RUNNING);
+        auctionDAO.save(ownAuction);
+
+        assertThrows(InvalidBidException.class, () -> bidService.placeBid(ownAuction, sellerBidder, 100.0));
+    }
+
+    @Test
+    void placeBidRejectsAuctionNotStarted() {
+        Auction futureAuction = new Auction(
+                102,
+                new Art(1102, "Future", "Desc", 100.0, "seller-1", "Artist"),
+                "seller-1",
+                LocalDateTime.now().plusMinutes(30),
+                LocalDateTime.now().plusHours(2));
+        futureAuction.setStatus(AuctionStatus.OPEN);
+        Bidder bidder = createBidder(103, 500.0);
+
+        assertThrows(InvalidBidException.class, () -> bidService.placeBid(futureAuction, bidder, 100.0));
+    }
+
+    @Test
+    void placeBidRejectsNegativeAmount() {
+        Auction auction = createRunningAuction(104, 100.0);
+        Bidder bidder = createBidder(104, 500.0);
+
+        assertThrows(InvalidBidException.class, () -> bidService.placeBid(auction, bidder, -50.0));
+    }
+
+    @Test
+    void placeBidRejectsZeroAmount() {
+        Auction auction = createRunningAuction(105, 100.0);
+        Bidder bidder = createBidder(105, 500.0);
+
+        assertThrows(InvalidBidException.class, () -> bidService.placeBid(auction, bidder, 0.0));
+    }
+
+
     private Auction createRunningAuction(int auctionId, double startingPrice) {
         Item item = new Art(1000 + auctionId, "Painting " + auctionId, "Landscape", startingPrice, "seller-1",
                 "Artist");
