@@ -1,0 +1,195 @@
+package common.models.auction;
+
+import common.models.item.Item;
+import common.models.user.Bidder;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Auction {
+    private int id;
+    private Item item;
+    private String sellerId;
+    private String sellerUsername;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
+    private double currentHighestBid;
+    private AuctionStatus status;
+
+    private Bidder currentLeader;
+    private Integer currentLeaderId;
+    private List<BidTransaction> bidHistory;
+
+    public Auction() {
+    }
+
+    public Auction(int id, Item item, String sellerId, LocalDateTime startTime, LocalDateTime endTime) {
+        this.id = id;
+        this.item = item;
+        this.sellerId = sellerId;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.currentHighestBid = 0;
+        this.status = AuctionStatus.OPEN;
+        this.bidHistory = new ArrayList<>();
+    }
+
+    public void startAuction() {
+        if (status == AuctionStatus.OPEN && startTime != null && !LocalDateTime.now().isBefore(startTime)) {
+            status = AuctionStatus.RUNNING;
+            System.out.println("Auction started");
+        }
+    }
+
+    public void endAuction() {
+        if (status == AuctionStatus.RUNNING && endTime != null && !LocalDateTime.now().isBefore(endTime)) {
+            status = AuctionStatus.FINISHED;
+            System.out.println("Auction ended");
+        }
+    }
+
+    public boolean isClosed() {
+        return this.status == AuctionStatus.FINISHED || this.status == AuctionStatus.PAID
+                || this.status == AuctionStatus.CANCELED;
+    }
+
+    public boolean processBid(BidTransaction bid) {
+        startAuction();
+        endAuction();
+
+        if (status != AuctionStatus.RUNNING) {
+            return false;
+        }
+
+        double startingPrice = item != null ? item.getStartingPrice() : 0;
+        double amount = bid.getBidAmount();
+
+        if (amount < startingPrice) {
+            return false;
+        }
+
+        if (currentHighestBid > 0 && amount <= currentHighestBid) {
+            return false;
+        }
+
+        currentHighestBid = bid.getBidAmount();
+        currentLeader = bid.getBidder();
+
+        // Auto-bid transactions may not carry a full Bidder object,
+        // so always persist the winner by bidderId as the source of truth.
+        currentLeaderId = (currentLeader != null) ? currentLeader.getId() : bid.getBidderId();
+
+        bidHistory.add(bid);
+        return true;
+    }
+
+    public int getAuctionId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public Item getItem() {
+        return item;
+    }
+
+    /**
+     * Kiểm tra xem bid có nằm trong 30 giây cuối không.
+     * Nếu có, tự động gia hạn thêm 1 phút (Anti-Sniping).
+     * 
+     * @param bidTime Thời điểm đặt giá
+     * @return true nếu đã gia hạn, false nếu không
+     */
+    public boolean checkAndExtendForSniping(LocalDateTime bidTime) {
+        if (bidTime == null || endTime == null) {
+            return false;
+        }
+        long secondsUntilEnd = ChronoUnit.SECONDS.between(bidTime, endTime);
+        if (secondsUntilEnd <= 30 && secondsUntilEnd > 0) {
+            this.endTime = this.endTime.plusMinutes(1);
+            System.out.println("Anti-Sniping: Phien dau gia " + id
+                    + " da duoc gia han them 1 phut. EndTime moi: " + endTime);
+            return true;
+        }
+        return false;
+    }
+
+    public void setEndTime(LocalDateTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public void setItem(Item item) {
+        this.item = item;
+    }
+
+    public String getSellerId() {
+        return sellerId;
+    }
+
+    public void setSellerId(String sellerId) {
+        this.sellerId = sellerId;
+    }
+
+    public String getSellerUsername() {
+        return sellerUsername;
+    }
+
+    public void setSellerUsername(String sellerUsername) {
+        this.sellerUsername = sellerUsername;
+    }
+
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalDateTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    public AuctionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AuctionStatus status) {
+        this.status = status;
+    }
+
+    public double getCurrentHighestBid() {
+        return currentHighestBid;
+    }
+
+    public void setCurrentHighestBid(double currentHighestBid) {
+        this.currentHighestBid = currentHighestBid;
+    }
+
+    public Bidder getCurrentLeader() {
+        return currentLeader;
+    }
+
+    public void setCurrentLeader(Bidder currentLeader) {
+        this.currentLeader = currentLeader;
+    }
+
+    public Integer getCurrentLeaderId() {
+        if (currentLeader != null) {
+            return currentLeader.getId();
+        }
+        return currentLeaderId;
+    }
+
+    public void setCurrentLeaderId(Integer currentLeaderId) {
+        this.currentLeaderId = currentLeaderId;
+    }
+
+    public List<BidTransaction> getBidHistory() {
+        return bidHistory;
+    }
+}
