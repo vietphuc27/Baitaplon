@@ -11,6 +11,7 @@ import common.models.user.Seller;
 import common.models.user.User;
 import common.models.user.UserStatus;
 import common.utils.JsonUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import server.manager.AutoBidManager;
 import server.manager.ConnectionManager;
@@ -34,6 +35,11 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RequestHandlerUtilityTest {
+
+    @AfterEach
+    public void tearDown() {
+        ConnectionManager.getInstance().disconnectAll();
+    }
 
     @Test
     public void handleSupportsPingLogoutAndErrorFlows() {
@@ -366,6 +372,40 @@ public class RequestHandlerUtilityTest {
     }
 
     @Test
+    public void handleCreateAuctionBroadcastsCreatedPush() throws Exception {
+        ConnectionManager manager = ConnectionManager.getInstance();
+        manager.disconnectAll();
+
+        RequestHandler handler = new RequestHandler();
+        FakeItemService itemService = new FakeItemService();
+        FakeAuctionService auctionService = new FakeAuctionService(itemService);
+        CapturingClientHandler clientHandler = new CapturingClientHandler("listener-1");
+        manager.addClient(clientHandler);
+
+        inject(handler, "itemService", itemService);
+        inject(handler, "auctionService", auctionService);
+
+        String request = "{"
+                + "\"action\":\"create_auction\","
+                + "\"sellerId\":\"s-1\","
+                + "\"itemName\":\"Laptop\","
+                + "\"itemType\":\"electronics\","
+                + "\"startPrice\":1000,"
+                + "\"description\":\"desc\","
+                + "\"startTime\":\"" + LocalDateTime.now().plusMinutes(5) + "\","
+                + "\"endTime\":\"" + LocalDateTime.now().plusHours(2) + "\""
+                + "}";
+        Map<?, ?> response = asMap(handler.handle(request, null));
+        assertEquals("success", response.get("status"));
+
+        assertEquals(1, clientHandler.sendCount);
+        Map<?, ?> push = asMap(clientHandler.lastMessage);
+        assertEquals("AUCTION_CREATED", push.get("push"));
+        assertEquals("909", push.get("auctionId"));
+        assertEquals("OPEN", push.get("auctionStatus"));
+    }
+
+    @Test
     public void handleEndAuctionAndRefreshStatusWithInjectedAuctionService() throws Exception {
         RequestHandler handler = new RequestHandler();
         FakeItemService itemService = new FakeItemService();
@@ -625,6 +665,32 @@ public class RequestHandlerUtilityTest {
         @Override
         public void refreshAuctionsStatus() {
             refreshCalled = true;
+        }
+    }
+
+    private static final class CapturingClientHandler extends ClientHandler {
+        private final String id;
+        private int sendCount;
+        private String lastMessage;
+
+        private CapturingClientHandler(String id) {
+            super(new Socket(), new RequestHandler(), ConnectionManager.getInstance());
+            this.id = id;
+        }
+
+        @Override
+        public String getClientId() {
+            return id;
+        }
+
+        @Override
+        public void send(String message) {
+            sendCount++;
+            lastMessage = message;
+        }
+
+        @Override
+        public void close() {
         }
     }
 }

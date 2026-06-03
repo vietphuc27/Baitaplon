@@ -201,6 +201,48 @@ class AuctionDetailControllerUiLightTest extends JavaFxTestSupport {
         });
     }
 
+    @Test
+    void updateHeaderOnlyShowsCountdownForOpenAndRunningAuctions() throws Exception {
+        runOnFxThread(() -> {
+            AuctionDetailController controller = new AuctionDetailController();
+            Label currentBidLabel = new Label();
+            Label countdownLabel = new Label("old counter");
+            TextArea description = new TextArea();
+            TextArea typeDetails = new TextArea();
+
+            setRequiredHeaderFields(controller, currentBidLabel, description, typeDetails);
+            setField(controller, "countdownLabel", countdownLabel);
+
+            Auction finishedAuction = auction(11, "Closed Phone", "7", AuctionStatus.FINISHED);
+            finishedAuction.setSellerUsername("seller-seven");
+            setField(controller, "auction", finishedAuction);
+            invoke(controller, "updateHeader", new Class<?>[0]);
+
+            assertFalse(countdownLabel.isVisible());
+            assertFalse(countdownLabel.isManaged());
+            assertEquals("", countdownLabel.getText());
+
+            Auction openAuction = auction(12, "Future Phone", "7", AuctionStatus.OPEN);
+            openAuction.setSellerUsername("seller-seven");
+            setField(controller, "auction", openAuction);
+            invoke(controller, "updateHeader", new Class<?>[0]);
+
+            assertTrue(countdownLabel.isVisible());
+            assertTrue(countdownLabel.isManaged());
+            assertTrue(countdownLabel.getText().startsWith("Thời gian còn lại: "));
+
+            Auction runningAuction = auction(13, "Live Phone", "7", AuctionStatus.RUNNING);
+            runningAuction.setSellerUsername("seller-seven");
+            setField(controller, "auction", runningAuction);
+            invoke(controller, "updateHeader", new Class<?>[0]);
+
+            assertTrue(countdownLabel.isVisible());
+            assertTrue(countdownLabel.isManaged());
+            assertTrue(countdownLabel.getText().startsWith("Thời gian còn lại: "));
+            return null;
+        });
+    }
+
     private Auction auction(int id, String name, String sellerId, AuctionStatus status) {
         LocalDateTime now = LocalDateTime.now();
         Auction auction = new Auction(id, item(name, sellerId), sellerId, now.minusMinutes(1), now.plusMinutes(10));

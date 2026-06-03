@@ -190,7 +190,9 @@ public class RequestHandler {
             itemCreated = true;
 
             Auction auction = auctionService.createAuction(sellerId, itemId, startTime, endTime);
-            return JsonUtils.toJson(Map.of("status", "success", "auctionId", auction.getAuctionId()));
+            String response = JsonUtils.toJson(Map.of("status", "success", "auctionId", auction.getAuctionId()));
+            broadcastPush("AUCTION_CREATED", auction);
+            return response;
         } catch (RuntimeException e) {
             if (itemCreated) {
                 cleanupItemAfterFailedAuction(itemId, sellerId);

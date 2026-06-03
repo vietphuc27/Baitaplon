@@ -5,6 +5,7 @@ import client.network.AuthClient;
 import client.network.BidClient;
 import client.network.SocketClient;
 import common.models.auction.Auction;
+import common.models.auction.AuctionStatus;
 import common.models.auction.BidTransaction;
 import common.models.item.Art;
 import common.models.item.Electronics;
@@ -452,6 +453,7 @@ public class AuctionDetailController {
         }
 
         if (!"BID_PLACED".equals(event)
+                && !"AUCTION_CREATED".equals(event)
                 && !"AUCTION_ENDED".equals(event)
                 && !"AUCTION_CANCELED".equals(event)
                 && !"AUCTION_UPDATED".equals(event)) {
@@ -689,6 +691,9 @@ public class AuctionDetailController {
     private void startCountdownTimer() {
         stopCountdownTimer();
         updateCountdownLabel();
+        if (countdownLabel == null || !shouldShowCountdown()) {
+            return;
+        }
         countdownTimeline = new Timeline(new KeyFrame(Duration.seconds(1), event -> updateCountdownLabel()));
         countdownTimeline.setCycleCount(Timeline.INDEFINITE);
         countdownTimeline.play();
@@ -703,6 +708,14 @@ public class AuctionDetailController {
 
     private void updateCountdownLabel() {
         if (countdownLabel == null) {
+            return;
+        }
+        boolean shouldShowCountdown = shouldShowCountdown();
+        countdownLabel.setVisible(shouldShowCountdown);
+        countdownLabel.setManaged(shouldShowCountdown);
+        if (!shouldShowCountdown) {
+            countdownLabel.setText("");
+            stopCountdownTimer();
             return;
         }
         countdownLabel.setText("Thời gian còn lại: " + remainingTimeText());
@@ -724,6 +737,11 @@ public class AuctionDetailController {
             refreshDataAsync();
         }
         updateBidPanelState();
+    }
+
+    private boolean shouldShowCountdown() {
+        return auction != null
+                && (auction.getStatus() == AuctionStatus.OPEN || auction.getStatus() == AuctionStatus.RUNNING);
     }
 
     private void updateProductImage(String imageUrl) {
