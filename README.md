@@ -270,3 +270,5 @@ Nếu chạy trên Windows, thay `./mvnw` bằng `.\mvnw.cmd` như các lệnh �
 - Admin xem danh sách user, khóa/mở khóa user và hủy phiên đấu giá.
 - Lưu trữ dữ liệu bằng MySQL thông qua các DAO.
 - Có unit test cho nhiều lớp client, server, service, manager, repository, model và utility.
+## 7. Link video demo
+- https://drive.google.com/file/d/1YZ7F7l8PtQcf4hvSrbrnE3q7qov_Gduw/view
