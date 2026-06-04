@@ -7,15 +7,19 @@ import common.models.user.Bidder;
 import common.models.user.Seller;
 import common.models.user.User;
 import server.manager.AuctionManager;
+import server.manager.ConnectionManager;
 import server.config.DatabaseConnection;
 import server.repository.AuctionDAO;
 import server.repository.UserDAO;
 
+import common.utils.JsonUtils;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -163,6 +167,7 @@ public class AuctionService {
                     auction.startAuction();
                     if (beforeRefresh != auction.getStatus()) {
                         System.out.println("He thong: Phien dau gia " + auction.getAuctionId() + " da BAT DAU.");
+                        broadcastStatusPush("AUCTION_STARTED", auction);
                     }
                 }
 
@@ -172,6 +177,7 @@ public class AuctionService {
                     if (beforeEnd != auction.getStatus() && auction.getStatus() == AuctionStatus.FINISHED) {
                         System.out.println("He thong: Phien dau gia " + auction.getAuctionId() + " da KET THUC.");
                         handleAuctionWinner(auction);
+                        broadcastStatusPush("AUCTION_ENDED", auction);
                     }
                 }
 
@@ -182,6 +188,16 @@ public class AuctionService {
         } finally {
             REFRESH_LOCK.unlock();
         }
+    }
+
+    // Broadcast realtime push khi status thay doi tu scheduler
+    private void broadcastStatusPush(String event, Auction auction) {
+        Map<String, Object> push = new LinkedHashMap<>();
+        push.put("push", event);
+        push.put("auctionId", String.valueOf(auction.getAuctionId()));
+        push.put("currentPrice", auction.getCurrentHighestBid());
+        push.put("auctionStatus", auction.getStatus() != null ? auction.getStatus().name() : "-");
+        ConnectionManager.getInstance().broadcast(JsonUtils.toJson(push));
     }
 
     // Lay cac phien dang RUNNING de hien thi real-time
